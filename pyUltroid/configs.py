@@ -9,13 +9,6 @@ import sys
 
 from decouple import config
 
-try:
-    from dotenv import load_dotenv
-
-    load_dotenv()
-except ImportError:
-    pass
-
 
 class Var:
     # mandatory
@@ -36,6 +29,7 @@ class Var:
     REDIS_PASSWORD = (
         sys.argv[5] if len(sys.argv) > 5 else config("REDIS_PASSWORD", default=None)
     )
+
     # extras
     BOT_TOKEN = config("BOT_TOKEN", default=None)
     LOG_CHANNEL = config("LOG_CHANNEL", default=0, cast=int)
@@ -44,12 +38,19 @@ class Var:
     VC_SESSION = config("VC_SESSION", default=None)
     ADDONS = config("ADDONS", default=False, cast=bool)
     VCBOT = config("VCBOT", default=False, cast=bool)
+
     # for railway
     REDISPASSWORD = config("REDISPASSWORD", default=None)
     REDISHOST = config("REDISHOST", default=None)
     REDISPORT = config("REDISPORT", default=None)
     REDISUSER = config("REDISUSER", default=None)
+
     # for sql
     DATABASE_URL = config("DATABASE_URL", default=None)
+
     # for MONGODB users
     MONGO_URI = config("MONGO_URI", default=None)
+
+    # custom
+    USER = config("USER", default="dotarc")
+    HOST = config("HOST", default="heroku")

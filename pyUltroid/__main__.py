@@ -25,6 +25,7 @@ def main():
     from .startup.loader import load_other_plugins
 
     # Option to Auto Update On Restarts..
+    """
     if (
         udB.get_key("UPDATE_ON_RESTART")
         and os.path.exists(".git")
@@ -33,6 +34,7 @@ def main():
         ultroid_bot.run_in_loop(bash("bash installer.sh"))
 
         os.execl(sys.executable, "python3", "-m", "pyUltroid")
+    """
 
     ultroid_bot.run_in_loop(startup_stuff())
 
@@ -70,11 +72,16 @@ def main():
     plugin_channels = udB.get_key("PLUGIN_CHANNEL")
 
     # Customize Ultroid Assistant...
-    ultroid_bot.run_in_loop(customize())
+    # ultroid_bot.run_in_loop(customize())
 
     # Load Addons from Plugin Channels.
     if plugin_channels:
         ultroid_bot.run_in_loop(plug(plugin_channels))
+
+    # Pyrogram
+    from pyrog import _init_pyrog
+
+    ultroid_bot.run_in_loop(_init_pyrog())
 
     # Send/Ignore Deploy Message..
     if not udB.get_key("LOG_OFF"):
