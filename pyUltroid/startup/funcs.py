@@ -6,8 +6,9 @@
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
 import asyncio
-import os, shutil
+import os
 import random
+import shutil
 import time
 from random import randint
 
@@ -95,10 +96,9 @@ def update_envs():
 async def startup_stuff():
     from .. import udB
 
-    x = ["resources/auth", "resources/downloads"]
+    x = ["resources/auth", "resources/downloads", "resources/temp"]
     for x in x:
-        if not os.path.isdir(x):
-            os.mkdir(x)
+        os.makedirs(x, exist_ok=True)
 
     CT = udB.get_key("CUSTOM_THUMBNAIL")
     if CT:
@@ -123,21 +123,6 @@ async def startup_stuff():
     if MM and MP:
         with open(".megarc", "w") as mega:
             mega.write(f"[Login]\nUsername = {MM}\nPassword = {MP}")
-
-    TZ = udB.get_key("TIMEZONE")
-    if TZ and timezone:
-        try:
-            timezone(TZ)
-            os.environ["TZ"] = TZ
-            time.tzset()
-        except AttributeError as er:
-            LOGS.debug(er)
-        except BaseException:
-            LOGS.critical(
-                "Incorrect Timezone ,\nCheck Available Timezone From Here https://graph.org/Ultroid-06-18-2\nSo Time is Default UTC"
-            )
-            os.environ["TZ"] = "UTC"
-            time.tzset()
 
 
 async def autobot():
@@ -383,6 +368,42 @@ async def customize():
         LOGS.exception(e)
 
 
+async def plug_unzipper(ult, chat):
+    from shutil import rmtree
+    from .utils import load_addons
+
+    moimsg = await ult.get_messages(
+        chat, search="PLUGIN_SOURCE.zip", filter=InputMessagesFilterDocument, limit=1
+    )
+    if not moimsg:
+        return True
+    x = moimsg[0]
+    if x and x.file.name == "PLUGIN_SOURCE.zip":
+        os.mkdir("tplugs")
+        LOGS.debug("Using: PLUGIN_SOURCE file")
+        temp = await x.download_media("source.zip")
+    else:
+        return True
+
+    await bash("unzip -q source.zip -d tplugs")
+    plen = len(os.listdir("tplugs/t1"))
+    os.remove("source.zip")
+    LOGS.info(f"{'•'*4} {chat} || Installing {plen} Plugins")
+    for file in os.scandir("tplugs/t1"):
+        plugin = file.name
+        _path = os.path.join("addons", plugin)
+        if os.path.exists(_path):
+            LOGS.warning(f"Plugin {plugin} already Exists in Addons folder.")
+            continue
+        try:
+            os.rename(file.path, _path)
+            load_addons(_path.split("/")[-1].replace(".py", ""))
+        except BaseException:
+            os.remove(_path)
+            LOGS.exception(f"Ultroid - PLUGIN_CHANNEL - ERROR - {plugin}")
+    rmtree("tplugs")
+
+
 async def plug(plugin_channels):
     from .. import ultroid_bot
     from .utils import load_addons
@@ -399,8 +420,11 @@ async def plug(plugin_channels):
             f.write("from plugins import *\n\nbot = ultroid_bot")
     LOGS.info("• Loading Plugins from Plugin Channel(s) •")
     for chat in plugin_channels:
-        LOGS.info(f"{'•'*4} {chat}")
+        plugUnzippr = await plug_unzipper(ultroid_bot, chat)
+        if not plugUnzippr:
+            continue
         try:
+            LOGS.info(f"{'•'*4} {chat}")
             async for x in ultroid_bot.iter_messages(
                 chat, search=".py", filter=InputMessagesFilterDocument, wait_time=10
             ):
@@ -421,8 +445,6 @@ async def plug(plugin_channels):
 
 
 # some stuffs
-
-
 async def ready():
     from .. import asst, udB, ultroid_bot
     from ..fns.tools import async_searcher
@@ -438,31 +460,37 @@ async def ready():
     else:
         MSG = f"**Ultroid has been deployed!**\n➖➖➖➖➖➖➖➖➖➖\n**UserMode**: {inline_mention(ultroid_bot.me)}\n**Assistant**: @{asst.me.username}\n➖➖➖➖➖➖➖➖➖➖\n**Support**: @TeamUltroid\n➖➖➖➖➖➖➖➖➖➖"
         BTTS, PHOTO = None, None
+
+        """
         prev_spam = udB.get_key("LAST_UPDATE_LOG_SPAM")
         if prev_spam:
             try:
                 await ultroid_bot.delete_messages(chat_id, int(prev_spam))
             except Exception as E:
                 LOGS.info("Error while Deleting Previous Update Message :" + str(E))
-        if await updater():
+
+        if await updater():  # Bot is updated at restart anyways
             BTTS = Button.inline("Update Available", "updtavail")
+        """
 
     try:
-        spam_sent = await asst.send_message(chat_id, MSG, file=PHOTO, buttons=BTTS)
+        await asst.send_message(chat_id, MSG, file=PHOTO, buttons=BTTS)
     except ValueError as e:
         try:
             await (await ultroid_bot.send_message(chat_id, str(e))).delete()
-            spam_sent = await asst.send_message(chat_id, MSG, file=PHOTO, buttons=BTTS)
+            await asst.send_message(chat_id, MSG, file=PHOTO, buttons=BTTS)
         except Exception as g:
             LOGS.info(g)
     except Exception as el:
         LOGS.info(el)
         try:
-            spam_sent = await ultroid_bot.send_message(chat_id, MSG)
+            await ultroid_bot.send_message(chat_id, MSG)
         except Exception as ef:
             LOGS.info(ef)
-    if spam_sent and not spam_sent.media:
-        udB.set_key("LAST_UPDATE_LOG_SPAM", spam_sent.id)
+
+    # if spam_sent and not spam_sent.media:
+        # udB.set_key("LAST_UPDATE_LOG_SPAM", spam_sent.id)
+
     get_ = udB.get_key("OLDANN") or []
     try:
         updts = await async_searcher(

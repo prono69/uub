@@ -5,15 +5,13 @@
 # PLease read the GNU Affero General Public License in
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
-import ast
 import os
 import sys
+from ast import literal_eval
+from copy import deepcopy
 
-from .. import run_as_module
+from ..configs import Var
 from . import *
-
-if run_as_module:
-    from ..configs import Var
 
 
 Redis = MongoClient = psycopg2 = Database = None
@@ -24,6 +22,7 @@ if (Var.REDIS_URI or Var.REDISHOST):
         LOGS.info("Installing 'redis' for database.")
         os.system("pip3 install -q redis hiredis")
         from redis import Redis
+
 elif Var.MONGO_URI:
     try:
         from pymongo import MongoClient
@@ -31,6 +30,7 @@ elif Var.MONGO_URI:
         LOGS.info("Installing 'pymongo' for database.")
         os.system("pip3 install -q pymongo[srv]")
         from pymongo import MongoClient
+
 elif Var.DATABASE_URL:
     try:
         import psycopg2
@@ -38,6 +38,7 @@ elif Var.DATABASE_URL:
         LOGS.info("Installing 'pyscopg2' for database.")
         os.system("pip3 install -q psycopg2-binary")
         import psycopg2
+
 else:
     try:
         from localdb import Database
@@ -53,18 +54,6 @@ class _BaseDatabase:
     def __init__(self, *args, **kwargs):
         self._cache = {}
 
-    def get_key(self, key):
-        if key in self._cache:
-            return self._cache[key]
-        value = self._get_data(key)
-        self._cache.update({key: value})
-        return value
-
-    def re_cache(self):
-        self._cache.clear()
-        for key in self.keys():
-            self._cache.update({key: self.get_key(key)})
-
     def ping(self):
         return 1
 
@@ -76,39 +65,88 @@ class _BaseDatabase:
         return []
 
     def del_key(self, key):
-        if key in self._cache:
-            del self._cache[key]
+        if self.to_cache:
+            self._cache.pop(key, None)
         self.delete(key)
         return True
 
     def _get_data(self, key=None, data=None):
         if key:
-            data = self.get(str(key))
+            try:
+                data = self.get(str(key))
+            except:
+                return "Wrong.Value.TypeError"
         if data:
             try:
-                data = ast.literal_eval(data)
+                data = literal_eval(str(data))
             except BaseException:
                 pass
         return data
 
+    def re_cache(self, key=None):
+        if not self.to_cache:
+            raise TypeError("Caching is disabled")
+        if key:
+            self._cache.pop(key, None)
+            if data := self.get_key(key, force=True):
+                self._cache[key] = data
+                return True
+            return "Key not found"
+        for key in self.keys():
+            self._cache.update({key: self.get_key(key, force=True)})
+
+    def get_key(self, key, force=False):
+        if not self.to_cache:
+            if key in self.keys():
+                return self._get_data(key=key)
+        elif key in self._cache:
+            return deepcopy(self._cache[key])
+        elif force:
+            if key in self.keys():
+                value = self._get_data(key=key)
+                self._cache.update({key: value})
+                return deepcopy(value)
+
     def set_key(self, key, value):
         value = self._get_data(data=value)
-        self._cache[key] = value
-        return self.set(str(key), str(value))
+        if self.to_cache:
+            self._cache.update({key: value})
+        self.set(str(key), str(value))
+        return True
 
     def rename(self, key1, key2):
-        _ = self.get_key(key1)
-        if _:
+        if val := self.get_key(key1, force=True):
             self.del_key(key1)
-            self.set_key(key2, _)
-            return 0
-        return 1
+            return self.set_key(key2, val)
+        return False
+
+    def append(self, key, value):
+        if not (data := self.get_key(key)):
+            return "Key doesn't exists!"
+        value = self._get_data(data=value)
+        if type(data) == set:
+            data.add(value)
+        elif type(data) == dict:
+            data = data | value
+        elif type(data) == list:
+            data.append(value)
+        elif type(data) == tuple:
+            lst = list(data)
+            lst.append(value)
+            data = tuple(lst)
+        else:
+            data += " " + str(value)
+        return self.set_key(key, data)
+
+# --------------------------------------------------------------------------------------------- #
 
 
 class MongoDB(_BaseDatabase):
-    def __init__(self, key, dbname="UltroidDB"):
+    def __init__(self, key, to_cache, name, dbname="UltroidDB"):
         self.dB = MongoClient(key, serverSelectionTimeoutMS=5000)
         self.db = self.dB[dbname]
+        self.to_cache = to_cache
+        self.name = name
         super().__init__()
 
     def __repr__(self):
@@ -116,7 +154,7 @@ class MongoDB(_BaseDatabase):
 
     @property
     def name(self):
-        return "Mongo"
+        return self.name
 
     @property
     def usage(self):
@@ -130,39 +168,49 @@ class MongoDB(_BaseDatabase):
         return self.db.list_collection_names()
 
     def set_key(self, key, value):
+        value = self._get_data(data=value)
         if key in self.keys():
             self.db[key].replace_one({"_id": key}, {"value": str(value)})
         else:
             self.db[key].insert_one({"_id": key, "value": str(value)})
-        self._cache.update({key: value})
+        if self.to_cache:
+            self._cache.update({key: value})
         return True
 
     def delete(self, key):
-        self.db.drop_collection(key)
+        if self.to_cache:
+            self._cache.pop(key, None)
+        if key in self.keys():
+            self.db.drop_collection(key)
+            return True
 
     def get(self, key):
         if x := self.db[key].find_one({"_id": key}):
             return x["value"]
 
-    def flushall(self):
+
+"""
+def flushall(self):
         self.dB.drop_database("UltroidDB")
         self._cache.clear()
         return True
-
+"""
 
 # --------------------------------------------------------------------------------------------- #
+
 
 # Thanks to "Akash Pattnaik" / @BLUE-DEVIL1134
 # for SQL Implementation in Ultroid.
 #
 # Please use https://elephantsql.com/ !
 
-
 class SqlDB(_BaseDatabase):
-    def __init__(self, url):
-        self._url = url
+    def __init__(self, url, to_cache, name="SQL_DB"):
         self._connection = None
         self._cursor = None
+        self.url = url
+        self.to_cache = to_cache
+        self.name = name
         try:
             self._connection = psycopg2.connect(dsn=url)
             self._connection.autocommit = True
@@ -180,7 +228,7 @@ class SqlDB(_BaseDatabase):
 
     @property
     def name(self):
-        return "SQL"
+        return self.name
 
     @property
     def usage(self):
@@ -229,14 +277,16 @@ class SqlDB(_BaseDatabase):
             return False
         return True
 
-    def flushall(self):
-        self._cache.clear()
-        self._cursor.execute("DROP TABLE Ultroid")
-        self._cursor.execute(
-            "CREATE TABLE IF NOT EXISTS Ultroid (ultroidCli varchar(70))"
-        )
-        return True
 
+"""
+def flushall(self):
+    self._cache.clear()
+    self._cursor.execute("DROP TABLE Ultroid")
+    self._cursor.execute(
+        "CREATE TABLE IF NOT EXISTS Ultroid (ultroidCli varchar(70))"
+    )
+    return True
+"""
 
 # --------------------------------------------------------------------------------------------- #
 
@@ -247,7 +297,9 @@ class RedisDB(_BaseDatabase):
         host,
         port,
         password,
+        to_cache,
         platform="",
+        name="RedisDB",
         logger=LOGS,
         *args,
         **kwargs,
@@ -266,6 +318,7 @@ class RedisDB(_BaseDatabase):
             import sys
 
             sys.exit()
+
         kwargs["host"] = host
         kwargs["password"] = password
         kwargs["port"] = port
@@ -281,21 +334,32 @@ class RedisDB(_BaseDatabase):
                 kwargs["host"] = os.environ(f"QOVERY_REDIS_{hash_}_HOST")
                 kwargs["port"] = os.environ(f"QOVERY_REDIS_{hash_}_PORT")
                 kwargs["password"] = os.environ(f"QOVERY_REDIS_{hash_}_PASSWORD")
+
         self.db = Redis(**kwargs)
         self.set = self.db.set
         self.get = self.db.get
         self.keys = self.db.keys
         self.delete = self.db.delete
+        self.to_cache = to_cache
+        self.name = name
         super().__init__()
 
     @property
     def name(self):
-        return "Redis"
+        return self.name
 
     @property
     def usage(self):
         return sum(self.db.memory_usage(x) for x in self.keys())
 
+    def real(self, key):
+        try:
+            return self.db.get(key)
+        except:
+            try:
+                return self.db.lrange(key, 0, -1)
+            except:
+                return self.db.hgetall(key)
 
 # --------------------------------------------------------------------------------------------- #
 
@@ -303,6 +367,8 @@ class RedisDB(_BaseDatabase):
 class LocalDB(_BaseDatabase):
     def __init__(self):
         self.db = Database("ultroid")
+        self.name = "LocalDB"
+        self.to_cache = True
         super().__init__()
 
     def keys(self):
@@ -311,10 +377,13 @@ class LocalDB(_BaseDatabase):
     def __repr__(self):
         return f"<Ultroid.LocalDB\n -total_keys: {len(self.keys())}\n>"
 
+# --------------------------------------------------------------------------------------------- #
+
 
 def UltroidDB():
     _er = False
     from .. import HOSTED_ON
+
     try:
         if Redis:
             return RedisDB(

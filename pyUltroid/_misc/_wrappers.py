@@ -11,9 +11,8 @@ from telethon.errors import MessageDeleteForbiddenError, MessageNotModifiedError
 from telethon.tl.custom import Message
 from telethon.tl.types import MessageService
 
+
 # edit or reply
-
-
 async def eor(event, text=None, time=None, link_preview=False, edit_time=None, **args):
     reply_to = event.reply_to_msg_id or event
     if event.out and not isinstance(event, MessageService):
@@ -44,11 +43,13 @@ async def eor(event, text=None, time=None, link_preview=False, edit_time=None, *
     return ok
 
 
+# edit or delete
 async def eod(event, text=None, **kwargs):
     kwargs["time"] = kwargs.get("time", 8)
     return await eor(event, text, **kwargs)
 
 
+# try delete
 async def _try_delete(event):
     try:
         return await event.delete()
@@ -61,5 +62,22 @@ async def _try_delete(event):
         LOGS.exception(er)
 
 
+# copy message
+async def copy_message(_msg, to_chat, **kwargs):
+    if isinstance(_msg, MessageService):
+        raise TypeError("Can't copy Service Message.")
+    text = kwargs.get("caption", _msg.text)
+    _buttons = kwargs.get("buttons", _msg.buttons)
+    [kwargs.pop(c, None) for c in ("buttons", "caption")]
+    media = _msg.media if (_msg.media and not hasattr(_msg.media, "webpage")) else None
+    try:
+        return await _msg.client.send_message(
+            to_chat, text, file=media, buttons=_buttons, **kwargs
+        )
+    except BaseException as exc:
+        raise exc
+
+
 setattr(Message, "eor", eor)
 setattr(Message, "try_delete", _try_delete)
+setattr(Message, "copy", copy_message)

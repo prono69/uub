@@ -49,6 +49,8 @@ from ._wrappers import eod
 
 MANAGER = udB.get_key("MANAGER")
 TAKE_EDITS = udB.get_key("TAKE_EDITS")
+TAKE_SUDO_EDITS = udB.get_key("TAKE_SUDO_EDITS")
+TAKE_ASST_EDITS = udB.get_key("TAKE_ASST_EDITS")
 black_list_chats = udB.get_key("BLACKLIST_CHATS")
 allow_sudo = SUDO_M.should_allow_sudo
 
@@ -243,17 +245,32 @@ def ultroid_cmd(
                 blacklist_chats=blacklist_chats,
             ),
         )
+
+        def _isEdit(x):
+            return not x.via_bot_id and not (x.is_channel and x.chat.broadcast)
+
+        if TAKE_SUDO_EDITS and allow_sudo:
+            if pattern:
+                cmd = compile_pattern(pattern, SUDO_HNDLR)
+            ultroid_bot.add_event_handler(
+                wrapp,
+                MessageEdited(
+                    outgoing=False,
+                    pattern=cmd,
+                    forwards=False,
+                    func=_isEdit,
+                    chats=chats,
+                    blacklist_chats=blacklist_chats,
+                ),
+            )
+
         if TAKE_EDITS:
-
-            def func_(x):
-                return not x.via_bot_id and not (x.is_channel and x.chat.broadcast)
-
             ultroid_bot.add_event_handler(
                 wrapp,
                 MessageEdited(
                     pattern=cmd,
                     forwards=False,
-                    func=func_,
+                    func=_isEdit,
                     chats=chats,
                     blacklist_chats=blacklist_chats,
                 ),
@@ -280,8 +297,7 @@ def ultroid_cmd(
                             )
                         except Exception as er:
                             LOGS.exception(er)
-                    LOGS.info(f"• MANAGER [{ult.chat_id}]:")
-                    LOGS.exception(er)
+                    LOGS.exception(f"• MANAGER [{ult.chat_id}]:")
 
             if pattern:
                 cmd = compile_pattern(pattern, "/")
@@ -310,6 +326,19 @@ def ultroid_cmd(
                     blacklist_chats=blacklist_chats,
                 ),
             )
+            if TAKE_ASST_EDITS:
+                asst.add_event_handler(
+                    wrapp,
+                    MessageEdited(
+                        pattern=cmd,
+                        incoming=True,
+                        forwards=False,
+                        func=func,
+                        chats=chats,
+                        blacklist_chats=blacklist_chats,
+                    ),
+                )
+
         file = Path(inspect.stack()[1].filename)
         if "addons/" in str(file):
             if LOADED.get(file.stem):
