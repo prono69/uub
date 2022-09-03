@@ -41,7 +41,7 @@ from telethon.tl.types import (
 from telethon.utils import get_peer_id
 
 from .. import LOGS, ULTConfig
-from ..fns.helper import download_file, inline_mention, updater
+from ..fns.helper import bash, download_file, inline_mention, updater
 
 
 db_url = 0
@@ -398,10 +398,11 @@ async def plug_unzipper(ult, chat):
             continue
         try:
             os.rename(file.path, _path)
-            load_addons(_path.split("/")[-1].replace(".py", ""))
-        except BaseException:
+            load_addons(_path)
+        except BaseException as exc:
             os.remove(_path)
-            LOGS.exception(f"Ultroid - PLUGIN_CHANNEL - ERROR - {plugin}")
+            LOGS.info(f"Ultroid - PLUGIN_CHANNEL - ERROR - {plugin}")
+            LOGS.exception(exc)
     rmtree("tplugs")
 
 

@@ -135,7 +135,7 @@ async def _(event):
             await xx.delete()
     else:
         await xx.edit(OUT, link_preview=not yamlf)
-    asst.create_task(evalogger(cmd, event))
+    asst.loop.create_task(evalogger(cmd, event))
 
 
 pp = pprint  # ignore: pylint
@@ -294,7 +294,7 @@ async def _(event):
             )
         return await xx.delete()
     await xx.edit(final_output)
-    asst.create_task(evalogger(cmd, event))
+    asst.loop.create_task(evalogger(cmd, event))
 
 
 def _stringify(text=None, *args, **kwargs):

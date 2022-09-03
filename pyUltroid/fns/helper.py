@@ -56,6 +56,7 @@ from . import *
 
 from ..dB._core import ADDONS, HELP, LIST, LOADED
 
+from .._helpers import osremove
 from ..version import ultroid_version
 from .FastTelethon import download_file as downloadable
 from .FastTelethon import upload_file as uploadable
