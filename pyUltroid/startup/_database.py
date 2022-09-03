@@ -13,7 +13,14 @@ from ..configs import Var
 from . import *
 
 
+# --------------------------------------------------------------------------------------------- #
+
+# DB Imports!
 Redis = MongoClient = psycopg2 = Database = None
+
+from pymongo import MongoClient
+from redis import Redis
+
 if Var.REDIS_URI or Var.REDISHOST:
     try:
         from redis import Redis
