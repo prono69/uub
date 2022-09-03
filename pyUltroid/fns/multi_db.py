@@ -3,32 +3,33 @@ import os
 from .. import LOGS, HOSTED_ON
 
 
-def connect_single_db(data, type, petname, cache):
+def _connect_single_db(data, type, petname, cache):
     from ..startup._database import MongoDB, RedisDB, SqlDB
 
     if type == "mongo":
-        yay = MongoDB(data, naam=petname, to_cache=cache)
+        name = "Mongo: " + petname
+        yay = MongoDB(key=data, _name=name, to_cache=cache)
         if yay.ping():
             return yay
         else:
             return LOGS.error(f"Error in Connecting {petname}")
 
     elif type == "sql":
-        name = "SQL: " + petname
-        yay = SqlDB(data, name)
+        name = "Sql: " + petname
+        yay = SqlDB(url=data, _name=name, to_cache=cache)
         if yay.ping():
             return yay
         else:
             return LOGS.error(f"Error in Connecting {petname}")
 
-    elif type == "redis":
+    else:  # Redis
         name = "Redis: " + petname
         stuff = data.split()
         yay = RedisDB(
             host=stuff[1],
             password=stuff[0],
             port=None,
-            naam=name,
+            _name=name,
             platform=HOSTED_ON,
             decode_responses=True,
             socket_timeout=5,
@@ -39,8 +40,6 @@ def connect_single_db(data, type, petname, cache):
             return yay
         else:
             return LOGS.error(f"Error in Connecting: {petname}")
-    else:
-        return LOGS.error("Invalid DB format: " + petname)
 
 
 def _init_multi_dbs(var):
@@ -55,7 +54,7 @@ def _init_multi_dbs(var):
     for k, v in data.items():
         co += 1
         to_cache = False
-        if type(v) is tuple:
+        if type(v) in (tuple, list):
             v, to_cache = v
         key = "udB" + str(co)
         if "redislabs.com" in v:
@@ -65,6 +64,6 @@ def _init_multi_dbs(var):
         else:
             _type = "sql"
 
-        if cx := connect_single_db(v, _type, k, to_cache):
+        if cx := _connect_single_db(v, _type, k, to_cache):
             LOGS.debug(f"MultiDB: {_type}, {k}")
             globals()[key] = cx

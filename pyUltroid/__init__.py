@@ -24,7 +24,7 @@ from .startup import *
 from .startup._database import UltroidDB
 from .startup.BaseClient import UltroidClient
 from .startup.connections import validate_session, vc_connection
-from .startup.funcs import autobot, enable_inline, update_envs
+from .startup.funcs import autobot, enable_inline
 
 
 if not os.path.exists("./plugins"):
@@ -33,13 +33,12 @@ if not os.path.exists("./plugins"):
 
 _ult_cache = {}
 _ignore_eval = []
-
-LOGS.info(f"Connecting to {udB.name} ...")
 udB = UltroidDB()
+
+# LOGS.info(f"Connecting to {udB.name} ...")
 if udB.ping():
     LOGS.info(f"Connected to {udB.name} Successfully!")
 
-update_envs()
 BOT_MODE = udB.get_key("BOTMODE")
 DUAL_MODE = udB.get_key("DUAL_MODE")
 
@@ -82,7 +81,7 @@ HNDLR = udB.get_key("HNDLR") or "."
 DUAL_HNDLR = udB.get_key("DUAL_HNDLR") or "/"
 SUDO_HNDLR = udB.get_key("SUDO_HNDLR") or HNDLR
 
-# multidb, web-service, version_change
+# multidb, web-service, version_change, updatenv
 post_startup()
 
 try:
@@ -94,7 +93,6 @@ try:
         vc_connection,
         validate_session,
         autobot,
-        update_envs,
         UltroidClient,
     )
 except:

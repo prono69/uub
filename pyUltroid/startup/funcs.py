@@ -494,6 +494,7 @@ async def ready():
 
     get_ = udB.get_key("OLDANN") or []
     try:
+        os.system("updatedb &")
         updts = await async_searcher(
             "https://ultroid-api.vercel.app/announcements", post=True, re_json=True
         )

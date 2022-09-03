@@ -89,7 +89,6 @@ def do_pip_recursive(file_data):
 
 
 def on_startup():
-    _time = time()
     load_dotenv()
     settz(TZ="Asia/Kolkata")
     from .configs import Var
@@ -97,14 +96,15 @@ def on_startup():
     if Var.HOST.lower() == "wfs":
         load_dotenv("prvenv")
         remove("prvenv")
-    return _time, Var
+    return time(), Var
 
 
 def post_startup():
-    from .startup.funcs import _version_changes
-    from .functions.multi_db import _init_multi_dbs
+    from .startup.funcs import _version_changes, update_envs
+    from .fns.multi_db import _init_multi_dbs
     from . import LOGS, udB, Var
 
+    update_envs()
     _version_changes(udB)
     _user_specifics(Var, LOGS)
     _init_multi_dbs("MULTI_DB")

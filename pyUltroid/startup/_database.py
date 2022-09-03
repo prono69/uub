@@ -7,7 +7,6 @@
 
 import os
 import sys
-from ast import literal_eval
 from copy import deepcopy
 
 from ..configs import Var
@@ -53,6 +52,8 @@ else:
 class _BaseDatabase:
     def __init__(self, *args, **kwargs):
         self._cache = {}
+        if self.to_cache:
+            self.re_cache()
 
     def ping(self):
         return 1
@@ -75,10 +76,11 @@ class _BaseDatabase:
             try:
                 data = self.get(str(key))
             except:
+                LOGS.debug(f"{self._name} | Key type err: {key}")
                 return "Wrong.Value.TypeError"
         if data:
             try:
-                data = literal_eval(str(data))
+                data = eval(str(data))
             except BaseException:
                 pass
         return data
@@ -143,11 +145,11 @@ class _BaseDatabase:
 
 
 class MongoDB(_BaseDatabase):
-    def __init__(self, key, to_cache, name, dbname="UltroidDB"):
+    def __init__(self, key, to_cache, _name="MongoDB", dbname="UltroidDB"):
         self.dB = MongoClient(key, serverSelectionTimeoutMS=5000)
         self.db = self.dB[dbname]
         self.to_cache = to_cache
-        self.name = name
+        self._name = _name
         super().__init__()
 
     def __repr__(self):
@@ -155,7 +157,7 @@ class MongoDB(_BaseDatabase):
 
     @property
     def name(self):
-        return self.name
+        return self._name
 
     @property
     def usage(self):
@@ -207,12 +209,12 @@ def flushall(self):
 
 
 class SqlDB(_BaseDatabase):
-    def __init__(self, url, to_cache, name="SQL_DB"):
+    def __init__(self, url, to_cache, _name="SQL_DB"):
         self._connection = None
         self._cursor = None
         self.url = url
         self.to_cache = to_cache
-        self.name = name
+        self._name = _name
         try:
             self._connection = psycopg2.connect(dsn=url)
             self._connection.autocommit = True
@@ -230,7 +232,7 @@ class SqlDB(_BaseDatabase):
 
     @property
     def name(self):
-        return self.name
+        return self._name
 
     @property
     def usage(self):
@@ -301,7 +303,7 @@ class RedisDB(_BaseDatabase):
         password,
         to_cache,
         platform="",
-        name="RedisDB",
+        _name="RedisDB",
         logger=LOGS,
         *args,
         **kwargs,
@@ -343,12 +345,12 @@ class RedisDB(_BaseDatabase):
         self.keys = self.db.keys
         self.delete = self.db.delete
         self.to_cache = to_cache
-        self.name = name
+        self._name = _name
         super().__init__()
 
     @property
     def name(self):
-        return self.name
+        return self._name
 
     @property
     def usage(self):
@@ -370,12 +372,16 @@ class RedisDB(_BaseDatabase):
 class LocalDB(_BaseDatabase):
     def __init__(self):
         self.db = Database("ultroid")
-        self.name = "LocalDB"
+        self._name = "LocalDB"
         self.to_cache = True
         super().__init__()
 
     def keys(self):
         return self._cache.keys()
+
+    @property
+    def name(self):
+        return self._name
 
     def __repr__(self):
         return f"<Ultroid.LocalDB\n -total_keys: {len(self.keys())}\n>"
@@ -398,11 +404,13 @@ def UltroidDB():
                 decode_responses=True,
                 socket_timeout=5,
                 retry_on_timeout=True,
+                to_cache=True,
+                _name="Redis",
             )
         if MongoClient:
-            return MongoDB(Var.MONGO_URI)
+            return MongoDB(key=Var.MONGO_URI, _name="Mongo", to_cache=True)
         if psycopg2:
-            return SqlDB(Var.DATABASE_URL)
+            return SqlDB(url=Var.DATABASE_URL, to_cache=True, _name="SQL")
     except BaseException as err:
         LOGS.exception(err)
         _er = True
@@ -413,6 +421,5 @@ def UltroidDB():
     if HOSTED_ON == "termux":
         return LocalDB()
     exit()
-
 
 # --------------------------------------------------------------------------------------------- #

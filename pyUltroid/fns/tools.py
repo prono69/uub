@@ -957,9 +957,9 @@ def _get_value(stri):
     try:
         value = eval(stri.strip())
     except Exception as er:
-        from .. import LOGS
+        # from .. import LOGS
 
-        LOGS.debug(er)
+        # LOGS.debug(er)
         value = stri.strip()
     return value
 

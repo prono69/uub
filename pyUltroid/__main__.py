@@ -9,8 +9,6 @@ from . import *
 
 
 def main():
-    import os
-    import sys
     import time
 
     from .fns.helper import time_formatter, updater, bash
