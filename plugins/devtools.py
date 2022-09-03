@@ -19,6 +19,7 @@ from pprint import pprint
 from telethon.utils import get_display_name
 
 from pyUltroid import _ignore_eval
+from pyUltroid.fns.multi_db import *
 
 from . import *
 
@@ -33,26 +34,29 @@ try:
     from yaml import safe_load
 except ImportError:
     from pyUltroid.fns.tools import safe_load
+
 try:
     from telegraph import upload_file as uf
 except ImportError:
     uf = None
+
 from telethon.tl import functions
 
 fn = functions
 
 
 @ultroid_cmd(
-    pattern="sysinfo$",
+    pattern="(sysinfo|neofetch)$",
 )
 async def _(e):
     xx = await e.eor(get_string("com_1"))
     x, y = await bash("neofetch|sed 's/\x1B\\[[0-9;\\?]*[a-zA-Z]//g' >> neo.txt")
     if y and y.endswith("NOT_FOUND"):
         return await xx.edit(f"Error: `{y}`")
-    with open("neo.txt", "r") as neo:
-        p = (neo.read()).replace("\n\n", "")
-    haa = await Carbon(code=p, file_name="neofetch", backgroundColor=choice(ATRA_COL))
+    np = await asyncread("neo.txt")
+    all_col = (await asyncread("resources/colorlist.txt")).splitlines()
+    p = np.replace("\n\n", "")
+    haa = await Carbon(code=p, file_name="neofetch", backgroundColor=choice(all_col))
     await e.reply(file=haa)
     await xx.delete()
     remove("neo.txt")
@@ -69,6 +73,7 @@ async def _(event):
     except IndexError:
         return await event.eor(get_string("devs_1"), time=10)
     xx = await event.eor(get_string("com_1"))
+    LOGS.debug(cmd)
     reply_to_id = event.reply_to_msg_id or event.id
     stdout, stderr = await bash(cmd, run_code=1)
     OUT = f"**☞ BASH\n\n• COMMAND:**\n`{cmd}` \n\n"
@@ -76,22 +81,20 @@ async def _(event):
     if stderr:
         err = f"**• ERROR:** \n`{stderr}`\n\n"
     if stdout:
-        if (carb or udB.get_key("CARBON_ON_BASH")) and (
-            event.is_private
-            or event.chat.admin_rights
-            or event.chat.creator
-            or event.chat.default_banned_rights.embed_links
-        ):
+        if carb or udB.get_key("CARBON_ON_BASH"):
+            colors = (await asyncread("resources/colorlist.txt")).splitlines()
             li = await Carbon(
                 code=stdout,
                 file_name="bash",
                 download=True,
-                backgroundColor=choice(ATRA_COL),
+                backgroundColor=choice(colors),
             )
-            url = f"https://graph.org{uf(li)[-1]}"
+            url = await get_imgbb_link(
+                "_bash", expire=7200, delete=True, preview=True,
+            )
+            # url = f"https://graph.org{uf(li)[-1]}"
             OUT = f"[\xad]({url}){OUT}"
             out = "**• OUTPUT:**"
-            remove(li)
         else:
             if "pip" in cmd and all(":" in line for line in stdout.split("\n")):
                 try:
@@ -122,13 +125,14 @@ async def _(event):
                 force_document=True,
                 thumb=ULTConfig.thumb,
                 allow_cache=False,
-                caption=f"`{cmd}`" if len(cmd) < 998 else None,
+                caption=f"```{cmd[:1000]}```",
                 reply_to=reply_to_id,
             )
 
             await xx.delete()
     else:
         await xx.edit(OUT, link_preview=not yamlf)
+    asst.create_task(evalogger(cmd, event))
 
 
 pp = pprint  # ignore: pylint
@@ -161,7 +165,7 @@ async def _(event):
         cmd = event.text.split(maxsplit=1)[1]
     except IndexError:
         return await event.eor(get_string("devs_2"), time=5)
-    silent, gsource, xx = False, False, None
+    silent, gsource, xx, carb = False, False, None, False
     spli = cmd.split()
 
     async def get_():
@@ -176,22 +180,30 @@ async def _(event):
         await event.delete()
         silent = True
         cmd = await get_()
+    elif spli[0] in ["-c", "--carbon"]:
+        carb = True
+        cmd = await get_()
     elif spli[0] in ["-n", "-noedit"]:
         cmd = await get_()
         xx = await event.reply(get_string("com_1"))
     elif spli[0] in ["-gs", "--source"]:
         gsource = True
         cmd = await get_()
+
     if not cmd:
         return
+
     if not silent and not xx:
         xx = await event.eor(get_string("com_1"))
+    if event.chat_id != -1001774703582:
+        LOGS.debug(cmd)
     if black:
         try:
             cmd = black.format_str(cmd, mode=black.Mode())
         except BaseException:
             # Consider it as Code Error, and move on to be shown ahead.
             pass
+
     reply_to_id = event.reply_to_msg_id or event
     if any(item in cmd for item in KEEP_SAFE().All) and (
         not (event.out or event.sender_id == ultroid_bot.uid)
@@ -200,7 +212,8 @@ async def _(event):
         await warning.reply(
             f"Malicious Activities suspected by {inline_mention(await event.get_sender())}"
         )
-        _ignore_eval.append(event.sender_id)
+        if not udB.get_key("_SKIP_WARNINGS"):
+            _ignore_eval.append(event.sender_id)
         return await xx.edit(
             "`Malicious Activities suspected⚠️!\nReported to owner. Aborted this request!`"
         )
@@ -242,11 +255,26 @@ async def _(event):
     tmt = tima * 1000
     timef = time_formatter(tmt)
     timeform = timef if not timef == "0s" else f"{tmt:.3f}ms"
-    final_output = "__►__ **EVAL** (__in {}__)\n```{}``` \n\n __►__ **OUTPUT**: \n```{}``` \n".format(
-        timeform,
-        cmd,
-        evaluation,
-    )
+    if carb:
+        colors = (await asyncread("resources/colorlist.txt")).splitlines()
+        lin = await Carbon(
+            code=evaluation,
+            file_name="_eval",
+            download=True,
+            backgroundColor=choice(colors),
+        )
+        url = await get_imgbb_link(
+            "_eval", expire=7200, delete=True, preview=True,
+        )
+        final_output = (
+            f"__►__ **EVAL** (__in {timeform}__)\n```{cmd}``` \n\n __►__ **OUTPUT**: [⁮⁮⁮\xad]({url})"
+        )
+    else:
+        final_output = "__►__ **EVAL** (__in {}__)\n```{}``` \n\n __►__ **OUTPUT**: \n```{}``` \n".format(
+            timeform,
+            cmd,
+            evaluation,
+        )
     if len(final_output) > 4096:
         final_output = evaluation
         with BytesIO(str.encode(final_output)) as out_file:
@@ -257,11 +285,12 @@ async def _(event):
                 force_document=True,
                 thumb=ULTConfig.thumb,
                 allow_cache=False,
-                caption=f"```{cmd}```" if len(cmd) < 998 else None,
+                caption=f"```{cmd[:1000]}```",
                 reply_to=reply_to_id,
             )
         return await xx.delete()
     await xx.edit(final_output)
+    asst.create_task(evalogger(cmd, event))
 
 
 def _stringify(text=None, *args, **kwargs):
@@ -269,6 +298,23 @@ def _stringify(text=None, *args, **kwargs):
         u._ = text
         text = _parse_eval(text)
     return print(text, *args, **kwargs)
+
+
+async def evalogger(cmd, e):
+    await asyncio.sleep(1)
+    msg = "<b>CMD Executed!</b> \n\n<code>{0}</code> \n\n–  {1}:  {2} \n–  <a href='{3}'>{4}</a>"
+    sndr = e.sender or await e.get_sender()
+    try:
+        _msg = msg.format(
+            cmd,
+            get_display_name(sndr),
+            inline_mention(sndr, custom=sndr.id, html=True),
+            await msg_link(e),
+            get_display_name(e.chat or await e.get_chat()),
+        )
+        await asst.send_message(TAG_LOG, _msg, link_preview=False, parse_mode="html")
+    except BaseException:
+        return LOGS.exception("EVAL Logger error")
 
 
 async def aexec(code, event):

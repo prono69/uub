@@ -62,7 +62,8 @@ async def all_messages_catcher(e):
             TAG_EDITS[e.chat_id].update({e.id: {"id": sent.id, "msg": e}})
         else:
             TAG_EDITS.update({e.chat_id: {e.id: {"id": sent.id, "msg": e}}})
-        tag_add(sent.id, e.chat_id, e.id)
+        if udB.get_key("TAGLOG_REPLIES"):
+            tag_add(sent.id, e.chat_id, e.id)
     except MediaEmptyError:
         try:
             msg = await asst.get_messages(e.chat_id, ids=e.id)
@@ -71,7 +72,8 @@ async def all_messages_catcher(e):
                 TAG_EDITS[e.chat_id].update({e.id: {"id": sent.id, "msg": e}})
             else:
                 TAG_EDITS.update({e.chat_id: {e.id: {"id": sent.id, "msg": e}}})
-            tag_add(sent.id, e.chat_id, e.id)
+            if udB.get_key("TAGLOG_REPLIES"):
+                tag_add(sent.id, e.chat_id, e.id)
         except Exception as me:
             if not isinstance(me, (PeerIdInvalidError, ValueError)):
                 LOGS.exception(me)
@@ -161,7 +163,7 @@ if udB.get_key("TAG_LOG"):
         else:
             msg = True
             d_.update({"count": 1})
-        if d_["count"] > 10:
+        if d_["count"] > 6:
             return  # some limit to take edits
         try:
             MSG = await asst.get_messages(udB.get_key("TAG_LOG"), ids=d_["id"])
@@ -175,7 +177,7 @@ if udB.get_key("TAG_LOG"):
             TEXT += f"\n• `{strf}` : {event.text}"
         else:
             TEXT += f"\n• `{strf}` :\n-> {event.text}"
-        if d_["count"] == 10:
+        if d_["count"] == 6:
             TEXT += "\n\n• __Only the first 10 Edits are shown.__"
         try:
             msg = await MSG.edit(TEXT, buttons=await parse_buttons(event))
@@ -185,21 +187,22 @@ if udB.get_key("TAG_LOG"):
         except Exception as er:
             LOGS.exception(er)
 
-    @ultroid_bot.on(
-        events.NewMessage(
-            outgoing=True,
-            chats=[udB.get_key("TAG_LOG")],
-            func=lambda e: e.reply_to,
+    if udB.get_key("TAGLOG_REPLIES"):
+        @ultroid_bot.on(
+            events.NewMessage(
+                outgoing=True,
+                chats=[udB.get_key("TAG_LOG")],
+                func=lambda e: e.reply_to,
+            )
         )
-    )
-    async def idk(e):
-        id = e.reply_to_msg_id
-        chat, msg = who_tag(id)
-        if chat and msg:
-            try:
-                await ultroid_bot.send_message(chat, e.message, reply_to=msg)
-            except BaseException as er:
-                LOGS.exception(er)
+        async def idk(e):
+            id = e.reply_to_msg_id
+            chat, msg = who_tag(id)
+            if chat and msg:
+                try:
+                    await ultroid_bot.send_message(chat, e.message, reply_to=msg)
+                except BaseException as er:
+                    LOGS.exception(er)
 
 
 # log for assistant/user joins/add

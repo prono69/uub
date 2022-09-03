@@ -52,6 +52,7 @@ async def DummyHandler(ult):
             stik_id = chat_count / 100 - 1
             sticker = stickers[stik_id]
             await ult.respond(file=sticker)
+
     # force subscribe
     if (
         udB.get_key("FORCESUB")
@@ -75,6 +76,8 @@ async def DummyHandler(ult):
     if ult.user_joined or ult.added_by:
         user = await ult.get_user()
         chat = await ult.get_chat()
+
+        """
         # gbans and @UltroidBans checks
         if udB.get_key("ULTROID_BANS"):
             try:
@@ -94,9 +97,11 @@ async def DummyHandler(ult):
                         chat.id,
                         f'**@UltroidBans:** Banned user detected and banned!\n`{str(is_banned)}`.\nBan reason: {is_banned["reason"]}',
                     )
-
             except BaseException:
                 pass
+        """
+
+        # gban check
         reason = is_gbanned(user.id)
         if reason and chat.admin_rights:
             try:
@@ -143,14 +148,13 @@ async def DummyHandler(ult):
                 btn = create_tl_btn(wel["button"])
                 await something(ult, msg, med, btn)
             elif msg:
-                send = await ult.reply(
-                    msg,
-                    file=med,
-                )
-                await asyncio.sleep(150)
-                await send.delete()
+                await ult.reply(msg, file=med)
+                # await asyncio.sleep(150)
+                # await send.delete()
             else:
                 await ult.reply(file=med)
+
+    # left users
     elif (ult.user_left or ult.user_kicked) and get_goodbye(ult.chat_id):
         user = await ult.get_user()
         chat = await ult.get_chat()
@@ -193,34 +197,38 @@ async def DummyHandler(ult):
             await ult.reply(file=med)
 
 
-@ultroid_bot.on(events.NewMessage(incoming=True))
-async def chatBot_replies(e):
-    sender = await e.get_sender()
-    if not isinstance(sender, types.User):
-        return
-    key = udB.get_key("CHATBOT_USERS") or {}
-    if e.text and key.get(e.chat_id) and sender.id in key[e.chat_id]:
-        msg = await get_chatbot_reply(e.message.message)
-        if msg:
-            sleep = udB.get_key("CHATBOT_SLEEP") or 1.5
-            await asyncio.sleep(sleep)
-            await e.reply(msg)
-    chat = await e.get_chat()
-    if e.is_group and not sender.bot:
-        if sender.username:
-            await uname_stuff(e.sender_id, sender.username, sender.first_name)
-    elif e.is_private and not sender.bot:
-        if chat.username:
-            await uname_stuff(e.sender_id, chat.username, chat.first_name)
-    if detector and is_profan(e.chat_id) and e.text:
-        x, y = detector(e.text)
-        if y:
-            await e.delete()
+if udB.get_key("CHATBOT_USERS"):
+
+    @ultroid_bot.on(events.NewMessage(incoming=True))
+    async def chatBot_replies(e):
+        sender = await e.get_sender()
+        if not isinstance(sender, types.User):
+            return
+        key = udB.get_key("CHATBOT_USERS") or {}
+        if e.text and key.get(e.chat_id) and sender.id in key[e.chat_id]:
+            msg = await get_chatbot_reply(e.message.message)
+            if msg:
+                sleep = udB.get_key("CHATBOT_SLEEP") or 1.5
+                await asyncio.sleep(sleep)
+                await e.reply(msg)
+        chat = await e.get_chat()
+        if e.is_group and not sender.bot:
+            if sender.username:
+                await uname_stuff(e.sender_id, sender.username, sender.first_name)
+        elif e.is_private and not sender.bot:
+            if chat.username:
+                await uname_stuff(e.sender_id, chat.username, chat.first_name)
+        if detector and is_profan(e.chat_id) and e.text:
+            x, y = detector(e.text)
+            if y:
+                await e.delete()
 
 
-@ultroid_bot.on(events.Raw(types.UpdateUserName))
-async def uname_change(e):
-    await uname_stuff(e.user_id, e.username, e.first_name)
+if udB.get_key("USERNAME_LOG"):
+
+    @ultroid_bot.on(events.Raw(types.UpdateUserName))
+    async def uname_change(e):
+        await uname_stuff(e.user_id, e.username, e.first_name)
 
 
 async def uname_stuff(id, uname, name):

@@ -28,6 +28,7 @@ from . import (
     asst,
     get_string,
     inline_pic,
+    random_pic,
     split_list,
     start_time,
     udB,
@@ -98,9 +99,10 @@ async def inline_handler(event):
         len(HELP.get("Addons", [])),
         len(z),
     )
-    if inline_pic():
+    pic = await random_pic(True, True) if udB.get_key("RANDOM_PIC") else inline_pic()
+    if pic:
         result = await event.builder.photo(
-            file=inline_pic(),
+            file=pic,
             link_preview=False,
             text=text,
             buttons=_main_help_menu,
@@ -109,7 +111,7 @@ async def inline_handler(event):
         result = await event.builder.article(
             title="Ultroid Help Menu", text=text, buttons=_main_help_menu
         )
-    await event.answer([result], private=True, cache_time=300, gallery=True)
+    await event.answer([result], private=True, cache_time=30, gallery=True)
 
 
 @in_pattern("pasta", owner=True)
@@ -142,7 +144,7 @@ async def setting(event):
             len(HELP.get("Addons", [])),
             len(z),
         ),
-        file=inline_pic(),
+        file=await random_pic(True, True) if udB.get_key("RANDOM_PIC") else inline_pic(),
         link_preview=False,
         buttons=[
             [

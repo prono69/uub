@@ -4,6 +4,7 @@
 # This file is a part of < https://github.com/TeamUltroid/Ultroid/ >
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
+
 """
 ✘ Commands Available
 
@@ -34,21 +35,18 @@ from . import (
     ultroid_cmd,
 )
 
-HEROKU_API = None
-HEROKU_APP_NAME = None
 
+HEROKU_API, HEROKU_APP_NAME = None, None
 if HOSTED_ON == "heroku":
-    heroku_api, app_name = Var.HEROKU_API, Var.HEROKU_APP_NAME
-    try:
-        if heroku_api and app_name:
-            import heroku3
+    from pyUltroid.heroku import Heroku as _Heroku
 
-            Heroku = heroku3.from_key(heroku_api)
-            app = Heroku.app(app_name)
-            HEROKU_API = heroku_api
-            HEROKU_APP_NAME = app_name
-    except BaseException as er:
-        LOGS.exception(er)
+    if err := _Heroku.get("err"):
+        LOGS.exception(err)
+
+    Heroku = _Heroku.get("api")
+    app = _Heroku.get("app")
+    HEROKU_API = _Heroku.get("api_key")
+    HEROKU_APP_NAME = _Heroku.get("app_name")
 
 
 @ultroid_cmd(pattern="usage")
@@ -112,7 +110,7 @@ async def heroku_usage():
     user_id = Heroku.account().id
     headers = {
         "User-Agent": choice(some_random_headers),
-        "Authorization": f"Bearer {heroku_api}",
+        "Authorization": f"Bearer {HEROKU_API}",
         "Accept": "application/vnd.heroku+json; version=3.account-quotas",
     }
     her_url = f"https://api.heroku.com/accounts/{user_id}/actions/get-quota"
@@ -137,7 +135,7 @@ async def heroku_usage():
         AppQuotaUsed = App[0]["quota_used"] / 60
         AppPercentage = math.floor(App[0]["quota_used"] * 100 / quota)
     AppHours = math.floor(AppQuotaUsed / 60)
-    AppMinutes = math.floor(AppQuotaUsed % 60)
+    AppMinutes = math.floor(AppQuotaUsed % 60
     total, used, free = shutil.disk_usage(".")
     _ = shutil.disk_usage("/")
     disk = _.used / _.total * 100
@@ -168,16 +166,16 @@ async def heroku_usage():
 
 
 def db_usage():
-    if udB.name == "Mongo":
-        total = 512
-    elif udB.name == "Redis":
+    if udB.name.lower().startswith("redis"):
         total = 30
-    elif udB.name == "SQL":
+    elif udB.name.lower().startswith("sql"):
         total = 20
+    elif udB.name.lower().startswith("mongo"):
+        total = 512
     total = total * (2**20)
     used = udB.usage
-    a = f"{humanbytes(used)}/{humanbytes(total)}"
-    b = f"{str(round((used / total) * 100, 2))}%"
+    a = humanbytes(used) + "/" + humanbytes(total)
+    b = str(round((used / total) * 100, 2)) + "%"
     return f"**{udB.name}**\n\n**Storage Used**: `{a}`\n**Usage percentage**: **{b}**"
 
 

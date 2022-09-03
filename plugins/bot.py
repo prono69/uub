@@ -84,6 +84,11 @@ The Ultroid Userbot
   ◍ Telethon - {}
 """
 
+_BRANCH = os.getenv("BRANCH")
+if not Repo:
+    _REPO = "https://github.com/TeamUltroid/Ultroid.git"
+else:
+    _REPO = Repo().remotes[0].config_reader.get("url").replace(".git", "")
 in_alive = "{}\n\n🌀 <b>Ultroid Version -><b> <code>{}</code>\n🌀 <b>PyUltroid -></b> <code>{}</code>\n🌀 <b>Python -></b> <code>{}</code>\n🌀 <b>Uptime -></b> <code>{}</code>\n🌀 <b>Branch -></b> [ {} ]\n\n• <b>Join @TeamUltroid</b>"
 
 
@@ -108,17 +113,19 @@ async def lol(ult):
         except BaseException as er:
             LOGS.exception(er)
         inline = True
-    pic = udB.get_key("ALIVE_PIC")
+    pic = (
+        await random_pic(re_photo=True)
+        if udB.get_key("RANDOM_PIC")
+        else udB.get_key("ALIVE_PIC")
+    )
     if isinstance(pic, list):
         pic = choice(pic)
     uptime = time_formatter((time.time() - start_time) * 1000)
     header = udB.get_key("ALIVE_TEXT") or get_string("bot_1")
-    y = Repo().active_branch
-    xx = Repo().remotes[0].config_reader.get("url")
-    rep = xx.replace(".git", f"/tree/{y}")
-    kk = f" `[{y}]({rep})` "
+    rep = _REPO.replace(".git", f"/tree/{_BRANCH}")
+    kk = f" `[{_BRANCH}]({rep})` "
     if inline:
-        kk = f"<a href={rep}>{y}</a>"
+        kk = f"<a href={rep}>{_BRANCH}</a>"
         parse = "html"
         als = in_alive.format(
             header,
@@ -210,6 +217,10 @@ async def restartbt(ult):
     udB.set_key("_RESTART", f"{who}_{ult.chat_id}_{ok.id}")
     if heroku_api:
         return await restart(ok)
+    elif Var.HOST.lower() == "wfs":
+        await ultroid_bot.send_message(LOG_CHANNEL, "/wfs restart")
+        return
+
     await bash("git pull && pip3 install -r requirements.txt")
     if len(sys.argv) > 1:
         os.execl(sys.executable, sys.executable, "main.py")
@@ -236,8 +247,7 @@ async def _(event):
         await heroku_logs(event)
     elif opt == "carbon" and Carbon:
         event = await event.eor(get_string("com_1"))
-        with open(file, "r") as f:
-            code = f.read()[-2500:]
+        code = (await asyncread(file))[-2500:]
         file = await Carbon(
             file_name="ultroid-logs",
             code=code,
@@ -245,8 +255,7 @@ async def _(event):
         )
         await event.reply("**Ultroid Logs.**", file=file)
     elif opt == "open":
-        with open("ultroid.log", "r") as f:
-            file = f.read()[-4000:]
+        file = (await asyncread(file))[-4000:]
         return await event.eor(f"`{file}`")
     else:
         await def_logs(event, file)
@@ -255,12 +264,16 @@ async def _(event):
 
 @in_pattern("alive", owner=True)
 async def inline_alive(ult):
-    pic = udB.get_key("ALIVE_PIC")
+    pic = (
+        await random_pic(re_photo=True)
+        if udB.get_key("RANDOM_PIC")
+        else udB.get_key("ALIVE_PIC")
+    )
     if isinstance(pic, list):
         pic = choice(pic)
     uptime = time_formatter((time.time() - start_time) * 1000)
     header = udB.get_key("ALIVE_TEXT") or get_string("bot_1")
-    y = Repo().active_branch
+    y = os.getenv("_BRANCH")
     xx = Repo().remotes[0].config_reader.get("url")
     rep = xx.replace(".git", f"/tree/{y}")
     kk = f"<a href={rep}>{y}</a>"
@@ -308,21 +321,26 @@ async def inline_alive(ult):
 @ultroid_cmd(pattern="update( (.*)|$)")
 async def _(e):
     xx = await e.eor(get_string("upd_1"))
-    if e.pattern_match.group(1).strip() and (
-        "fast" in e.pattern_match.group(1).strip()
-        or "soft" in e.pattern_match.group(1).strip()
-    ):
-        await bash("git pull -f && pip3 install -r requirements.txt")
-        call_back()
+    args = e.pattern_match.group(2)
+
+    if args and args in ("fast", "soft", "now"):
+        await asyncio.sleep(2)
         await xx.edit(get_string("upd_7"))
-        os.execl(sys.executable, "python3", "-m", "pyUltroid")
-        # return
+        call_back()
+        if HOSTED_ON != "heroku":
+            await bash("git pull -f && pip3 install --no-cache-dir -r requirements.txt")
+            os.execl(sys.executable, "python3", "-m", "pyUltroid")
+            return
+        else:
+            return await restart(xx, EDIT=False)
+
     m = await updater()
-    branch = (Repo.init()).active_branch
+    branch = os.getenv("_BRANCH")
     if m:
+        pic = await random_pic(re_photo=True) if udB.get_key("RANDOM_PIC") else ULTPIC
         x = await asst.send_file(
             udB.get_key("LOG_CHANNEL"),
-            ULTPIC(),
+            pic,
             caption="• **Update Available** •",
             force_document=False,
             buttons=Button.inline("Changelogs", data="changes"),
@@ -344,9 +362,10 @@ async def _(e):
 @callback("updtavail", owner=True)
 async def updava(event):
     await event.delete()
+    pic = await random_pic(re_photo=True) if udB.get_key("RANDOM_PIC") else ULTPIC
     await asst.send_file(
         udB.get_key("LOG_CHANNEL"),
-        ULTPIC(),
+        pic,
         caption="• **Update Available** •",
         force_document=False,
         buttons=Button.inline("Changelogs", data="changes"),

@@ -15,7 +15,7 @@ from telethon.tl.custom import Button
 from pyUltroid.dB._core import HELP, LIST
 from pyUltroid.fns.tools import cmd_regex_replace
 
-from . import HNDLR, LOGS, OWNER_NAME, asst, get_string, inline_pic, udB, ultroid_cmd
+from . import HNDLR, LOGS, OWNER_NAME, asst, get_string, inline_pic, random_pic, udB, ultroid_cmd
 
 _main_help_menu = [
     [
@@ -123,7 +123,9 @@ async def _help(ult):
                     len(HELP["Addons"] if "Addons" in HELP else []),
                     cmd,
                 ),
-                file=inline_pic(),
+                file=await random_pic(re_photo=True)
+                if udB.get_key("RANDOM_PIC")
+                else INLINE_PIC,
                 buttons=_main_help_menu,
             )
         except BotResponseTimeoutError:

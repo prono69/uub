@@ -117,20 +117,21 @@ class pyroDL:
 
     async def download(self, **kwargs):
         _msg = await self.copy_msg()
-        if type(_msg) is str:
+        if type(_msg) == str:
             return await self.event.edit(_msg)
         await asyncio.sleep(0.6)
         self.msg = await self.client.get_messages(DUMP_CHANNEL, _msg.id)
         self.updateAttrs(kwargs)
         self.client = app(self.dc)
-        dl = await self.dls()
+        dlx = await self.dls()
         if self.auto_edit:
-            if isinstance(dl, Exception):
-                await self.event.edit(f"err in pyroDL: `{dl}`")
+            if isinstance(dlx, Exception):
+                await self.event.edit(f"err in pyroDL: `{dlx}`")
             else:
                 await self.event.edit(
-                    f"Downloaded \n`{self.filename}` \nin {self.dl_time}"
+                    f"Successfully Downloaded \n`{dlx}` \nin {self.dl_time}"
                 )
+        return dlx
 
     async def dls(self):
         args = {"message": self.msg, "file_name": self.filename}
@@ -269,7 +270,7 @@ class pyroUL:
             return "`File Size = 0 B...`"
 
     def sleepTime(self):
-        return 3.5 if len(self.path) < 13 else 6
+        return 3 if len(self.path) < 12 else 6.25
 
     async def getMetadata(self):
         self.metadata = media_info(self.file)

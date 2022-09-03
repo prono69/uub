@@ -33,7 +33,7 @@ OWNER_NAME = ultroid_bot.full_name
 OWNER_ID = ultroid_bot.uid
 
 LOG_CHANNEL = udB.get_key("LOG_CHANNEL")
-
+TAG_LOG = udB.get_key("TAG_LOG")
 
 def inline_pic():
     INLINE_PIC = udB.get_key("INLINE_PIC")
@@ -42,7 +42,6 @@ def inline_pic():
     elif INLINE_PIC == False:
         INLINE_PIC = None
     return INLINE_PIC
-
 
 Telegraph = telegraph_client()
 
@@ -93,3 +92,10 @@ ATRA_COL = [
     "Moccasin",
     "PowderBlue",
 ]
+
+# might need
+STUFF_1 = []
+STUFF_2 = {}
+STUFF_3 = []
+STUFF_4 = {}
+STUFF_5 = set()

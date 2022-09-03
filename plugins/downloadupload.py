@@ -130,6 +130,20 @@ async def download(event):
     await xx.eor(get_string("udl_2").format(file_name, t))
 
 
+@ultroid_cmd(pattern="xdl(?: |$)(.*)")
+async def pyro_dl(event):
+    args = getFlags(event.text)
+    ok = await event.get_reply_message()
+    if not ok:
+        return await event.eor("`Reply to a file to download.`", time=8)
+
+    xx = await event.eor(get_string("com_1"))
+    from pyUltroid.fns._transfer import pyroDL
+
+    dlx = pyroDL(event=xx, source=ok)
+    await dlx.download(**args.kwargs)
+
+
 @ultroid_cmd(
     pattern="ul( (.*)|$)",
 )
@@ -220,3 +234,23 @@ async def _(event):
             caption=f"`Uploaded` `{result}` `in {time_formatter(_*1000)}`",
         )
     await msg.try_delete()
+
+
+@ultroid_cmd(pattern="xul(?: |$)(.*)")
+async def pyro_ul(e):
+    msg = await e.eor(get_string("com_1"))
+    args = getFlags(e.text, merge_args=True)
+    match = args.args
+    if not match or match[0] == ".env":
+        return await msg.edit("Give some path.")
+    match = match[0]
+    if args.kwargs.pop("g", None):
+        n = glob.glob(match)
+        match = list(filter(lambda c: os.path.isfile(c), n))
+        if not match:
+            return await msg.edit("Incorrect path or no files in folder")
+
+    from pyUltroid.fns._transfer import pyroUL
+
+    dlx = pyroUL(event=msg, _path=match)
+    await dlx.upload(**args.kwargs)
