@@ -5,16 +5,11 @@
 # PLease read the GNU Affero General Public License in
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
+import os
+import sys
 import logging
 
-from .. import (
-    os,
-    run_as_module,
-    sys,
-    ultroid_version,
-    Var,
-    __version__ as __pyUltroid__,
-)
+from .. import ultroid_version, Var, __version__ as __pyUltroid__
 
 
 def where_hosted():

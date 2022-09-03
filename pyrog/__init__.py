@@ -10,6 +10,7 @@
 # Edited on 13-05-2022 // for pyrogram v2.
 # 28-06-2022 // added asyncio.gather for faster startup.
 
+
 import asyncio
 from ast import literal_eval
 from copy import deepcopy

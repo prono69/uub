@@ -7,12 +7,12 @@
 
 import base64
 import os
-import random
 import re
+import random
 import string
 from logging import WARNING
-from random import choice, randrange, shuffle
 from traceback import format_exc
+from random import choice, choices, randrange, shuffle, sample
 
 from pyUltroid.exceptions import DependencyMissingError
 
@@ -26,10 +26,8 @@ from telethon.utils import get_display_name, get_peer_id
 
 from .. import *
 from .._misc._wrappers import eor
-
-if run_as_module:
-    from ..dB import DEVLIST
-    from ..dB._core import LIST
+from ..dB import DEVLIST
+from ..dB._core import LIST
 
 from . import some_random_headers
 from .tools import async_searcher, check_filename, json_parser
@@ -66,6 +64,9 @@ try:
     from bs4 import BeautifulSoup
 except ImportError:
     BeautifulSoup = None
+
+
+# --------------------------------------------------
 
 
 async def randomchannel(
@@ -188,6 +189,78 @@ async def ReTrieveFile(input_file_name):
             await file.write(await out.read())
             await file.close()
             return True, name
+
+
+# ---------------- ImgBB & Random Pic ----------------------------------
+
+
+async def get_imgbb_link(path, **kwargs):
+    if not (api := udB.get_key("IMGBB_API")):
+        return
+    async with aiofiles.open(path, "rb") as f:
+        image_data = await f.read()
+    if kwargs.get("delete"):
+        os.remove(path)
+    post = await async_searcher(
+        "https://api.imgbb.com/1/upload",
+        post=True,
+        data={
+            "key": api,
+            "image": image_data,
+            "name": kwargs.get("title", random_string(8)),
+            "expiration": str(kwargs.get("expire", 0)),
+        },
+        re_json=True,
+    )
+    if post.get("status") == 200:
+        flink = (
+            post["data"]["url"]
+            if kwargs.get("hq")
+            else post["data"]["display_url"]
+        )
+        if kwargs.get("preview"):
+            await asst.send_message(udB.get_key("TAG_LOG"), flink, link_preview=True)
+            await asyncio.sleep(2.5)
+        return flink
+    else:
+        return LOGS.error("ImgBB err: " + post["error"])
+
+
+async def random_pic(re_photo=False, old_media=False, custom=False):
+    from telethon.tl.types import InputMessagesFilterPhotos
+
+    u = udB.get_key("RANDOM_PIC")
+    items = list()
+    if custom:
+        return udB.get_key(custom)
+    if re_photo:
+        if not old_media:
+            udB.set_key("RANDOM_PIC", u[1:])
+        return u[0]
+    elif len(u) >= 12:
+        return
+
+    channels = [("r_wallpapers", 9547, 22000), ("Anime_hot_wallpapers", 5, 5800)]
+    for _ in range(14 - len(u)):
+        chn = choice(channels)
+        async for x in ultroid_bot.iter_messages(
+            chn[0],
+            limit=1,
+            filter=InputMessagesFilterPhotos,
+            offset_id=randrange(chn[1], chn[2]),
+        ):
+            txt = chn[0] + "_" + str(x.id)
+            await asyncio.sleep(randrange(9, 21))
+            dlx = await x.download_media()
+            if link := await get_imgbb_link(
+                dlx, expire=24 * 8 * 60 * 60, title=txt, delete=True
+            ):
+                await asst.send_message(
+                    int(udB.get_key("TAG_LOG")), link, link_preview=True
+                )
+                items.append(link)
+
+    udB.set_key("RANDOM_PIC", u + items)
 
 
 # ---------------- Unsplash Search ----------------
@@ -555,7 +628,21 @@ def rotate_image(image, angle):
 
 def random_string(length=3):
     """Generate random string of 'n' Length"""
-    return "".join(random.choices(string.ascii_uppercase, k=length))
+    return "".join(choices(string.ascii_uppercase, k=length))
+
+
+def rnd_str(length=12, digits=True, symbols=False):
+    from secrets import choice
+
+    lst = list(string.ascii_letters)
+    if digits:
+        lst.extend(list(string.digits))
+    if symbols:
+        lst.extend(list(string.punctuation))
+
+    [shuffle(lst) for _ in range(length // 2)]
+    rnd = "".join(choice(lst) for _ in range(length + 10))
+    return "".join(sample(rnd, length))
 
 
 setattr(random, "random_string", random_string)

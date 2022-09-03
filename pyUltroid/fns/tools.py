@@ -8,12 +8,13 @@
 import json
 import math
 import os
-import random
 import re
 import secrets
 import ssl
+from random import choice
 from io import BytesIO
 from json.decoder import JSONDecodeError
+from shlex import quote as shq
 from traceback import format_exc
 
 from .. import LOGS
@@ -37,14 +38,15 @@ try:
     from requests.exceptions import MissingSchema
 except ImportError:
     requests = None
+
 from telethon import Button
+from pymediainfo import MediaInfo
 from telethon.tl.types import DocumentAttributeAudio, DocumentAttributeVideo
 
 from .. import *
 from .helper import bash, run_async
 
-if run_as_module:
-    from ..dB.filestore_db import get_stored_msg, store_msg
+from ..dB.filestore_db import get_stored_msg, store_msg
 
 try:
     import numpy as np
@@ -55,6 +57,7 @@ try:
     from telegraph import Telegraph
 except ImportError:
     Telegraph = None
+
 
 # ~~~~~~~~~~~~~~~~~~~~OFOX API~~~~~~~~~~~~~~~~~~~~
 # @buddhhu
@@ -158,7 +161,7 @@ def is_url_ok(url: str):
 
 
 async def metadata(file):
-    out, _ = await bash(f'mediainfo "{_unquote_text(file)}" --Output=JSON')
+    out, _ = await bash(f"mediainfo {shq(file)} --Output=JSON")
     if _ and _.endswith("NOT_FOUND"):
         raise Exception(_)
     data = {}
@@ -179,6 +182,89 @@ async def metadata(file):
         data["bitrate"] = int(_info[1].get("BitRate", 320))
     data["duration"] = int(float(info.get("Duration", 0)))
     return data
+
+
+# ~~~~~~~~~~~~~~~~ Media_Info ~~~~~~~~~~~~~~~~
+
+
+def media_info(file):
+    try:
+        obj = MediaInfo.parse(file)
+        gtrack = obj.general_tracks[0]
+    except FileNotFoundError:
+        return "File doesn't exist on Server"
+    except (RuntimeError, IndexError):
+        return "Mediainfo failed to Parse the file"
+
+    def _conv(n):  # converts to integer
+        if not n:
+            return 0
+        elif type(n) in (int, float):
+            return int(n)
+        try:
+            return int(float(n))
+        except:
+            return 0
+
+    def _get(obj, var, _def=None):
+        return getattr(obj, var, _def)
+
+    def _audio_stuff(track):
+        dct = {"title": "Unknown Track", "artist": "Unknown Artist"}
+        _pre = {
+            "title": ("title", "track_name", "file_name_extension"),
+            "artist": ("performer", "album"),
+        }
+        for k, v in _pre.items():
+            for i in v:
+                if value := _get(track, i):
+                    dct[k] = value
+                    break
+        return tuple(dct.values())
+
+    if dct := obj.image_tracks:  # Image, Gifs
+        dct = dct[0]
+        info = {
+            "type": "image",
+            "width": _conv(_get(dct, "width")),
+            "height": _conv(_get(dct, "height")),
+        }
+        frmt = _get(dct, "format")
+        if frmt and frmt.lower() == "gif":
+            info["type"] = "gif"
+            info["duration"] = _conv(_get(gtrack, "duration")) // 1000
+        elif os.path.getsize(file) > 5 * 1024 * 1024:
+            info["type"] = "document"
+
+    elif dct := obj.video_tracks:  # Video, WebM
+        stream = dct[0]
+        info = {
+            "type": "video",
+            "duration": _conv(_get(stream, "duration")) // 1000,
+            "width": _conv(_get(stream, "width")),
+            "height": _conv(_get(stream, "height")),
+            "frames": _conv(_get(stream, "frame_count")),
+        }
+        if gtrack.format.lower() == "webm" and info["duration"] < 3:
+            info["type"] = "sticker"
+
+    elif obj.audio_tracks:  # Audio
+        title, artist = _audio_stuff(gtrack)
+        info = {
+            "type": "audio",
+            "duration": _conv(_get(gtrack, "duration")) // 1000,
+            "title": title,
+            "artist": artist,
+        }
+    else:
+        info = {"type": "document"}  # document
+
+    # filters: webp, tgs, size
+    info["size"] = humanbytes(os.path.getsize(file))
+    if ext := _get(gtrack, "file_extension"):
+        if ext.lower() in ("tgs", "webp"):
+            info["type"] = "sticker"
+    return info
 
 
 # ~~~~~~~~~~~~~~~~ Attributes ~~~~~~~~~~~~~~~~
@@ -407,7 +493,6 @@ async def get_paste(data: str, extension: str = "txt"):
 
 # Thanks https://t.me/KukiUpdates/23 for ChatBotApi
 
-
 async def get_chatbot_reply(message):
     chatbot_base = "https://kukiapi.xyz/api/apikey=ULTROIDUSERBOT/Ultroid/{}/message={}"
     req_link = chatbot_base.format(
@@ -436,16 +521,30 @@ def check_filename(filroid):
 
 
 # https://github.com/1Danish-00/CompressorBot/blob/main/helper/funcn.py#L104
-
+# changes / edits by @spemgod
 
 async def genss(file):
-    return (await metadata(file)).get("duration")
+    dur = media_info(file).get("duration")
+    if dur not in (0, None):
+        return dur
+    LOGS.debug(f"ffprobing {file = }")
+    x, _ = await bash(
+        f"ffprobe -hide_banner -i {shq(file)} -v quiet -print_format json -show_format"
+    )
+    try:
+        x = json.loads(x)
+        if dur := x["format"].get("duration"):
+            return int(float(dur))
+    except BaseException:
+        LOGS.exception("genss: Json decode")
+        return 0
 
 
 async def duration_s(file, stime):
     tsec = await genss(file)
-    x = round(tsec / 5)
-    y = round(tsec / 5 + int(stime))
+    rnd = choice((0.33, 0.5, 0.6, 0.75, 0.25, 0.45))
+    x = round(tsec * rnd)
+    y = round(tsec * rnd + int(stime))
     pin = stdr(x)
     pon = stdr(y) if y < tsec else stdr(tsec)
     return pin, pon
@@ -469,8 +568,8 @@ def stdr(seconds):
 
 # ------------------- used in pdftools --------------------#
 
-# https://www.pyimagesearch.com/2014/08/25/4-point-opencv-getperspective-transform-example
 
+# https://www.pyimagesearch.com/2014/08/25/4-point-opencv-getperspective-transform-example
 
 def order_points(pts):
     "get the required points"
@@ -506,8 +605,9 @@ def four_point_transform(image, pts):
 
 
 # ------------------------------------- Telegraph ---------------------------------- #
-TELEGRAPH = []
 
+
+TELEGRAPH = []
 
 def telegraph_client():
     if not Telegraph:
@@ -619,7 +719,7 @@ def _package_rpc(text, lang_src="auto", lang_tgt="auto"):
     GOOGLE_TTS_RPC = ["MkEWBc"]
     parameter = [[text.strip(), lang_src, lang_tgt, True], [1]]
     escaped_parameter = json.dumps(parameter, separators=(",", ":"))
-    rpc = [[[random.choice(GOOGLE_TTS_RPC), escaped_parameter, None, "generic"]]]
+    rpc = [[[choice(GOOGLE_TTS_RPC), escaped_parameter, None, "generic"]]]
     espaced_rpc = json.dumps(rpc, separators=(",", ":"))
     freq_initial = "f.req={}&".format(quote(espaced_rpc))
     freq = freq_initial
@@ -683,7 +783,7 @@ class TgConverter:
                 f"lottie_convert.py --webp-quality 100 --webp-skip-frames 100 '{file}' '{out_path}'"
             )
         else:
-            er, out = await bash(f"lottie_convert.py '{file}' '{out_path}'")
+            er, out = await bash(f"lottie_convert.py {shq(file)} {shq(out_path)}")
         if er and throw:
             raise LottieException(er)
         if remove:
@@ -695,7 +795,7 @@ class TgConverter:
     async def animated_to_gif(file, out_path="gif.gif"):
         """Convert animated sticker to gif."""
         await bash(
-            f"lottie_convert.py '{_unquote_text(file)}' '{_unquote_text(out_path)}'"
+            f"lottie_convert.py {shq(file)} {shq(out_path)}"
         )
         return out_path
 
@@ -730,9 +830,9 @@ class TgConverter:
                 input_, name=output[:-5], remove=remove
             )
         if output.endswith(".gif"):
-            await bash(f"ffmpeg -i '{input_}' -an -sn -c:v copy '{output}.mp4' -y")
+            await bash(f"ffmpeg -i {shq(input_)} -an -sn -c:v copy {shq(output)}.mp4 -y")
         else:
-            await bash(f"ffmpeg -i '{input_}' '{output}' -y")
+            await bash(f"ffmpeg -i {shq(input_)} {shq(output)} -y")
         if remove:
             os.remove(input_)
         if os.path.exists(output):
@@ -751,7 +851,7 @@ class TgConverter:
             if w > h:
                 h, w = -1, 512
         await bash(
-            f'ffmpeg -i "{file}" -preset fast -an -to 00:00:03 -crf 30 -bufsize 256k -b:v {_["bitrate"]} -vf "scale={w}:{h},fps=30" -c:v libvpx-vp9 "{name}" -y'
+            f'ffmpeg -i {shq(file)} -preset fast -an -to 00:00:03 -crf 30 -bufsize 256k -b:v {_["bitrate"]} -vf "scale={w}:{h},fps=30" -c:v libvpx-vp9 {shq(name)} -y'
         )
         if remove:
             os.remove(file)

@@ -94,30 +94,24 @@ async def download_yt(event, link, ytd):
                     f"`[{num}/{total}]` `Invalid Video format.\nIgnoring that...`",
                 )
                 return
-            attributes = await set_attributes(file)
-            res, _ = await event.client.fast_uploader(
-                file, show_progress=True, event=event, to_delete=True
-            )
-            from_ = info["extractor"].split(":")[0]
-            caption = f"`[{num}/{total}]` `{title}`\n\n`from {from_}`"
-            await event.client.send_file(
-                event.chat_id,
-                file=res,
+            from pyUltroid.fns._transfer import pyroUL
+
+            ulx = pyroUL(event=event, _path=file)
+            await ulx.upload(
                 caption=caption,
-                attributes=attributes,
-                supports_streaming=True,
-                thumb=thumb,
+                to_delete=True,
                 reply_to=reply_to,
+                auto_edit=False,
+                thumb=thumb,
+                delay=6,
             )
-            os.remove(thumb)
         try:
             await event.delete()
         except BaseException:
             pass
         return
-    title = info["title"]
-    if len(title) > 20:
-        title = title[:17] + "..."
+
+    title = info["title"][:50]
     id_ = info["id"]
     thumb = id_ + ".jpg"
     await download_file(
@@ -141,21 +135,17 @@ async def download_yt(event, link, ytd):
         os.rename(id, file)
     except FileNotFoundError:
         os.rename(id + ext, file)
-    attributes = await set_attributes(file)
-    res, _ = await event.client.fast_uploader(
-        file, show_progress=True, event=event, to_delete=True
-    )
-    caption = f"`{info['title']}`"
-    await event.client.send_file(
-        event.chat_id,
-        file=res,
+    from pyUltroid.fns._transfer import pyroUL
+
+    ulx = pyroUL(event=event, _path=file)
+    await ulx.upload(
         caption=caption,
-        attributes=attributes,
-        supports_streaming=True,
-        thumb=thumb,
+        to_delete=True,
         reply_to=reply_to,
+        auto_edit=False,
+        thumb=thumb,
+        delay=6,
     )
-    os.remove(thumb)
     try:
         await event.delete()
     except BaseException:
