@@ -490,7 +490,7 @@ async def ready():
             LOGS.info(ef)
 
     # if spam_sent and not spam_sent.media:
-        # udB.set_key("LAST_UPDATE_LOG_SPAM", spam_sent.id)
+    # udB.set_key("LAST_UPDATE_LOG_SPAM", spam_sent.id)
 
     get_ = udB.get_key("OLDANN") or []
     try:

@@ -135,7 +135,7 @@ async def heroku_usage():
         AppQuotaUsed = App[0]["quota_used"] / 60
         AppPercentage = math.floor(App[0]["quota_used"] * 100 / quota)
     AppHours = math.floor(AppQuotaUsed / 60)
-    AppMinutes = math.floor(AppQuotaUsed % 60
+    AppMinutes = math.floor(AppQuotaUsed % 60)
     total, used, free = shutil.disk_usage(".")
     _ = shutil.disk_usage("/")
     disk = _.used / _.total * 100

@@ -82,7 +82,7 @@ def load_other_plugins(addons=None, pmbot=None, manager=None, vcbot=None):
             # generally addons req already there so it won't take much time
             # os.system("rm -rf /usr/local/lib/python3.9/site-packages/pip/_vendor/.wh.appdirs.py")
             # os.system("pip3 install --no-cache-dir -q -r ./addons/addons.txt")
-            pass  # no need for all this 
+            pass  # no need for all this
 
         _exclude = udB.get_key("EXCLUDE_ADDONS")
         _exclude = _exclude.split() if _exclude else []

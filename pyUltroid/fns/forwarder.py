@@ -54,6 +54,7 @@ def _getname(dct, name):
         n += 1
     return name
 
+
 # ~~~~~~~~~~~~~~ DB Handler ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -61,6 +62,7 @@ def fwdb(chat_, id_):
     a = udB.get_key("FRWD_DB")
     a[chat_][1] = id_
     udB.set_key("FRWD_DB", a)
+
 
 # ~~~~~~~~~~~~~~ Iterator ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -109,6 +111,7 @@ async def iterr(chat, id):
         LOGS.debug(f"Forwarded {len(IDS)} from {title_(chat)}")
         return IDS
 
+
 # ~~~~~~~~~~~~~~ Sender ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -137,6 +140,7 @@ async def fx_send(file, cap, title="Not Given"):
 
             await cleargif(snd)
 
+
 # ~~~~~~~~~~~~~~ Album Handler ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -145,6 +149,7 @@ async def fx_album(dct):
         cap = CAPTION_.format("³", title_(o[0].chat), o[0].message_link, o[0].text)
         await fx_send(o, cap, title_(o[0].chat))
         await asyncio.sleep(2)
+
 
 # ~~~~~~~~~~~~~~ Photo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -162,6 +167,7 @@ async def fx_photo(args):
     else:
         return
     await fx_send(pic, cap, title_(args.chat))
+
 
 # ~~~~~~~~~~~~~~ Video ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -181,5 +187,6 @@ async def fx_video(args):
     else:
         return
     await fx_send(vid, cap, title_(args.chat))
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

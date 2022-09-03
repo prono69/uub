@@ -493,6 +493,7 @@ async def get_paste(data: str, extension: str = "txt"):
 
 # Thanks https://t.me/KukiUpdates/23 for ChatBotApi
 
+
 async def get_chatbot_reply(message):
     chatbot_base = "https://kukiapi.xyz/api/apikey=ULTROIDUSERBOT/Ultroid/{}/message={}"
     req_link = chatbot_base.format(
@@ -522,6 +523,7 @@ def check_filename(filroid):
 
 # https://github.com/1Danish-00/CompressorBot/blob/main/helper/funcn.py#L104
 # changes / edits by @spemgod
+
 
 async def genss(file):
     dur = media_info(file).get("duration")
@@ -571,6 +573,7 @@ def stdr(seconds):
 
 # https://www.pyimagesearch.com/2014/08/25/4-point-opencv-getperspective-transform-example
 
+
 def order_points(pts):
     "get the required points"
     rect = np.zeros((4, 2), dtype="float32")
@@ -608,6 +611,7 @@ def four_point_transform(image, pts):
 
 
 TELEGRAPH = []
+
 
 def telegraph_client():
     if not Telegraph:
@@ -794,9 +798,7 @@ class TgConverter:
     @staticmethod
     async def animated_to_gif(file, out_path="gif.gif"):
         """Convert animated sticker to gif."""
-        await bash(
-            f"lottie_convert.py {shq(file)} {shq(out_path)}"
-        )
+        await bash(f"lottie_convert.py {shq(file)} {shq(out_path)}")
         return out_path
 
     @staticmethod
@@ -830,7 +832,9 @@ class TgConverter:
                 input_, name=output[:-5], remove=remove
             )
         if output.endswith(".gif"):
-            await bash(f"ffmpeg -i {shq(input_)} -an -sn -c:v copy {shq(output)}.mp4 -y")
+            await bash(
+                f"ffmpeg -i {shq(input_)} -an -sn -c:v copy {shq(output)}.mp4 -y"
+            )
         else:
             await bash(f"ffmpeg -i {shq(input_)} {shq(output)} -y")
         if remove:

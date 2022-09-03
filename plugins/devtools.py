@@ -90,7 +90,10 @@ async def _(event):
                 backgroundColor=choice(colors),
             )
             url = await get_imgbb_link(
-                "_bash", expire=7200, delete=True, preview=True,
+                "_bash",
+                expire=7200,
+                delete=True,
+                preview=True,
             )
             # url = f"https://graph.org{uf(li)[-1]}"
             OUT = f"[\xad]({url}){OUT}"
@@ -264,11 +267,12 @@ async def _(event):
             backgroundColor=choice(colors),
         )
         url = await get_imgbb_link(
-            "_eval", expire=7200, delete=True, preview=True,
+            "_eval",
+            expire=7200,
+            delete=True,
+            preview=True,
         )
-        final_output = (
-            f"__►__ **EVAL** (__in {timeform}__)\n```{cmd}``` \n\n __►__ **OUTPUT**: [⁮⁮⁮\xad]({url})"
-        )
+        final_output = f"__►__ **EVAL** (__in {timeform}__)\n```{cmd}``` \n\n __►__ **OUTPUT**: [⁮⁮⁮\xad]({url})"
     else:
         final_output = "__►__ **EVAL** (__in {}__)\n```{}``` \n\n __►__ **OUTPUT**: \n```{}``` \n".format(
             timeform,

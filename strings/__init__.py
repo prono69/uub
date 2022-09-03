@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Union
 from glob import glob
 from pyUltroid import *
 from pyUltroid.fns.tools import translate
+
 try:
     from yaml import safe_load
 except ModuleNotFoundError:
@@ -52,10 +53,12 @@ def get_string(key: str, _res: bool = True) -> Any:
             return None
         return languages["en"].get(key) or f"Failed to load language string '{key}'"
 
+
 def get_help(key):
     doc = get_string(key, _res=False)
     if doc:
         return get_string("cmda") + doc
+
 
 def get_languages() -> Dict[str, Union[str, List[str]]]:
     return {

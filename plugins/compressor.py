@@ -153,5 +153,9 @@ async def compressor(e):
 
     x = pyroUL(event=xxx, _path=out)
     await x.upload(
-        caption=caption, delete_file=True, reply_to=reply_to, _log=False, **args.kwargs,
+        caption=caption,
+        delete_file=True,
+        reply_to=reply_to,
+        _log=False,
+        **args.kwargs,
     )

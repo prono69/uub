@@ -144,7 +144,9 @@ async def setting(event):
             len(HELP.get("Addons", [])),
             len(z),
         ),
-        file=await random_pic(True, True) if udB.get_key("RANDOM_PIC") else inline_pic(),
+        file=await random_pic(True, True)
+        if udB.get_key("RANDOM_PIC")
+        else inline_pic(),
         link_preview=False,
         buttons=[
             [

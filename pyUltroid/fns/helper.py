@@ -138,9 +138,7 @@ async def safeinstall(event):
     from ..startup.utils import load_addons
 
     if not event.reply_to:
-        return await eod(
-            event, f"Please use `{HNDLR}install` as reply to a .py file."
-        )
+        return await eod(event, f"Please use `{HNDLR}install` as reply to a .py file.")
     ok = await eor(event, "`Installing...`")
     reply = await event.get_reply_message()
     if not (
@@ -231,17 +229,13 @@ async def def_logs(ult, file):
 
 
 async def updateme_requirements():
-    await bash(
-        f"{sys.executable} -m pip install --no-cache-dir -r requirements.txt"
-    )
+    await bash(f"{sys.executable} -m pip install --no-cache-dir -r requirements.txt")
 
 
 @run_async
 def gen_chlog(repo, diff):
     """Generate Changelogs..."""
-    UPSTREAM_REPO_URL = (
-        Repo().remotes[0].config_reader.get("url").replace(".git", "")
-    )
+    UPSTREAM_REPO_URL = Repo().remotes[0].config_reader.get("url").replace(".git", "")
     ac_br = os.getenv("BRANCH")  # repo.active_branch.name
     ch_log = tldr_log = ""
     ch = f"<b>Ultroid {ultroid_version} updates for <a href={UPSTREAM_REPO_URL}/tree/{ac_br}>[{ac_br}]</a>:</b>"
@@ -291,6 +285,7 @@ async def cleargif(gif):
 
 # Will add in class
 
+
 async def updater():
     from .. import LOGS
 
@@ -326,6 +321,7 @@ async def updater():
 # ----------------Fast Upload/Download----------------
 
 # @1danish_00 @new-dev0 @buddhhu
+
 
 async def uploader(file, name, taime, event, msg):
     with open(file, "rb") as f:
@@ -678,4 +674,3 @@ class getFlags:
         except BaseException:
             pass
         return text
-

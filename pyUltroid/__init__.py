@@ -14,9 +14,11 @@ from .version import __version__, ultroid_version
 run_as_module = True
 start_time, Var = on_startup()
 
+
 class ULTConfig:
     lang = "en"
     thumb = "resources/extras/ultroid.jpg"
+
 
 from .startup import *
 from .startup._database import UltroidDB
@@ -26,9 +28,7 @@ from .startup.funcs import autobot, enable_inline, update_envs
 
 
 if not os.path.exists("./plugins"):
-    LOGS.error(
-        "'plugins' folder not found!\nMake sure that, you are on correct path."
-    )
+    LOGS.error("'plugins' folder not found!\nMake sure that, you are on correct path.")
     exit()
 
 _ult_cache = {}
@@ -50,9 +50,7 @@ if BOT_MODE:
     ultroid_bot = None
 
     if not udB.get_key("BOT_TOKEN"):
-        LOGS.critical(
-            '"BOT_TOKEN" not Found! Please add it, in order to use "BOTMODE"'
-        )
+        LOGS.critical('"BOT_TOKEN" not Found! Please add it, in order to use "BOTMODE"')
         sys.exit()
 else:
     ultroid_bot = UltroidClient(

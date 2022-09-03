@@ -35,6 +35,7 @@ OWNER_ID = ultroid_bot.uid
 LOG_CHANNEL = udB.get_key("LOG_CHANNEL")
 TAG_LOG = udB.get_key("TAG_LOG")
 
+
 def inline_pic():
     INLINE_PIC = udB.get_key("INLINE_PIC")
     if INLINE_PIC is None:
@@ -42,6 +43,7 @@ def inline_pic():
     elif INLINE_PIC == False:
         INLINE_PIC = None
     return INLINE_PIC
+
 
 Telegraph = telegraph_client()
 

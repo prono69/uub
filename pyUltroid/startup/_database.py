@@ -15,7 +15,7 @@ from . import *
 
 
 Redis = MongoClient = psycopg2 = Database = None
-if (Var.REDIS_URI or Var.REDISHOST):
+if Var.REDIS_URI or Var.REDISHOST:
     try:
         from redis import Redis
     except ImportError:
@@ -138,6 +138,7 @@ class _BaseDatabase:
             data += " " + str(value)
         return self.set_key(key, data)
 
+
 # --------------------------------------------------------------------------------------------- #
 
 
@@ -203,6 +204,7 @@ def flushall(self):
 # for SQL Implementation in Ultroid.
 #
 # Please use https://elephantsql.com/ !
+
 
 class SqlDB(_BaseDatabase):
     def __init__(self, url, to_cache, name="SQL_DB"):
@@ -361,6 +363,7 @@ class RedisDB(_BaseDatabase):
             except:
                 return self.db.hgetall(key)
 
+
 # --------------------------------------------------------------------------------------------- #
 
 
@@ -376,6 +379,7 @@ class LocalDB(_BaseDatabase):
 
     def __repr__(self):
         return f"<Ultroid.LocalDB\n -total_keys: {len(self.keys())}\n>"
+
 
 # --------------------------------------------------------------------------------------------- #
 
@@ -409,5 +413,6 @@ def UltroidDB():
     if HOSTED_ON == "termux":
         return LocalDB()
     exit()
+
 
 # --------------------------------------------------------------------------------------------- #

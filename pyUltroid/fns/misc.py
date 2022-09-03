@@ -213,11 +213,7 @@ async def get_imgbb_link(path, **kwargs):
         re_json=True,
     )
     if post.get("status") == 200:
-        flink = (
-            post["data"]["url"]
-            if kwargs.get("hq")
-            else post["data"]["display_url"]
-        )
+        flink = post["data"]["url"] if kwargs.get("hq") else post["data"]["display_url"]
         if kwargs.get("preview"):
             await asst.send_message(udB.get_key("TAG_LOG"), flink, link_preview=True)
             await asyncio.sleep(2.5)

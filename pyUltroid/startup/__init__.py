@@ -45,7 +45,6 @@ def startup_main(LOGS, TelethonLogger):
 
     from ._extra import _fix_logging, _ask_input
 
-
     file = "ultroid.log"
     if os.path.exists(file):
         os.remove(file)

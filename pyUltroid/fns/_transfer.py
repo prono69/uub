@@ -138,7 +138,14 @@ class pyroDL:
         if self._log:
             LOGS.debug(f"Downloading | [DC {self.dc}] | {self.filename}")
         if self.show_progress:
-            prog_args = (self.event, self.progress_text, time(), self.client, self.delay, self._cancelled)
+            prog_args = (
+                self.event,
+                self.progress_text,
+                time(),
+                self.client,
+                self.delay,
+                self._cancelled,
+            )
             args.update({"progress": self.progress, "progress_args": prog_args})
         try:
             stime = time()
@@ -349,7 +356,7 @@ class pyroUL:
             await cleargif(m2)
         await asyncio.sleep(getattr(self, "cleanup_sleep", 2.5))
         if self.schd_delete:
-             await m1.delete()
+            await m1.delete()
         else:
             dumpCaption = "#PyroUL ~ {0} \n–  [{1}]({2}) \n–  {3}: {4} \n–  `{5}`"
             sndr = m2.sender or await m2.get_sender()
@@ -400,7 +407,14 @@ class pyroUL:
                 f"Uploading Video | Path: {self.file} | DC: {self.dc} | Size: {self.metadata['size']}"
             )
         if self.show_progress:
-            prog_args = (self.event, self.progress_text, time(), self.client, self.delay, self._cancelled)
+            prog_args = (
+                self.event,
+                self.progress_text,
+                time(),
+                self.client,
+                self.delay,
+                self._cancelled,
+            )
             args.update({"progress": self.progress, "progress_args": prog_args})
         try:
             vid = await self.client.send_video(**args)
@@ -426,7 +440,14 @@ class pyroUL:
                 f"Uploading Audio | Path: {self.file} | DC: {self.dc} | Size: {self.metadata['size']}"
             )
         if self.show_progress:
-            prog_args = (self.event, self.progress_text, time(), self.client, self.delay, self._cancelled)
+            prog_args = (
+                self.event,
+                self.progress_text,
+                time(),
+                self.client,
+                self.delay,
+                self._cancelled,
+            )
             args.update({"progress": self.progress, "progress_args": prog_args})
         try:
             song = await self.client.send_audio(**args)
@@ -467,7 +488,14 @@ class pyroUL:
                 f"Uploading Document | Path: {self.file} | DC: {self.dc} | Size: {self.metadata['size']}"
             )
         if self.show_progress:
-            prog_args = (self.event, self.progress_text, time(), self.client, self.delay, self._cancelled)
+            prog_args = (
+                self.event,
+                self.progress_text,
+                time(),
+                self.client,
+                self.delay,
+                self._cancelled,
+            )
             args.update({"progress": self.progress, "progress_args": prog_args})
         try:
             doc = await self.client.send_document(**args)

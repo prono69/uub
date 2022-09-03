@@ -188,6 +188,7 @@ if udB.get_key("TAG_LOG"):
             LOGS.exception(er)
 
     if udB.get_key("TAGLOG_REPLIES"):
+
         @ultroid_bot.on(
             events.NewMessage(
                 outgoing=True,
