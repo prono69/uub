@@ -191,8 +191,8 @@ async def DummyHandler(ult):
                 msg,
                 file=med,
             )
-            await asyncio.sleep(150)
-            await send.delete()
+            # await asyncio.sleep(150)
+            # await send.delete()
         else:
             await ult.reply(file=med)
 

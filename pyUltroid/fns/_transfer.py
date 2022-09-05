@@ -124,14 +124,14 @@ class pyroDL:
         self.updateAttrs(kwargs)
         self.client = app(self.dc)
         dlx = await self.dls()
-        if self.auto_edit:
-            if isinstance(dlx, Exception):
-                await self.event.edit(f"err in pyroDL: `{dlx}`")
-            else:
-                await self.event.edit(
-                    f"Successfully Downloaded \n`{dlx}` \nin {self.dl_time}"
-                )
-        return dlx
+        if not self.auto_edit:
+            return dlx
+        if isinstance(dlx, Exception):
+            await self.event.edit(f"err in pyroDL: `{dlx}`")
+        else:
+            await self.event.edit(
+                f"Successfully Downloaded \n`{dlx}` \nin {self.dl_time}",
+            )
 
     async def dls(self):
         args = {"message": self.msg, "file_name": self.filename}
@@ -277,7 +277,8 @@ class pyroUL:
             return "`File Size = 0 B...`"
 
     def sleepTime(self):
-        return 3 if len(self.path) < 12 else 6.25
+        _ = len(self.path)
+        return 1.5 if _ in range(5) else (3.75 if _ < 25 else 7)
 
     async def getMetadata(self):
         self.metadata = media_info(self.file)

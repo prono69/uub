@@ -188,31 +188,23 @@ async def _(event):
 
         likes = numerize(ytdl_data.get("like_count")) or 0
         duration = ytdl_data.get("duration") or 0
-        description = (
-            ytdl_data["description"]
-            if len(ytdl_data["description"]) < 100
-            else ytdl_data["description"][:100]
-        )
+        description = ytdl_data["description"][:110]
         description = description or "None"
         filepath = f"{vid_id}.{ext}"
         if not os.path.exists(filepath):
             filepath = f"{filepath}.{ext}"
-        size = os.path.getsize(filepath)
-        file, _ = await event.client.fast_uploader(
-            filepath,
-            filename=f"{title}.{ext}",
-            show_progress=True,
-            event=event,
-            to_delete=True,
-        )
+        # size = os.path.getsize(filepath)
+        from pyUltroid.fns._transfer import pyroUL
 
-        attributes = [
-            DocumentAttributeAudio(
-                duration=int(duration),
-                title=title,
-                performer=artist,
-            ),
-        ]
+        ytaud = pyroUL(event=event, _path=filepath)
+        await ytaud.upload(
+            _log=False,
+            thumb=thumb,
+            auto_edit=False,
+            caption=filepath,
+            delete_file=True,
+            progress_text=f"Uploading {title}.{ext}",
+        )
     elif lets_split[0] == "video":
         opts = {
             "format": str(format),
@@ -241,62 +233,46 @@ async def _(event):
         except Exception as er:
             LOGS.exception(er)
             thumb = None
-        description = (
-            ytdl_data["description"]
-            if len(ytdl_data["description"]) < 100
-            else ytdl_data["description"][:100]
-        )
+        description = ytdl_data["description"][:110]
         likes = numerize(ytdl_data.get("like_count")) or 0
         hi, wi = ytdl_data.get("height") or 720, ytdl_data.get("width") or 1280
         duration = ytdl_data.get("duration") or 0
-        filepath = f"{vid_id}.mkv"
-        if not os.path.exists(filepath):
-            filepath = f"{filepath}.webm"
-        size = os.path.getsize(filepath)
-        file, _ = await event.client.fast_uploader(
-            filepath,
-            filename=f"{title}.mkv",
-            show_progress=True,
-            event=event,
-            to_delete=True,
-        )
+        exts = (".mkv", ".mp4", ".webm", ".mkv.webm")
+        if pth := list(
+            filter(lambda i: os.path.exists(i), [(vid_id + i) for i in exts])
+        ):
+            filepath = pth[0]
+        else:
+            return LOGS.error(f"YTDL ERROR: file not found: {vid_id}")
+        # size = os.path.getsize(filepath)
+        from pyUltroid.fns._transfer import pyroUL
 
-        attributes = [
-            DocumentAttributeVideo(
-                duration=int(duration),
-                w=wi,
-                h=hi,
-                supports_streaming=True,
-            ),
-        ]
+        ytvid = pyroUL(event=event, _path=filepath)
+        await ytvid.upload(
+            delay=6,
+            _log=False,
+            thumb=thumb,
+            auto_edit=False,
+            caption=filepath,
+            delete_file=True,
+            progress_text=f"Uploading {title}.{ext}",
+        )
     description = description if description != "" else "None"
     text = f"**Title: [{title}]({_yt_base_url}{vid_id})**\n\n"
     text += f"`📝 Description: {description}\n\n"
     text += f"「 Duration: {time_formatter(int(duration)*1000)} 」\n"
     text += f"「 Artist: {artist} 」\n"
     text += f"「 Views: {views} 」\n"
-    text += f"「 Likes: {likes} 」\n"
-    text += f"「 Size: {humanbytes(size)} 」`"
+    text += f"「 Likes: {likes} 」"
+    # text += f"「 Size: {humanbytes(size)} 」`"
     button = Button.switch_inline("Search More", query="yt ", same_peer=True)
     try:
-        await event.edit(
-            text,
-            file=file,
-            buttons=button,
-            attributes=attributes,
-            thumb=thumb,
-        )
-    except (FilePartLengthInvalidError, MediaEmptyError):
-        file = await asst.send_message(
-            udB.get_key("LOG_CHANNEL"),
-            text,
-            file=file,
-            buttons=button,
-            attributes=attributes,
-            thumb=thumb,
-        )
-        await event.edit(text, file=file.media, buttons=button)
-    await bash(f"rm {vid_id}.jpg")
+        if _msg := await find_yt_media(filepath):
+            await event.edit(text, file=_msg.media, buttons=button)
+        else:
+            LOGS.error("Message with YT Media not found, Quitting...")
+    except BaseException as ex:
+        return LOGS.exception("err // Editing YT inline media: ")
 
 
 @callback(re.compile("ytdl_back:(.*)"), owner=True)
@@ -305,3 +281,12 @@ async def ytdl_back(event):
     if not BACK_BUTTON.get(id_):
         return await event.answer("Query Expired! Search again 🔍")
     await event.edit(**BACK_BUTTON[id_])
+
+
+async def find_yt_media(cap):
+    from . import ultroid_bot
+
+    ch = udB.get_key("TAG_LOG")
+    async for x in ultroid_bot.iter_messages(ch, limit=8):
+        if x and x.file and x.text == cap:
+            return await asst.get_messages(ch, ids=x.id)

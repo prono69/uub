@@ -143,9 +143,17 @@ async def _(ult):
             filter=ChannelParticipantsBots,
         ):
             if isinstance(x.participant, ChannelParticipantAdmin):
-                mentions += f"\n⚜️ {inline_mention(x)} `{x.id}`"
+                mentions += (
+                    f"\n⚜️💀 [Deleted Account](tg://openmessage?user_id={x.id}) `{x.id}`"
+                    if x.deleted
+                    else f"\n⚜️ {inline_mention(x)} `{x.id}`"
+                )
             else:
-                mentions += f"\n• {inline_mention(x)} `{x.id}`"
+                mentions += (
+                    f"\n💀 [Deleted Account](tg://openmessage?user_id={x.id}) `{x.id}`"
+                    if x.deleted
+                    else f"\n• {inline_mention(x)} `{x.id}`"
+                )
     except Exception as e:
         mentions += f" {str(e)}" + "\n"
     await ult.eor(mentions)

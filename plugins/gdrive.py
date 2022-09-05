@@ -95,7 +95,7 @@ async def files(event):
 
 
 @ultroid_cmd(
-    pattern="gdul( (.*)|$)",
+    pattern="g(?:up|dul)( (.*)|$)",
     fullsudo=True,
 )
 async def _(event):
@@ -107,25 +107,12 @@ async def _(event):
         return await eod(event, "`Reply to file or give its location.`")
     mone = await event.eor(get_string("com_1"))
     if isinstance(input_file, Message):
-        location = "resources/downloads"
-        if input_file.photo:
-            filename = await input_file.download_media(location)
-        else:
-            filename = input_file.file.name
-            if not filename:
-                filename = str(round(time.time()))
-            filename = f"{location}/{filename}"
-            try:
-                filename, downloaded_in = await event.client.fast_downloader(
-                    file=input_file.media.document,
-                    filename=filename,
-                    show_progress=True,
-                    event=mone,
-                    message=get_string("com_5"),
-                )
-                filename = filename.name
-            except Exception as e:
-                return await eor(mone, str(e), time=10)
+        from pyUltroid.fns._transfer import pyroDL
+
+        dl = pyroDL(event=mone, source=input_file)
+        filename = await dl.download(auto_edit=False)
+        if isinstance(filename, Exception):
+            return await mone.edit(f"Error in downloading: `{filename}`")
         await mone.edit(
             f"`Downloaded to ``{filename}`.`",
         )

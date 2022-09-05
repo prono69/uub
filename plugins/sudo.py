@@ -101,6 +101,7 @@ async def _(ult):
 
 @ultroid_cmd(
     pattern="listsudo$",
+    fullsudo=True,
 )
 async def _(ult):
     sudos = sudoers()

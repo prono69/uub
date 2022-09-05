@@ -34,6 +34,8 @@ from . import (
     downloader,
     get_paste,
     get_string,
+    getFlags,
+    shq,
     udB,
     ultroid_cmd,
     uploader,
@@ -66,41 +68,41 @@ async def _(e):
 )
 async def imak(event):
     reply = await event.get_reply_message()
-    t = time.time()
-    if not reply:
+    if not (reply and reply.media):
         return await event.eor(get_string("cvt_1"))
-    inp = event.pattern_match.group(1).strip()
-    if not inp:
+    args = getFlags(event.text, merge_args=True)
+    if not bool(args.args):
         return await event.eor(get_string("cvt_2"))
+    inp = args.args[0]
     xx = await event.eor(get_string("com_1"))
     if reply.media:
         if hasattr(reply.media, "document"):
-            file = reply.media.document
-            image = await downloader(
-                reply.file.name or str(time.time()),
-                reply.media.document,
-                xx,
-                t,
-                get_string("com_5"),
-            )
+            from pyUltroid.fns._transfer import pyroDL
 
-            file = image.name
+            dl = pyroDL(event=xx, source=reply)
+            file = await dl.download(auto_edit=False, _log=False, **args.kwargs)
+            if isinstance(file, Exception):
+                return await xx.edit(f"Error in downloading: {file}")
         else:
             file = await event.client.download_media(reply.media)
+
     if os.path.exists(inp):
         os.remove(inp)
-    await bash(f'mv """{file}""" """{inp}"""')
+
+    await bash(f"mv {shq(file)} {shq(inp)}")
     if not os.path.exists(inp) or os.path.exists(inp) and not os.path.getsize(inp):
         os.rename(file, inp)
-    k = time.time()
-    xxx = await uploader(inp, inp, k, xx, get_string("com_6"))
-    await event.reply(
-        f"`{xxx.name}`",
-        file=xxx,
-        force_document=True,
-        thumb=ULTConfig.thumb,
+    from pyUltroid.fns._transfer import pyroUL
+
+    ul = pyroUL(event=xx, _path=inp)
+    await ul.upload(
+        delete_file=True,
+        reply_to=reply.id,
+        auto_edit=False,
+        _log=False,
+        **args.kwargs,
     )
-    os.remove(inp)
+    await asyncio.sleep(1)
     await xx.delete()
 
 

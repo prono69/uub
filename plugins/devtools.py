@@ -85,7 +85,7 @@ async def _(event):
             colors = (await asyncread("resources/colorlist.txt")).splitlines()
             li = await Carbon(
                 code=stdout,
-                file_name="bash",
+                file_name="_bash",
                 download=True,
                 backgroundColor=choice(colors),
             )
