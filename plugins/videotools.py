@@ -75,7 +75,7 @@ async def gen_sample(e):
     from pyUltroid.fns._transfer import pyroUL
 
     x = pyroUL(event=msg, _path=out)
-    await dlx.upload(
+    await x.upload(
         _log=False,
         delete_file=True,
         reply_to=reply_to,

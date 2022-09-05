@@ -231,7 +231,7 @@ class pyroUL:
         self.file = file
         self.count = count
         event = getattr(self, "event", None)
-        self.reply_to = (event.reply_to_msg_id or event.id) if event else None
+        self.reply_to = getattr(event, "reply_to_msg_id", event.id) if event else None
         self.copy_to = event.chat_id if event else DUMP_CHANNEL
         if self.show_progress:
             self.progress = pyro_progress
@@ -378,16 +378,16 @@ class pyroUL:
     async def handleEdits(self, out=None, finished=False):
         if finished:
             if len(self.path) > 1 and self.auto_edit:
-                txt = f"`Uploaded {self.success} files in {time_formatter((time() - self.pre_time) * 1000)}`"
+                txt = f"__**Uploaded {self.success} files in {time_formatter((time() - self.pre_time) * 1000)}**__"
                 if self.failed > 0:
-                    txt += f"\n\n`Got #Error in {self.failed} files.`"
+                    txt += f"\n\n**Got #Error in {self.failed} files.**"
                 await self.event.edit(txt)
             return
         if isinstance(out, BaseException):
-            txt = f"__Error While Uploading:__ \n~ `{self.file}`\n\n~ `{out}`"
+            txt = f"__**Error While Uploading:**__ \n\n> `{self.file}`\n> `{out}`"
             self.failed += 1
         else:
-            txt = f"__Successfully Uploaded:__  `{self.file}`"
+            txt = f"__**Successfully Uploaded ({self.count}/{len(self.path)})**__ \n\n**>** `{self.file}`"
             self.success += 1
         if self.auto_edit:
             await self.event.edit(txt)

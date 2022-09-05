@@ -94,16 +94,18 @@ async def download_yt(event, link, ytd):
                     f"`[{num}/{total}]` `Invalid Video format.\nIgnoring that...`",
                 )
                 return
+            from_ = info["extractor"].split(":")[0]
+            caption = f"`[{num}/{total}]` `{title}`\n\n`from {from_}`"
             from pyUltroid.fns._transfer import pyroUL
 
             ulx = pyroUL(event=event, _path=file)
             await ulx.upload(
-                caption=caption,
-                to_delete=True,
-                reply_to=reply_to,
-                auto_edit=False,
-                thumb=thumb,
                 delay=6,
+                thumb=thumb,
+                to_delete=True,
+                caption=caption,
+                auto_edit=False,
+                reply_to=reply_to,
             )
         try:
             await event.delete()
@@ -139,12 +141,12 @@ async def download_yt(event, link, ytd):
 
     ulx = pyroUL(event=event, _path=file)
     await ulx.upload(
-        caption=caption,
-        to_delete=True,
-        reply_to=reply_to,
-        auto_edit=False,
+        delay=6.5,
         thumb=thumb,
-        delay=6,
+        to_delete=True,
+        auto_edit=False,
+        reply_to=reply_to,
+        caption=f"`{info['title']}`",
     )
     try:
         await event.delete()

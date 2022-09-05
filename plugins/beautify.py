@@ -19,7 +19,8 @@ from . import Carbon, eor, get_string, inline_mention, os, ultroid_cmd
 _colorspath = "resources/colorlist.txt"
 
 if os.path.exists(_colorspath):
-    all_col = (await asyncread(_colorspath)).splitlines()
+    with open(_colorspath, "r") as f:
+        all_col = f.read().splitlines()
 else:
     all_col = []
 

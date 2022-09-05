@@ -90,7 +90,7 @@ async def _(event):
                 backgroundColor=choice(colors),
             )
             url = await get_imgbb_link(
-                "_bash",
+                "_bash.jpg",
                 expire=7200,
                 delete=True,
                 preview=True,
@@ -267,7 +267,7 @@ async def _(event):
             backgroundColor=choice(colors),
         )
         url = await get_imgbb_link(
-            "_eval",
+            "_eval.jpg",
             expire=7200,
             delete=True,
             preview=True,

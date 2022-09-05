@@ -7,6 +7,7 @@
 
 import os
 import re
+from datetime import timezone
 
 from telethon.errors.rpcerrorlist import (
     ChannelPrivateError,
@@ -172,7 +173,8 @@ if udB.get_key("TAG_LOG"):
         TEXT = MSG.text
         if msg:
             TEXT += "\n\n🖋 **Later Edited to !**"
-        strf = event.edit_date.strftime("%H:%M:%S")
+        localTime = event.edit_date.replace(tzinfo=timezone.utc).astimezone(tz=None)
+        strf = localTime.strftime("%H:%M:%S")
         if "\n" not in event.text:
             TEXT += f"\n• `{strf}` : {event.text}"
         else:
