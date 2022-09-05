@@ -217,9 +217,9 @@ async def _(event):
         )
         if not udB.get_key("_SKIP_WARNINGS"):
             _ignore_eval.append(event.sender_id)
-        return await xx.edit(
-            "`Malicious Activities suspected⚠️!\nReported to owner. Aborted this request!`"
-        )
+            return await xx.edit(
+                "`Malicious Activities suspected⚠️!\nReported to owner. Aborted this request!`"
+            )
     old_stderr = sys.stderr
     old_stdout = sys.stdout
     redirected_output = sys.stdout = StringIO()

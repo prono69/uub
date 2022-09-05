@@ -5,9 +5,9 @@
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
 
-
 import os
 import re
+from asyncio import sleep
 
 try:
     from PIL import Image
@@ -197,10 +197,11 @@ async def _(event):
         from pyUltroid.fns._transfer import pyroUL
 
         ytaud = pyroUL(event=event, _path=filepath)
-        await ytaud.upload(
+        yt_file = await ytaud.upload(
             _log=False,
             thumb=thumb,
             auto_edit=False,
+            return_obj=True,
             caption=filepath,
             delete_file=True,
             progress_text=f"Uploading {title}.{ext}",
@@ -248,15 +249,17 @@ async def _(event):
         from pyUltroid.fns._transfer import pyroUL
 
         ytvid = pyroUL(event=event, _path=filepath)
-        await ytvid.upload(
+        yt_file = await ytvid.upload(
             delay=6,
             _log=False,
             thumb=thumb,
             auto_edit=False,
+            return_obj=True,
             caption=filepath,
             delete_file=True,
             progress_text=f"Uploading {title}.{ext}",
         )
+    await sleep(1)
     description = description if description != "" else "None"
     text = f"**Title: [{title}]({_yt_base_url}{vid_id})**\n\n"
     text += f"`📝 Description: {description}\n\n"
@@ -266,13 +269,8 @@ async def _(event):
     text += f"「 Likes: {likes} 」"
     # text += f"「 Size: {humanbytes(size)} 」`"
     button = Button.switch_inline("Search More", query="yt ", same_peer=True)
-    try:
-        if _msg := await find_yt_media(filepath):
-            await event.edit(text, file=_msg.media, buttons=button)
-        else:
-            LOGS.error("Message with YT Media not found, Quitting...")
-    except BaseException as ex:
-        return LOGS.exception("err // Editing YT inline media: ")
+    msg_to_edit = await asst.get_messages(yt_file.chat.id, ids=yt_file.id)
+    await event.edit(text, file=msg_to_edit.media, buttons=button)
 
 
 @callback(re.compile("ytdl_back:(.*)"), owner=True)
@@ -281,12 +279,3 @@ async def ytdl_back(event):
     if not BACK_BUTTON.get(id_):
         return await event.answer("Query Expired! Search again 🔍")
     await event.edit(**BACK_BUTTON[id_])
-
-
-async def find_yt_media(cap):
-    from . import ultroid_bot
-
-    ch = udB.get_key("TAG_LOG")
-    async for x in ultroid_bot.iter_messages(ch, limit=8):
-        if x and x.file and x.text == cap:
-            return await asst.get_messages(ch, ids=x.id)
