@@ -245,14 +245,7 @@ async def pyro_ul(e):
     match = args.args
     if not match or match[0] == ".env":
         return await msg.edit("Give some path.")
-    match = match[0]
-    if args.kwargs.pop("g", None):
-        n = glob.glob(match)
-        match = list(filter(lambda c: os.path.isfile(c), n))
-        if not match:
-            return await msg.edit("Incorrect path or no files in folder")
-
     from pyUltroid.fns._transfer import pyroUL
 
-    dlx = pyroUL(event=msg, _path=match)
+    dlx = pyroUL(event=msg, _path=match[0])
     await dlx.upload(**args.kwargs)

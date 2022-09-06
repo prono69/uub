@@ -10,7 +10,7 @@ import re
 from traceback import format_exc
 
 from telethon import Button
-from telethon.errors import QueryIdInvalidError
+from telethon.errors import QueryIdInvalidError, ResultIdDuplicateError
 from telethon.events import CallbackQuery, InlineQuery, NewMessage
 from telethon.tl.types import InputWebDocument
 
@@ -111,7 +111,7 @@ def in_pattern(pattern=None, owner=False, **kwargs):
                 )
             try:
                 await func(event)
-            except QueryIdInvalidError:
+            except (QueryIdInvalidError, ResultIdDuplicateError):
                 pass
             except Exception as er:
                 err = format_exc()
@@ -132,7 +132,7 @@ def in_pattern(pattern=None, owner=False, **kwargs):
                             )
                         ]
                     )
-                except QueryIdInvalidError:
+                except (QueryIdInvalidError, ResultIdDuplicateError):
                     LOGS.exception(err)
                 except Exception as er:
                     LOGS.exception(er)

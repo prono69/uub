@@ -27,7 +27,7 @@ from pyUltroid.fns.helper import (
 )
 from pyUltroid.fns.ytdl import dler, get_buttons, get_formats
 
-from . import LOGS, asst, callback, in_pattern, udB
+from . import LOGS, asst, callback, check_filename, in_pattern, udB
 
 try:
     from youtubesearchpython import VideosSearch
@@ -190,15 +190,14 @@ async def _(event):
         duration = ytdl_data.get("duration") or 0
         description = ytdl_data["description"][:110]
         description = description or "None"
-        filepath = f"{vid_id}.{ext}"
-        if not os.path.exists(filepath):
-            filepath = f"{filepath}.{ext}"
-        # size = os.path.getsize(filepath)
+        if filepath := ytHelper(vid_id, title):
+            size = os.path.getsize(filepath, title)
+        else:
+            return LOGS.error(f"YTDL ERROR: file not found: {vid_id}")
         from pyUltroid.fns._transfer import pyroUL
 
         ytaud = pyroUL(event=event, _path=filepath)
         yt_file = await ytaud.upload(
-            _log=False,
             thumb=thumb,
             auto_edit=False,
             return_obj=True,
@@ -238,26 +237,20 @@ async def _(event):
         likes = numerize(ytdl_data.get("like_count")) or 0
         hi, wi = ytdl_data.get("height") or 720, ytdl_data.get("width") or 1280
         duration = ytdl_data.get("duration") or 0
-        exts = (".mkv", ".mp4", ".webm", ".mkv.webm")
-        if pth := list(
-            filter(lambda i: os.path.exists(i), [(vid_id + i) for i in exts])
-        ):
-            filepath = pth[0]
+        if filepath := ytHelper(vid_id, title):
+            size = os.path.getsize(filepath)
         else:
             return LOGS.error(f"YTDL ERROR: file not found: {vid_id}")
-        # size = os.path.getsize(filepath)
         from pyUltroid.fns._transfer import pyroUL
 
         ytvid = pyroUL(event=event, _path=filepath)
         yt_file = await ytvid.upload(
-            delay=6,
-            _log=False,
             thumb=thumb,
             auto_edit=False,
             return_obj=True,
             caption=filepath,
             delete_file=True,
-            progress_text=f"Uploading {title}.{ext}",
+            progress_text=f"Uploading {filepath}...",
         )
     await sleep(1)
     description = description if description != "" else "None"
@@ -266,7 +259,7 @@ async def _(event):
     text += f"「 Duration: {time_formatter(int(duration)*1000)} 」\n"
     text += f"「 Artist: {artist} 」\n"
     text += f"「 Views: {views} 」\n"
-    text += f"「 Likes: {likes} 」"
+    text += f"「 Likes: {likes} 」`"
     # text += f"「 Size: {humanbytes(size)} 」`"
     button = Button.switch_inline("Search More", query="yt ", same_peer=True)
     msg_to_edit = await asst.get_messages(yt_file.chat.id, ids=yt_file.id)
@@ -279,3 +272,26 @@ async def ytdl_back(event):
     if not BACK_BUTTON.get(id_):
         return await event.answer("Query Expired! Search again 🔍")
     await event.edit(**BACK_BUTTON[id_])
+
+
+def ytHelper(yt_id, title):
+    exts = (
+        ".webm",
+        ".mkv",
+        ".mp4",
+        ".flv",
+        ".m4v",
+        ".3gp",
+        ".mp3",
+        ".flac",
+        ".aac",
+        ".opus",
+        ".ogg",
+        ".wav",
+    )
+    for file in os.listdir("."):
+        for ext in exts:
+            if file.startswith(yt_id) and file.lower().endswith(ext):
+                fn = check_filename(title + "." + file.split(".", maxsplit=1)[1])
+                os.rename(file, fn)
+                return fn

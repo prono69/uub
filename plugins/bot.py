@@ -257,8 +257,9 @@ async def _(event):
             backgroundColor=choice(ATRA_COL),
         )
         await event.reply("**Ultroid Logs.**", file=file)
-    elif opt == "open":
-        file = (await asyncread(file))[-4000:]
+    elif opt in ["open", "o"]:
+        long = -800 if opt == "o" else -4000
+        file = (await asyncread(file))[long:]
         return await event.eor(f"`{file}`")
     else:
         await def_logs(event, file)

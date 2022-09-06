@@ -695,7 +695,7 @@ async def get_restriced_msg(event):
         pass
     if message.media:
         thumb = None
-        if message.document.thumbs:
+        if message.document and message.document.thumbs:
             thumb = await message.download_media(thumb=-1)
         media, _ = await event.client.fast_downloader(
             message.document,

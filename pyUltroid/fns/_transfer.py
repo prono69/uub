@@ -225,7 +225,6 @@ class pyroUL:
         self.silent = True
         self.force_document = False
         self.delay = 8  # progress_delay
-        self.thumb = None
 
     def updateAttrs(self, kwargs, file, count):
         self.file = file
@@ -284,7 +283,7 @@ class pyroUL:
         self.metadata = media_info(self.file)
         self.pre_caption = getattr(self, "caption", None) if self.return_obj else None
         type = self.metadata.get("type").lower()
-        if not (hasattr(self, "thumb") and self.force_document):
+        if not (self.force_document or hasattr(self, "thumb")):
             if type == "video":
                 self.thumb = await videoThumb(self.file, self.metadata["duration"])
             elif type == "audio":
@@ -320,7 +319,7 @@ class pyroUL:
 
     async def cleanup(self):
         if not hasattr(self, "caption"):
-            caption = "**Uploaded in {0}.** \n**-** `{1}` \n**-** ```{2}```"
+            caption = "__**Uploaded in {0}** • ({1})__ \n**>**  ```{2}```"
             self.caption = caption.format(
                 self.ul_time, self.metadata["size"], self.file
             )
@@ -359,7 +358,7 @@ class pyroUL:
         if self.schd_delete:
             await m1.delete()
         else:
-            dumpCaption = "#PyroUL ~ {0} \n–  [{1}]({2}) \n–  {3}: {4} \n–  `{5}`"
+            dumpCaption = "#PyroUL ~ {0} \n\n•  Chat:  [{1}]({2}) \n•  User:  {3} - {4} \n•  Path:  ```{5}```"
             sndr = m2.sender or await m2.get_sender()
             text = dumpCaption.format(
                 f"{self.count}/{len(self.path)}",
@@ -384,10 +383,10 @@ class pyroUL:
                 await self.event.edit(txt)
             return
         if isinstance(out, BaseException):
-            txt = f"__**Error While Uploading:**__ \n\n> `{self.file}`\n> `{out}`"
+            txt = f"__**Error While Uploading:**__ \n>  ```{self.file}``` \n>  `{out}`"
             self.failed += 1
         else:
-            txt = f"__**Successfully Uploaded ({self.count}/{len(self.path)})**__ \n\n**>** `{self.file}`"
+            txt = f"__**Successfully Uploaded ({self.count}/{len(self.path)})**__ \n**>**  ```{self.file}```"
             self.success += 1
         if self.auto_edit:
             await self.event.edit(txt)
