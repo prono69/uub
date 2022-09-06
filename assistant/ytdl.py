@@ -7,12 +7,12 @@
 
 import os
 import re
-from asyncio import sleep
 
 try:
     from PIL import Image
 except ImportError:
     Image = None
+
 from telethon import Button
 from telethon.errors.rpcerrorlist import FilePartLengthInvalidError, MediaEmptyError
 from telethon.tl.types import DocumentAttributeAudio, DocumentAttributeVideo
@@ -26,8 +26,9 @@ from pyUltroid.fns.helper import (
     time_formatter,
 )
 from pyUltroid.fns.ytdl import dler, get_buttons, get_formats
+from pyUltroid.fns.tools import check_filename
 
-from . import LOGS, asst, callback, check_filename, in_pattern, udB
+from . import LOGS, asst, callback, in_pattern, udB
 
 try:
     from youtubesearchpython import VideosSearch
@@ -147,6 +148,8 @@ async def _(e):
     owner=True,
 )
 async def _(event):
+    from asyncio import sleep
+
     url = event.pattern_match.group(1).strip().decode("UTF-8")
     lets_split = url.split(":")
     vid_id = lets_split[2]
@@ -190,10 +193,9 @@ async def _(event):
         duration = ytdl_data.get("duration") or 0
         description = ytdl_data["description"][:110]
         description = description or "None"
-        if filepath := ytHelper(vid_id, title):
-            size = os.path.getsize(filepath, title)
-        else:
+        if not (filepath := ytHelper(vid_id, title)):
             return LOGS.error(f"YTDL ERROR: file not found: {vid_id}")
+        size = os.path.getsize(filepath)
         from pyUltroid.fns._transfer import pyroUL
 
         ytaud = pyroUL(event=event, _path=filepath)
@@ -203,7 +205,7 @@ async def _(event):
             return_obj=True,
             caption=filepath,
             delete_file=True,
-            progress_text=f"Uploading {title}.{ext}",
+            progress_text=f"`Uploading {filepath} ...`",
         )
     elif lets_split[0] == "video":
         opts = {
@@ -237,10 +239,9 @@ async def _(event):
         likes = numerize(ytdl_data.get("like_count")) or 0
         hi, wi = ytdl_data.get("height") or 720, ytdl_data.get("width") or 1280
         duration = ytdl_data.get("duration") or 0
-        if filepath := ytHelper(vid_id, title):
-            size = os.path.getsize(filepath)
-        else:
+        if not (filepath := ytHelper(vid_id, title)):
             return LOGS.error(f"YTDL ERROR: file not found: {vid_id}")
+        size = os.path.getsize(filepath)
         from pyUltroid.fns._transfer import pyroUL
 
         ytvid = pyroUL(event=event, _path=filepath)
@@ -250,7 +251,7 @@ async def _(event):
             return_obj=True,
             caption=filepath,
             delete_file=True,
-            progress_text=f"Uploading {filepath}...",
+            progress_text=f"`Uploading {filepath} ...`",
         )
     await sleep(1)
     description = description if description != "" else "None"
@@ -279,11 +280,11 @@ def ytHelper(yt_id, title):
         ".webm",
         ".mkv",
         ".mp4",
-        ".flv",
-        ".m4v",
         ".3gp",
         ".mp3",
-        ".flac",
+        ".m4a",
+        ".flv",
+        ".m4v",
         ".aac",
         ".opus",
         ".ogg",

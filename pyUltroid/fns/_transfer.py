@@ -296,7 +296,7 @@ class pyroUL:
 
     def handleWebm(self, type):
         if type != "sticker" and self.file.lower().endswith(".webm"):
-            ext = "" if self.file[:-5].lower().endswith(".mkv") else ".mp4"
+            ext = "" if self.file[:-5].lower().endswith((".mkv", ".mp4")) else ".mkv"
             new_pth = check_filename(self.file[:-5] + ext)
             rename(self.file, new_pth)
             self.file = new_pth
