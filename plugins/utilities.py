@@ -695,17 +695,23 @@ async def get_restriced_msg(event):
         pass
     if message.media:
         thumb = None
-        if message.document and message.document.thumbs:
-            thumb = await message.download_media(thumb=-1)
-        media, _ = await event.client.fast_downloader(
-            message.document,
-            show_progress=True,
-            event=xx,
-            message=f"Downloading {message.file.name}...",
-        )
+        if doc := message.document:
+            attributes = doc.attributes
+            if doc.thumbs:
+                thumb = await message.download_media(thumb=-1)
+            media, _ = await event.client.fast_downloader(
+                doc,
+                show_progress=True,
+                event=xx,
+                message=f"Downloading {message.file.name}...",
+            )
+            media = media.name
+        else:
+            attributes = []
+            media = await message.download_media("resources/downloads/")
         await xx.edit("`Uploading...`")
         uploaded, _ = await event.client.fast_uploader(
-            media.name, event=xx, show_progress=True, to_delete=True
+            media, event=xx, show_progress=True, to_delete=True
         )
         typ = not bool(message.video)
         await event.reply(
@@ -714,7 +720,7 @@ async def get_restriced_msg(event):
             supports_streaming=typ,
             force_document=typ,
             thumb=thumb,
-            attributes=message.document.attributes,
+            attributes=attributes,
         )
         await xx.delete()
         if thumb:

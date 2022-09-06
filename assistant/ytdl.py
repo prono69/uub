@@ -191,7 +191,7 @@ async def _(event):
 
         likes = numerize(ytdl_data.get("like_count")) or 0
         duration = ytdl_data.get("duration") or 0
-        description = ytdl_data["description"][:110]
+        description = ytdl_data["description"][:120]
         description = description or "None"
         if not (filepath := ytHelper(vid_id, title)):
             return LOGS.error(f"YTDL ERROR: file not found: {vid_id}")
@@ -235,7 +235,7 @@ async def _(event):
         except Exception as er:
             LOGS.exception(er)
             thumb = None
-        description = ytdl_data["description"][:110]
+        description = ytdl_data["description"][:120]
         likes = numerize(ytdl_data.get("like_count")) or 0
         hi, wi = ytdl_data.get("height") or 720, ytdl_data.get("width") or 1280
         duration = ytdl_data.get("duration") or 0

@@ -22,7 +22,6 @@ from music_tag import load_file
 from telethon.utils import get_display_name
 from telethon.errors.rpcerrorlist import MessageNotModifiedError
 
-from pyrog import app
 from .helper import bash, time_formatter, inline_mention, cleargif, msg_link
 from .tools import media_info, check_filename, humanbytes, shq
 from .. import LOGS, udB, ultroid_bot, asst
@@ -86,7 +85,6 @@ class pyroDL:
         self.event = event
         self.source = source
         self.show_progress = show_progress
-        self.dc = 1
 
     def updateAttrs(self, kwargs):
         self.filename = self.get_filename(self.msg)
@@ -104,25 +102,30 @@ class pyroDL:
 
     async def copy_msg(self):
         try:
-            msg = await self.source.copy(
+            return await self.source.copy(
                 DUMP_CHANNEL,
                 caption="#pyroDL \n\n" + self.source.text,
             )
-            if _msg := getattr(msg, "document", None):
-                self.dc = _msg.dc_id
-            return msg
         except BaseException as exc:
             LOGS.exception("pyroDL: err copying file: ")
             return f"Error copying file: `{exc}`"
 
+    def getDC(self, file):
+        if _dc := file.document:
+            return _dc.dc_id
+        return 1
+
     async def download(self, **kwargs):
+        from pyrog import app
+
         _msg = await self.copy_msg()
         if type(_msg) == str:
             return await self.event.edit(_msg)
-        await asyncio.sleep(0.6)
+        await asyncio.sleep(0.5)
+        self.dc = kwargs.pop("dc", getDC(_msg))
+        self.client = app(self.dc)
         self.msg = await self.client.get_messages(DUMP_CHANNEL, _msg.id)
         self.updateAttrs(kwargs)
-        self.client = app(self.dc)
         dlx = await self.dls()
         if not self.auto_edit:
             return dlx
@@ -243,6 +246,8 @@ class pyroUL:
             setattr(self, k, v)
 
     async def upload(self, **kwargs):
+        from pyrog import app
+
         if type(self.path) is str:
             return await self.event.edit(self.path)
         self.defaultValues()
@@ -284,6 +289,7 @@ class pyroUL:
         self.pre_caption = getattr(self, "caption", None) if self.return_obj else None
         type = self.metadata.get("type").lower()
         if not (self.force_document or hasattr(self, "thumb")):
+            self.thumb = None
             if type == "video":
                 self.thumb = await videoThumb(self.file, self.metadata["duration"])
             elif type == "audio":

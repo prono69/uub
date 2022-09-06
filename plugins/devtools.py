@@ -328,7 +328,7 @@ async def aexec(code, event):
             "async def __aexec(e, client): "
             + "\n print = p = _stringify"
             + "\n message = event = e"
-            + "\n u.r = reply = await event.get_reply_message()"
+            + "\n u.r = reply = rm = await event.get_reply_message()"
             + "\n chat = event.chat_id"
             + "\n u.lr = locals()"
         )
