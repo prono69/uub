@@ -45,9 +45,9 @@ async def pyro_progress(
     edit_delay=8,
     is_cancelled=False,
 ):
-    if is_cancelled:
-        if client:
-            client.stop_transmission()
+    if is_cancelled and client:
+        client.stop_transmission()
+        return
     jost = str(message.chat_id) + "_" + str(message.id)
     plog = PROGRESS_LOG.get(jost)
     now = time()
