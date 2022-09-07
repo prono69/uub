@@ -4,8 +4,8 @@
 # Edited on 21-07-2022:
 #  - created class pyroUL
 #  - changed lots of helper functions.
-#  - added pyroDL on 23-07
-#
+#  - added pyroDL on 23-07-22
+#  - fixed for 0.7: 06-09-22
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -46,7 +46,8 @@ async def pyro_progress(
     is_cancelled=False,
 ):
     if is_cancelled:
-        client.stop_transmission()
+        if client:
+            client.stop_transmission()
     jost = str(message.chat_id) + "_" + str(message.id)
     plog = PROGRESS_LOG.get(jost)
     now = time()
@@ -122,7 +123,7 @@ class pyroDL:
         if type(_msg) == str:
             return await self.event.edit(_msg)
         await asyncio.sleep(0.5)
-        self.dc = kwargs.pop("dc", getDC(_msg))
+        self.dc = kwargs.pop("dc", self.getDC(_msg))
         self.client = app(self.dc)
         self.msg = await self.client.get_messages(DUMP_CHANNEL, _msg.id)
         self.updateAttrs(kwargs)
@@ -130,7 +131,7 @@ class pyroDL:
         if not self.auto_edit:
             return dlx
         if isinstance(dlx, Exception):
-            await self.event.edit(f"err in pyroDL: `{dlx}`")
+            await self.event.edit(f"Err in pyroDL: `{dlx}`")
         else:
             await self.event.edit(
                 f"Successfully Downloaded \n`{dlx}` \nin {self.dl_time}",

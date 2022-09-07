@@ -102,7 +102,6 @@ async def imak(event):
         _log=False,
         **args.kwargs,
     )
-    await asyncio.sleep(1)
     await xx.delete()
 
 

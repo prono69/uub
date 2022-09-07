@@ -92,6 +92,7 @@ async def _(event):
             )
             url = await get_imgbb_link(
                 "_bash.jpg",
+                hq=True,
                 expire=7200,
                 delete=True,
                 preview=True,
@@ -269,6 +270,7 @@ async def _(event):
         )
         url = await get_imgbb_link(
             "_eval.jpg",
+            hq=True,
             expire=7200,
             delete=True,
             preview=True,

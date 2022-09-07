@@ -52,5 +52,5 @@ class Var:
     MONGO_URI = config("MONGO_URI", default=None)
 
     # custom
-    USER = config("USER", default="dotarc")
-    HOST = config("HOST", default="heroku")
+    USER = config("USER", default="None")
+    HOST = config("HOST", default="None")

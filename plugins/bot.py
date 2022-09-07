@@ -328,7 +328,7 @@ async def _(e):
     args = e.pattern_match.group(2)
 
     if args and args in ("fast", "soft", "now"):
-        await asyncio.sleep(2)
+        await asyncio.sleep(3)
         await xx.edit(get_string("upd_7"))
         call_back()
         if HOSTED_ON != "heroku":
@@ -339,9 +339,9 @@ async def _(e):
             return await restart(xx, EDIT=False)
 
     m = await updater()
-    branch = os.getenv("_BRANCH")
+    branch = os.getenv("BRANCH")
     if m:
-        pic = await random_pic(re_photo=True) if udB.get_key("RANDOM_PIC") else ULTPIC
+        pic = await random_pic(re_photo=True) if udB.get_key("RANDOM_PIC") else ULTPIC()
         x = await asst.send_file(
             udB.get_key("LOG_CHANNEL"),
             pic,
