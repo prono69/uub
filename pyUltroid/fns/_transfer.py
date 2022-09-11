@@ -81,6 +81,7 @@ async def pyro_progress(
 
 
 class pyroDL:
+
     def __init__(self, event, source, show_progress=True):
         self._cancelled = False
         self.event = event
@@ -194,6 +195,7 @@ class pyroDL:
 
 
 class pyroUL:
+
     def __init__(self, event, _path, show_progress=True):
         self.event = event
         self._cancelled = False
@@ -572,6 +574,5 @@ async def audioThumb(_path):
         return thumby if path.exists(thumby) else None
     except BaseException as exc:
         return LOGS.error(exc)
-
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

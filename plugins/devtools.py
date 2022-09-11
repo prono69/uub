@@ -275,9 +275,9 @@ async def _(event):
             delete=True,
             preview=True,
         )
-        final_output = f"__►__ **EVAL** (__in {timeform}__)\n```{cmd}``` \n\n __►__ **OUTPUT**: [⁮⁮⁮\xad]({url})"
+        final_output = f"__►__ **EVAL** (__{timeform}__)\n```{cmd}``` \n\n __►__ **OUTPUT**: [⁮⁮⁮\xad]({url})"
     else:
-        final_output = "__►__ **EVAL** (__in {}__)\n```{}``` \n\n __►__ **OUTPUT**: \n```{}``` \n".format(
+        final_output = "__►__ **EVAL** (__{}__)\n```{}``` \n\n __►__ **OUTPUT**: \n```{}``` \n".format(
             timeform,
             cmd,
             evaluation,
@@ -296,7 +296,7 @@ async def _(event):
                 reply_to=reply_to_id,
             )
         return await xx.delete()
-    await xx.edit(final_output)
+    await xx.edit(final_output, link_preview=carb)
     asst.loop.create_task(evalogger(cmd, event))
 
 

@@ -40,9 +40,7 @@ def cleanup_stuff(init=False):
         "/usr/local/lib/python3.10/site-packages/.wh.setuptools-58.1.0.dist-info",
     ]
     if init:
-        to_del.extend(
-            ["jewel", "bird", ".env", ".wget-hsts"],
-        )
+        to_del.extend(list(("jewel", "bird", ".env", ".wget-hsts")))
     osremove(to_del, folders=init, verbose=False)
 
 
