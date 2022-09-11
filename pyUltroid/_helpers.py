@@ -104,6 +104,7 @@ def post_startup():
     from .fns.multi_db import _init_multi_dbs
     from . import LOGS, udB, Var
 
+    LOGS.debug("Post Startup -> init")
     update_envs()
     _version_changes(udB)
     _user_specifics(Var, LOGS)
@@ -117,3 +118,5 @@ def post_startup():
             herokuapp(Var)
         except BaseException:
             LOGS.exception("pyUlt.herokuapp error: ")
+
+    LOGS.debug("Post Startup -> done")

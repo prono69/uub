@@ -33,9 +33,9 @@ if not os.path.exists("./plugins"):
 
 _ult_cache = {}
 _ignore_eval = []
-udB = UltroidDB()
 
-# LOGS.info(f"Connecting to {udB.name} ...")
+LOGS.info("Connecting to Database ...")
+udB = UltroidDB()
 if udB.ping():
     LOGS.info(f"Connected to {udB.name} Successfully!")
 
