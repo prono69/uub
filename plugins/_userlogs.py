@@ -77,20 +77,22 @@ async def all_messages_catcher(e):
                 tag_add(sent.id, e.chat_id, e.id)
         except Exception as me:
             if not isinstance(me, (PeerIdInvalidError, ValueError)):
-                LOGS.exception(me)
-            if e.photo or e.sticker or e.gif:
-                try:
-                    media = await e.download_media()
-                    sent = await asst.send_message(
-                        NEEDTOLOG, e.message.text, file=media, buttons=buttons
-                    )
-                    if TAG_EDITS.get(e.chat_id):
-                        TAG_EDITS[e.chat_id].update({e.id: {"id": sent.id, "msg": e}})
-                    else:
-                        TAG_EDITS.update({e.chat_id: {e.id: {"id": sent.id, "msg": e}}})
-                    return os.remove(media)
-                except Exception as er:
-                    LOGS.exception(er)
+                LOGS.exception("UnHandled Error:")
+            try:
+                # media = await e.download_media()
+                # sent = await asst.send_message(
+                # NEEDTOLOG, e.message.text, file=media, buttons=buttons
+                # )
+                media = await e.copy(NEEDTOLOG)
+                sent = await asst.send_message(NEEDTOLOG, media, buttons=buttons)
+                await media.delete()
+                if TAG_EDITS.get(e.chat_id):
+                    TAG_EDITS[e.chat_id].update({e.id: {"id": sent.id, "msg": e}})
+                else:
+                    TAG_EDITS.update({e.chat_id: {e.id: {"id": sent.id, "msg": e}}})
+                return os.remove(media)
+            except Exception as er:
+                LOGS.exception(er)
             await asst.send_message(NEEDTOLOG, get_string("com_4"), buttons=buttons)
     except (PeerIdInvalidError, ValueError):
         try:
@@ -164,7 +166,7 @@ if udB.get_key("TAG_LOG"):
         else:
             msg = True
             d_.update({"count": 1})
-        if d_["count"] > 6:
+        if d_["count"] > 8:
             return  # some limit to take edits
         try:
             MSG = await asst.get_messages(udB.get_key("TAG_LOG"), ids=d_["id"])
@@ -172,15 +174,12 @@ if udB.get_key("TAG_LOG"):
             return LOGS.exception(er)
         TEXT = MSG.text
         if msg:
-            TEXT += "\n\n🖋 **Later Edited to !**"
+            TEXT += "\n🖋 **Later Edited to:**"
         localTime = event.edit_date.replace(tzinfo=timezone.utc).astimezone(tz=None)
         strf = localTime.strftime("%H:%M:%S")
-        if "\n" not in event.text:
-            TEXT += f"\n• `{strf}` : {event.text}"
-        else:
-            TEXT += f"\n• `{strf}` :\n-> {event.text}"
-        if d_["count"] == 6:
-            TEXT += "\n\n• __Only the first 10 Edits are shown.__"
+        TEXT += f"\n\n**• {strf}:**  {event.text}"
+        if d_["count"] == 8:
+            TEXT += "\n\n__Edited 8 times. Skipping further edits.__"
         try:
             msg = await MSG.edit(TEXT, buttons=await parse_buttons(event))
             d_["msg"] = msg
@@ -209,8 +208,6 @@ if udB.get_key("TAG_LOG"):
 
 
 # log for assistant/user joins/add
-
-
 async def when_added_or_joined(event):
     user = await event.get_user()
     chat = await event.get_chat()

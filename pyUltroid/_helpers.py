@@ -40,18 +40,20 @@ def cleanup_stuff(init=False):
         "/usr/local/lib/python3.10/site-packages/.wh.setuptools-58.1.0.dist-info",
     ]
     if init:
-        to_del.extend(list(("jewel", "bird", ".env", ".wget-hsts")))
+        to_del.extend(list(("jewel", "bird", ".wget-hsts")))
     osremove(to_del, folders=init, verbose=False)
 
 
-def settz(TZ="Asia/Kolkata"):
+def setTZ(TZ=None):
     try:
         from pytz import timezone
     except ImportError:
         print("Install 'pytz' module")
         return
 
-    # TZ = udB.get_key("TIMEZONE")
+    if not TZ:
+        # TZ = udB.get_key("TIMEZONE")
+        TZ = "Asia/Kolkata"
     try:
         timezone(TZ)
         environ["TZ"] = TZ
@@ -68,8 +70,6 @@ def _user_specifics(Var, LOGS):
         if Var.HOST.lower() == "heroku":
             LOGS.info("Starting qBittorrent Web-UI")
             system("bash 1337x &")
-            # LOGS.debug("Updating pip")
-            # system("wget -q -O getpip.py https://bootstrap.pypa.io/get-pip.py && python3 getpip.py &> /dev/null")
 
     elif Var.USER.lower() == "aprish" and Var.HOST.lower() == "heroku":
         LOGS.info("Starting qBittorrent Web-UI")
@@ -87,13 +87,15 @@ def do_pip_recursive(file_data):
 
 
 def on_startup():
-    load_dotenv()
-    settz(TZ="Asia/Kolkata")
+    setTZ()
+    load_dotenv(override=True)
+    if path.isfile("prvenv"):
+        load_dotenv("prvenv", override=False)
+        remove("prvenv")
     from .configs import Var
 
-    if Var.HOST.lower() == "wfs":
-        load_dotenv("prvenv")
-        remove("prvenv")
+    if Var.HOST.lower() != "local":
+        remove(".env")
     return time(), Var
 
 
@@ -102,7 +104,7 @@ def post_startup():
     from .fns.multi_db import _init_multi_dbs
     from . import LOGS, udB, Var
 
-    LOGS.debug("Post Startup -> init")
+    LOGS.debug("Post Startup -> Init")
     update_envs()
     _version_changes(udB)
     _user_specifics(Var, LOGS)
@@ -115,6 +117,6 @@ def post_startup():
         try:
             herokuapp(Var)
         except BaseException:
-            LOGS.exception("pyUlt.herokuapp error: ")
+            LOGS.exception("pyUlt.Herokuapp error: ")
 
-    LOGS.debug("Post Startup -> done")
+    LOGS.debug("Post Startup -> Done")

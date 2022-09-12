@@ -264,7 +264,9 @@ class pyroUL:
                 continue
             _ulfunc = await self.getMetadata()
             out = await _ulfunc()
-            await self.cleanup()  # caption
+            await self.cleanup()  # caption // ul_time
+            if isinstance(out, Exception):
+                pass  # to do
             if self.return_obj:
                 return out
             if err := await self.finalize(out):
@@ -327,10 +329,10 @@ class pyroUL:
             return self.document_uploader
 
     async def cleanup(self):
+        self.ul_time = time_formatter((time() - self.start_time) * 1000)
         if not hasattr(self, "caption"):
-            caption = "__**Uploaded in {0}** • ({1})__ \n**>**  ```{2}```"
-            self.caption = caption.format(
-                self.ul_time, self.metadata["size"], self.file
+            self.caption = "__**Uploaded in {0}** • ({1})__ \n**>**  ```{2}```".format(
+                self.ul_time, self.metadata["size"], self.file,
             )
         if self.delete_file:
             remove(self.file)
@@ -395,7 +397,7 @@ class pyroUL:
             txt = f"__**Error While Uploading:**__ \n>  ```{self.file}``` \n>  `{out}`"
             self.failed += 1
         else:
-            txt = f"__**Successfully Uploaded ({self.count}/{len(self.path)})**__ \n**>**  ```{self.file}```"
+            txt = f"__**Successfully Uploaded!  ({self.count}/{len(self.path)})**__ \n**>**  ```{self.file}```"
             self.success += 1
         if self.auto_edit:
             await self.event.edit(txt)
@@ -426,9 +428,7 @@ class pyroUL:
             )
             args.update({"progress": self.progress, "progress_args": prog_args})
         try:
-            vid = await self.client.send_video(**args)
-            self.ul_time = time_formatter((time() - self.start_time) * 1000)
-            return vid
+            return await self.client.send_video(**args)
         except BaseException as exc:
             LOGS.exception(f"Video Uploader: {self.file}")
             return exc
@@ -459,9 +459,7 @@ class pyroUL:
             )
             args.update({"progress": self.progress, "progress_args": prog_args})
         try:
-            song = await self.client.send_audio(**args)
-            self.ul_time = time_formatter((time() - self.start_time) * 1000)
-            return song
+            return await self.client.send_audio(**args)
         except BaseException as exc:
             LOGS.exception(f"Audio Uploader: {self.file}")
             return exc
@@ -477,9 +475,7 @@ class pyroUL:
             "disable_notification": self.silent,
         }
         try:
-            img = await self.client.send_animation(**args)
-            self.ul_time = time_formatter((time() - self.start_time) * 1000)
-            return img
+            return await self.client.send_animation(**args)
         except BaseException as exc:
             LOGS.exception(f"Animation Uploader: {self.file}")
             return exc
@@ -507,9 +503,7 @@ class pyroUL:
             )
             args.update({"progress": self.progress, "progress_args": prog_args})
         try:
-            doc = await self.client.send_document(**args)
-            self.ul_time = time_formatter((time() - self.start_time) * 1000)
-            return doc
+            return await self.client.send_document(**args)
         except BaseException as exc:
             LOGS.exception(f"Document Uploader: {self.file}")
             return exc
@@ -522,9 +516,7 @@ class pyroUL:
             "disable_notification": self.silent,
         }
         try:
-            img = await self.client.send_photo(**args)
-            self.ul_time = time_formatter((time() - self.start_time) * 1000)
-            return img
+            return await self.client.send_photo(**args)
         except BaseException as exc:
             LOGS.exception(f"Image Uploader: {self.file}")
             return exc
@@ -536,9 +528,7 @@ class pyroUL:
             "disable_notification": self.silent,
         }
         try:
-            stic = await self.client.send_sticker(**args)
-            self.ul_time = time_formatter((time() - self.start_time) * 1000)
-            return stic
+            return await self.client.send_sticker(**args)
         except BaseException as exc:
             LOGS.exception(f"Sticker Uploader: {self.file}")
             return exc

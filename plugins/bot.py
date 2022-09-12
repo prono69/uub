@@ -224,7 +224,7 @@ async def restartbt(ult):
         await ultroid_bot.send_message(LOG_CHANNEL, "/wfs restart")
         return
 
-    await bash("git pull && pip3 install -r requirements.txt")
+    # await bash("git pull && pip3 install -r requirements.txt")
     if len(sys.argv) > 1:
         os.execl(sys.executable, sys.executable, "main.py")
     else:
