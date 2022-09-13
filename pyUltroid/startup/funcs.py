@@ -372,6 +372,7 @@ async def customize():
 async def plug_unzipper(ult, chat):
     from shutil import rmtree
     from .utils import load_addons
+    from .. import Var
 
     moimsg = await ult.get_messages(
         chat, search="PLUGIN_SOURCE.zip", filter=InputMessagesFilterDocument, limit=1
@@ -393,8 +394,9 @@ async def plug_unzipper(ult, chat):
     for file in os.scandir("tplugs/t1"):
         plugin = file.name
         _path = os.path.join("addons", plugin)
-        if os.path.exists(_path):
-            LOGS.warning(f"Plugin {plugin} already Exists in Addons folder.")
+        if os.path.isfile(_path):
+            if Var.HOST.lower() != "local":
+                LOGS.warning(f"Plugin {plugin} already Exists in Addons folder.")
             continue
         try:
             os.rename(file.path, _path)
