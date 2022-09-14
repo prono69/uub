@@ -7,6 +7,7 @@
 
 import os
 import re
+from asyncio import sleep
 from datetime import timezone
 
 from telethon.errors.rpcerrorlist import (
@@ -80,17 +81,18 @@ async def all_messages_catcher(e):
                 LOGS.exception("UnHandled Error:")
             try:
                 # media = await e.download_media()
-                # sent = await asst.send_message(
-                # NEEDTOLOG, e.message.text, file=media, buttons=buttons
-                # )
+                # sent = await asst.send_message(NEEDTOLOG, e.message.text, file=media, buttons=buttons)
                 media = await e.copy(NEEDTOLOG)
-                sent = await asst.send_message(NEEDTOLOG, media, buttons=buttons)
+                await sleep(1)
+                _get = await asst.get_messages(NEEDTOLOG, ids=media.id)
                 await media.delete()
+                sent = await _get.copy(NEEDTOLOG, buttons=buttons)
+                del media, _get
                 if TAG_EDITS.get(e.chat_id):
                     TAG_EDITS[e.chat_id].update({e.id: {"id": sent.id, "msg": e}})
                 else:
                     TAG_EDITS.update({e.chat_id: {e.id: {"id": sent.id, "msg": e}}})
-                return os.remove(media)
+                return  # os.remove(media)
             except Exception as er:
                 LOGS.exception(er)
             await asst.send_message(NEEDTOLOG, get_string("com_4"), buttons=buttons)
@@ -174,7 +176,7 @@ if udB.get_key("TAG_LOG"):
             return LOGS.exception(er)
         TEXT = MSG.text
         if msg:
-            TEXT += "\n🖋 **Later Edited to:**"
+            TEXT += "\n\n🖋 **Later Edited to:**"
         localTime = event.edit_date.replace(tzinfo=timezone.utc).astimezone(tz=None)
         strf = localTime.strftime("%H:%M:%S")
         TEXT += f"\n\n**• {strf}:**  {event.text}"
