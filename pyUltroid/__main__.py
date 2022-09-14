@@ -60,7 +60,7 @@ def main():
 
     load_other_plugins(addons=addons, pmbot=pmbot, manager=manager, vcbot=vcbot)
 
-    suc_msg = """
+    suc_msg = """{}
             ----------------------------------------------------------------------
                 Ultroid has been deployed! Visit @TeamUltroid for updates!!
             ----------------------------------------------------------------------
@@ -81,12 +81,12 @@ def main():
 
     ultroid_bot.run_in_loop(_init_pyrog())
 
+    # Edit Restarting Message (if It's restarting)
+    ultroid_bot.run_in_loop(WasItRestart(udB))
+
     # Send/Ignore Deploy Message..
     if not udB.get_key("LOG_OFF"):
         ultroid_bot.run_in_loop(ready())
-
-    # Edit Restarting Message (if It's restarting)
-    ultroid_bot.run_in_loop(WasItRestart(udB))
 
     try:
         cleanup_cache()
@@ -94,9 +94,10 @@ def main():
         pass
 
     LOGS.info(
-        f"Took {time_formatter((time.time() - start_time)*1000)} to start •ULTROID•"
+        suc_msg.format(
+            f"Took {time_formatter((time.time() - start_time)*1000)} to start •ULTROID•"
+        )
     )
-    LOGS.info(suc_msg)
 
 
 if __name__ == "__main__":

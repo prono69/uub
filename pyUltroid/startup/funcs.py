@@ -382,7 +382,7 @@ async def plug_unzipper(ult, chat):
     x = moimsg[0]
     if x and x.file.name == "PLUGIN_SOURCE.zip":
         os.mkdir("tplugs")
-        LOGS.debug("Using: PLUGIN_SOURCE file")
+        # LOGS.debug("Using: PLUGIN_SOURCE file")
         temp = await x.download_media("source.zip")
     else:
         return True
@@ -390,7 +390,7 @@ async def plug_unzipper(ult, chat):
     await bash("unzip -q source.zip -d tplugs")
     plen = len(os.listdir("tplugs/t1"))
     os.remove("source.zip")
-    LOGS.info(f"{'•'*4} {chat} || Installing {plen} Plugins")
+    LOGS.info(f"{'•'*4} {chat} || Installing {plen} Plugins!")
     for file in os.scandir("tplugs/t1"):
         plugin = file.name
         _path = os.path.join("addons", plugin)
@@ -518,6 +518,8 @@ async def ready():
         udB.set_key("OLDANN", get_)
     except Exception as er:
         LOGS.exception(er)
+    finally:
+        await asyncio.sleep(3)
 
 
 async def WasItRestart(udb):
@@ -533,7 +535,7 @@ async def WasItRestart(udb):
             int(data[1]), int(data[2]), "__Restarted Successfully.__"
         )
     except Exception as er:
-        LOGS.exception(er)
+        LOGS.exception("Restart Message Edit Error:")
     udb.del_key("_RESTART")
 
 

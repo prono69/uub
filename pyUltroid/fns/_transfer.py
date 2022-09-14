@@ -81,7 +81,6 @@ async def pyro_progress(
 
 
 class pyroDL:
-
     def __init__(self, event, source, show_progress=True):
         self._cancelled = False
         self.event = event
@@ -195,7 +194,6 @@ class pyroDL:
 
 
 class pyroUL:
-
     def __init__(self, event, _path, show_progress=True):
         self.event = event
         self._cancelled = False
@@ -332,7 +330,9 @@ class pyroUL:
         self.ul_time = time_formatter((time() - self.start_time) * 1000)
         if not hasattr(self, "caption"):
             self.caption = "__**Uploaded in {0}** • ({1})__ \n**>**  ```{2}```".format(
-                self.ul_time, self.metadata["size"], self.file,
+                self.ul_time,
+                self.metadata["size"],
+                self.file,
             )
         if self.delete_file:
             remove(self.file)
@@ -564,5 +564,6 @@ async def audioThumb(_path):
         return thumby if path.exists(thumby) else None
     except BaseException as exc:
         return LOGS.error(exc)
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

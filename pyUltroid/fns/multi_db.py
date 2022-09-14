@@ -51,6 +51,7 @@ def _init_multi_dbs(var):
         return LOGS.error(f"Var {var} is not filled.")
     del os.environ[var]
     data = literal_eval(str(stuff))
+    dct = {}
     for k, v in data.items():
         co += 1
         to_cache = False
@@ -65,5 +66,10 @@ def _init_multi_dbs(var):
             _type = "sql"
 
         if cx := _connect_single_db(v, _type, k, to_cache):
-            LOGS.debug(f"MultiDB: {_type}, {k}")
+            dct[len(dct) + 1] = f"{k} -> {_type}"
             globals()[key] = cx
+
+    if dct:
+        from .tools import json_parser
+
+        LOGS.debug(json_parser(dct, indent=2))
