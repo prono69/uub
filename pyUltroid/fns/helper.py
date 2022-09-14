@@ -539,7 +539,7 @@ async def progress(current, total, event, start, type_of_ps, file_name=None):
     except MessageNotModifiedError as exc:
         from .. import LOGS
 
-        LOGS.exception("err in progress: message_not_modified")
+        LOGS.error("err in progress: message_not_modified")
 
 
 # ------------------System\\Heroku stuff----------------
@@ -647,13 +647,15 @@ class getFlags:
     def sep_args_kwargs(self, text_lst: list):
         kwargs, args = {}, []
         for txt in text_lst:
+            txt = txt.strip()
             if not txt:
                 continue
-            elif txt.startswith(self.args_seperator) and len(txt.rstrip()) > 1:
+            elif txt.startswith(self.args_seperator) and len(txt) > 1:
                 if self.kwargs_seperator in txt:
                     fms = txt.split(self.kwargs_seperator)
-                    value_ = fms[1]
-                    key_ = fms[0] if self.original else fms[0][1:]
+                    value_ = fms[1].strip()
+                    _key = fms[0] if self.original else fms[0][1:]
+                    key_ = _key.strip()
                     if self.convert:
                         # key_ = getFlags.change_types(key_)
                         value_ = getFlags.change_types(value_)

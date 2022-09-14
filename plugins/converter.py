@@ -90,7 +90,7 @@ async def imak(event):
         os.remove(inp)
 
     await bash(f"mv {shq(file)} {shq(inp)}")
-    if not os.path.exists(inp) or os.path.exists(inp) and not os.path.getsize(inp):
+    if not os.path.exists(inp) or (os.path.exists(inp) and not os.path.getsize(inp)):
         os.rename(file, inp)
     from pyUltroid.fns._transfer import pyroUL
 

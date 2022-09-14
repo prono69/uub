@@ -448,6 +448,11 @@ async def plug(plugin_channels):
             LOGS.exception(er)
 
 
+async def idkwhy():
+    await asyncio.sleep(10)
+    LOGS.debug("")
+
+
 # some stuffs
 async def ready():
     from .. import asst, udB, ultroid_bot
@@ -519,7 +524,7 @@ async def ready():
     except Exception as er:
         LOGS.exception(er)
     finally:
-        asst.loop.create_task(idkwhytho())
+        asst.loop.create_task(idkwhy())
 
 
 async def WasItRestart(udb):
@@ -560,11 +565,6 @@ def _version_changes(udb):
                 for z in key.split()
             ]
             udb.set_key(_, new_)
-
-
-async def idkwhytho():
-    await asyncio.sleep(10)
-    LOGS.info("")
 
 
 async def enable_inline(ultroid_bot, username):

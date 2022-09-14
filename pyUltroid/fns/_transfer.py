@@ -105,7 +105,7 @@ class pyroDL:
         try:
             return await self.source.copy(
                 DUMP_CHANNEL,
-                caption="#pyroDL \n\n" + self.source.text,
+                caption=f"#pyroDL\n\n{self.source.text}",
             )
         except BaseException as exc:
             LOGS.exception("pyroDL: err copying file: ")
@@ -154,17 +154,17 @@ class pyroDL:
         try:
             stime = time()
             dlx = await self.client.download_media(**args)
+            self.dl_time = time_formatter((time() - stime) * 1000)
+            return dlx
         except BaseException as exc:
             LOGS.exception("PyroDL err: ")
             return exc
-        else:
-            self.dl_time = time_formatter((time() - stime) * 1000)
-            return dlx
         finally:
             if self.schd_delete:
                 asst.loop.create_task(self.delTask(self.msg))
 
-    async def delTask(self, task):
+    @staticmethod
+    async def delTask(task):
         await asyncio.sleep(8)
         await task.delete()
 
@@ -258,7 +258,7 @@ class pyroUL:
             self.client = app(self.dc)
             if sizerr := self.checkSize(self.file):
                 await self.event.edit(sizerr)
-                await asyncio.sleep(self.sleepTime())
+                await asyncio.sleep(self.sleepTime(len(self.path)))
                 continue
             _ulfunc = await self.getMetadata()
             out = await _ulfunc()
@@ -269,10 +269,10 @@ class pyroUL:
                 return out
             if err := await self.finalize(out):
                 await self.event.edit("`Error While Copying file...`")
-                await asyncio.sleep(self.sleepTime())
+                await asyncio.sleep(self.sleepTime(len(self.path)))
                 continue
             await self.handleEdits(out=out, finished=False)
-            await asyncio.sleep(self.sleepTime())
+            await asyncio.sleep(self.sleepTime(len(self.path)))
         await self.handleEdits(finished=True)
 
     @staticmethod
@@ -283,8 +283,8 @@ class pyroUL:
         elif size == 0:
             return "`File Size = 0 B...`"
 
-    def sleepTime(self):
-        _ = len(self.path)
+    @staticmethod
+    def sleepTime(_):
         return 1.5 if _ in range(5) else (3.75 if _ < 25 else 7)
 
     async def getMetadata(self):
