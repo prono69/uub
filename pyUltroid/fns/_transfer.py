@@ -257,19 +257,22 @@ class pyroUL:
             self.updateAttrs(kwargs, file, count)
             self.client = app(self.dc)
             if sizerr := self.checkSize(self.file):
-                await self.event.edit(sizerr)
-                await asyncio.sleep(self.sleepTime(len(self.path)))
+                await self.handleError(error_msg=sizerr)
                 continue
             _ulfunc = await self.getMetadata()
             out = await _ulfunc()
             await self.cleanup()  # caption // ul_time
             if isinstance(out, Exception):
-                pass  # to do
+                await self.handleError(
+                    error_msg="__Got Error in Uploading,__  ```{self.file}```"
+                )
+                continue
             if self.return_obj:
                 return out
             if err := await self.finalize(out):
-                await self.event.edit("`Error While Copying file...`")
-                await asyncio.sleep(self.sleepTime(len(self.path)))
+                await self.handleError(
+                    error_msg="__Error while copying Uploaded file...__"
+                )
                 continue
             await self.handleEdits(out=out, finished=False)
             await asyncio.sleep(self.sleepTime(len(self.path)))
@@ -286,6 +289,14 @@ class pyroUL:
     @staticmethod
     def sleepTime(_):
         return 1.5 if _ in range(5) else (3.75 if _ < 25 else 7)
+
+    async def handleError(self, error_msg):
+        if self.event and error_msg:
+            try:
+                await self.event.edit(error_msg)
+            except Exception as exc:
+                LOGS.exception(exc)
+        await asyncio.sleep(self.sleepTime(len(self.path)))
 
     async def getMetadata(self):
         self.metadata = media_info(self.file)

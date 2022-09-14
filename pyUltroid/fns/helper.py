@@ -666,7 +666,7 @@ class getFlags:
                     kwargs[key_] = True
             else:
                 args.append(txt)
-        if self.merge_args:
+        if args and self.merge_args:
             args = [self.seperator.join(args)]
         return args, kwargs
 

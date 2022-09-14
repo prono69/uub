@@ -25,8 +25,8 @@ def _after_load(loader, module, plugin_name=""):
     if doc_ := get_help(plugin_name) or module.__doc__:
         try:
             doc = doc_.format(i=HNDLR)
-        except Exception as er:
-            loader._logger.exception(er)
+        except Exception:
+            loader._logger.exception(f"Error in: {plugin_name}")
             return
         if loader.key in HELP.keys():
             update_cmd = HELP[loader.key]
