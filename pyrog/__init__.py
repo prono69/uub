@@ -66,7 +66,7 @@ async def _start(count, client):
 
 
 async def _init_pyrog():
-    LOGS.info("Starting Pyrogram")
+    LOGS.info("Starting Pyrogram...")
     if get_clients():
         return
     err = await asyncio.gather(
@@ -75,6 +75,7 @@ async def _init_pyrog():
     if ded_clients := list(filter(bool, err)):
         for i in ded_clients:
             PYROG_CLIENTS.pop(i)
-    clis = ", ".join([str(i) for i in PYROG_CLIENTS.keys()])
-    LOGS.debug(f"Clients running: {clis}")
-    return LOGS.info(f"{len(PYROG_CLIENTS)} Pyro Clients Running")
+
+    return LOGS.info(
+        f"{len(PYROG_CLIENTS)} Clients Running -> {tuple(PYROG_CLIENTS.keys())}"
+    )
