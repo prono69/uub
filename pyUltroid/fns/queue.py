@@ -1,7 +1,7 @@
 import time
 import asyncio
 
-from . import asst, LOGS
+from .. import asst, LOGS
 
 
 class forwarderQueue:
