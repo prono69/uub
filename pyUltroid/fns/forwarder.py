@@ -1,9 +1,11 @@
 import asyncio
 from os import remove, path
+from random import randint
 
 from telethon.utils import get_display_name as title_
 from telethon.errors import FloodWaitError
 
+from .queue import forwarderQueue
 from .. import LOGS, udB, ultroid_bot as ultroid
 
 
@@ -115,23 +117,24 @@ async def iterr(chat, id):
 # ~~~~~~~~~~~~~~ Sender ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-async def fx_send(file, cap, title="Not Given"):
+async def fx_send(file, caption, title="Not Given"):
     if not file:
         return
+    caption = caption[:1023]
     try:
         snd = await ultroid.send_file(
             to_fwd,
             file,
-            caption=cap,
+            caption=caption,
             force_document=False,
             silent=True,
         )
     except FloodWaitError as fx:
-        LOGS.exception(f"Sleeping for {fx.seconds} || {title}")
+        LOGS.exception(fx)
         await asyncio.sleep(fx.seconds + 20)
-        await ultroid.send_file(to_fwd, file, caption=cap[:1023])
-    except Exception as ex:
-        LOGS.exception(f"Unhandeled Exception • fx_send • {ex} • {title}")
+        await ultroid.send_file(to_fwd, file, caption=caption)
+    except Exception:
+        LOGS.exception(f"Unhandeled Exception • fx_send • {title}")
     else:
         if file and path.exists(str(file)):
             remove(file)
@@ -147,7 +150,7 @@ async def fx_send(file, cap, title="Not Given"):
 async def fx_album(dct):
     for _, o in dct.items():
         cap = CAPTION_.format("³", title_(o[0].chat), o[0].message_link, o[0].text)
-        await fx_send(o, cap, title_(o[0].chat))
+        add_in_queue(o, cap, title_(o[0].chat))
         await asyncio.sleep(2)
 
 
@@ -166,7 +169,7 @@ async def fx_photo(args):
         pic = await ultroid.download_media(args)
     else:
         return
-    await fx_send(pic, cap, title_(args.chat))
+    add_in_queue(pic, cap, title_(args.chat))
 
 
 # ~~~~~~~~~~~~~~ Video ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -186,7 +189,27 @@ async def fx_video(args):
         vid = await ultroid.download_media(args)
     else:
         return
-    await fx_send(vid, cap, title_(args.chat))
+    add_in_queue(vid, cap, title_(args.chat))
+
+
+# ~~~~~~~~~~~~~ Queue ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+async def tasker(**kwargs):
+    file = kwargs.get("file")
+    caption = kwargs.get("caption")
+    title = kwargs.get("title")
+    await fx_send(file, caption, title)
+    await asyncio.sleep(kwargs.get("sleep", 6))
+
+
+queue = forwarderQueue(tasker)
+
+
+def add_in_queue(file, cap, title, sleep=None):
+    sleep = sleep or randint(5, 10)
+    args = {"file": file, "caption": cap, "title": title, "sleep": sleep}
+    queue.add(**args)
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
