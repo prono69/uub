@@ -41,6 +41,7 @@
 import asyncio
 import re
 from os import remove
+from random import randint
 
 from pyUltroid.dB import DEVLIST
 from pyUltroid.dB.logusers_db import *
@@ -51,7 +52,7 @@ try:
 except ImportError:
     tabulate = None
 from telethon import events
-from telethon.errors import MessageNotModifiedError
+from telethon.errors import MessageNotModifiedError, MessageIdInvalidError
 from telethon.tl.functions.contacts import (
     BlockRequest,
     GetBlockedRequest,
@@ -121,6 +122,28 @@ async def delete_pm_warn_msgs(chat: int):
 
 if udB.get_key("PMLOG"):
 
+    from pyUltroid.fns.queue import forwarderQueue
+
+    async def pm_frwdr(*args, **kwargs):
+        try:
+            chat = udB.get_key("PMLOGGROUP") or LOG_CHANNEL
+            msg = args[0]
+            await msg.forward_to(chat)
+        except MessageIdInvalidError:
+            try:
+                if msg.media:
+                    return await msg.copy(chat)
+                msg = f"**By {get_display_name(msg.sender)}:** \n{msg.text}"
+                await asst.send_message(chat, msg[:4095], silent=True)
+            except Exception as exc:
+                LOGS.exception(exc)
+        except Exception as exc:
+            LOGS.exception(exc)
+        finally:
+            await asyncio.sleep(kwargs["sleep"])
+
+    queue = forwarderQueue(pm_frwdr)
+
     @ultroid_cmd(
         pattern="logpm$",
     )
@@ -155,7 +178,7 @@ if udB.get_key("PMLOG"):
         user = await event.get_sender()
         if user.bot or user.is_self or user.verified or is_logger(user.id):
             return
-        await event.forward_to(udB.get_key("PMLOGGROUP") or LOG_CHANNEL)
+        queue.add(event, sleep=randint(6, 12))
 
 
 if udB.get_key("PMSETTING"):

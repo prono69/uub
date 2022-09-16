@@ -8,16 +8,15 @@ class forwarderQueue:
     def __init__(self, func):
         self.count = 0
         self.DB = {}
-        self.running = []  # to cancel
+        self.running = []
         self.isWorking = False
         self.func = func
 
-    def add(self, callback=True, **args):
-        if not args:
-            return
+    def add(self, *args, **kwargs):
         self.count += 1
-        self.DB[self.count] = args
-        if not self.isWorking and callback:
+        cb = kwargs.pop("callfunc", True)
+        self.DB[self.count] = (args, kwargs)
+        if cb and not self.isWorking:
             self.run()
 
     def pop(self, key):
@@ -33,8 +32,9 @@ class forwarderQueue:
         if self.running:
             return self.running[0]
 
-    async def solo(self, args):
-        task = asst.loop.create_task(self.func(**args))
+    async def runfunc(self, data):
+        args, kwargs = data
+        task = asst.loop.create_task(self.func(*args, **kwargs))
         self.running.append(task)
         await task
 
@@ -48,6 +48,6 @@ class forwarderQueue:
             return
         self.isWorking = True
         key = next(iter(DB))
-        asyncio.run(self.solo(DB.get(key)))
+        asyncio.run(self.runfunc(DB.get(key)))
         self.cleanup(key)
         self.run()

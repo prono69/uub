@@ -15,6 +15,24 @@ KEYS = udB.get_key("FRWD_DB")
 CAPTION_ = "#AutoPost  «{0}»  [{1}]({2})\n{3}"
 to_fwd = udB.get_key("TO_FWD")
 
+# ~~~~~~~~~~~~~ Queue ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+async def frwdx(*args, **kwargs):
+    await fx_send(*args)
+    await asyncio.sleep(kwargs["sleep"])
+
+
+queue = forwarderQueue(frwdx)
+
+
+def add_in_queue(*args, **kwargs):
+    kwargs["sleep"] = randint(6, 12)
+    if "callfunc" not in kwargs:
+        kwargs["callfunc"] = True
+    queue.add(*args, **kwargs)
+
+
 # ~~~~~~~~~~~~~~ Main FWD ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -117,7 +135,7 @@ async def iterr(chat, id):
 # ~~~~~~~~~~~~~~ Sender ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-async def fx_send(file, caption, title="Not Given"):
+async def fx_send(file, caption, msg_link=None):
     if not file:
         return
     caption = caption[:1023]
@@ -129,12 +147,12 @@ async def fx_send(file, caption, title="Not Given"):
             force_document=False,
             silent=True,
         )
-    except FloodWaitError as fx:
-        LOGS.exception(fx)
-        await asyncio.sleep(fx.seconds + 20)
+    except FloodWaitError as fw:
+        LOGS.exception(fw)
+        await asyncio.sleep(fw.seconds + 20)
         await ultroid.send_file(to_fwd, file, caption=caption)
     except Exception:
-        LOGS.exception(f"Unhandeled Exception • fx_send • {title}")
+        LOGS.exception(f"Unhandeled Exception • fx_send • {msg_link}")
     else:
         if file and path.exists(str(file)):
             remove(file)
@@ -148,9 +166,9 @@ async def fx_send(file, caption, title="Not Given"):
 
 
 async def fx_album(dct):
-    for _, o in dct.items():
+    for o in dct.values():
         cap = CAPTION_.format("³", title_(o[0].chat), o[0].message_link, o[0].text)
-        add_in_queue(o, cap, title_(o[0].chat))
+        add_in_queue(o, cap, o[0].message_link, callfunc=False)
         await asyncio.sleep(2)
 
 
@@ -169,7 +187,7 @@ async def fx_photo(args):
         pic = await ultroid.download_media(args)
     else:
         return
-    add_in_queue(pic, cap, title_(args.chat))
+    add_in_queue(pic, cap, args.message_link, callfunc=False)
 
 
 # ~~~~~~~~~~~~~~ Video ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -189,27 +207,7 @@ async def fx_video(args):
         vid = await ultroid.download_media(args)
     else:
         return
-    add_in_queue(vid, cap, title_(args.chat))
-
-
-# ~~~~~~~~~~~~~ Queue ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-async def tasker(**kwargs):
-    file = kwargs.get("file")
-    caption = kwargs.get("caption")
-    title = kwargs.get("title")
-    await fx_send(file, caption, title)
-    await asyncio.sleep(kwargs.get("sleep", 6))
-
-
-queue = forwarderQueue(tasker)
-
-
-def add_in_queue(file, cap, title, sleep=None):
-    sleep = sleep or randint(5, 10)
-    args = {"file": file, "caption": cap, "title": title, "sleep": sleep}
-    queue.add(**args)
+    add_in_queue(vid, cap, args.message_link, callfunc=False)
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
