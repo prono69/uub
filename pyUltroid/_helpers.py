@@ -6,7 +6,6 @@ from time import time, tzset
 
 
 def osremove(*args, folders=False, verbose=False):
-    from shutil import rmtree
     from . import LOGS
 
     if not args:
@@ -18,6 +17,8 @@ def osremove(*args, folders=False, verbose=False):
         elif path.isfile(arg):
             _func = remove
         elif path.isdir(arg):
+            from shutil import rmtree
+
             if not folders:
                 continue
             _func = rmtree

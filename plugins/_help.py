@@ -135,7 +135,7 @@ async def _help(ult):
                 ),
                 file=await random_pic(re_photo=True)
                 if udB.get_key("RANDOM_PIC")
-                else INLINE_PIC,
+                else inline_pic(),
                 buttons=_main_help_menu,
             )
         except BotResponseTimeoutError:

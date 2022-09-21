@@ -9,14 +9,14 @@ class forwarderQueue:
         self.count = 0
         self.DB = {}
         self.running = []
-        self.isWorking = False
+        self.working = False
         self.func = func
 
     def add(self, *args, **kwargs):
         self.count += 1
         cb = kwargs.pop("callfunc", True)
         self.DB[self.count] = (args, kwargs)
-        if cb and not self.isWorking:
+        if cb and not self.working:
             self.run()
 
     def pop(self, key):
@@ -24,7 +24,7 @@ class forwarderQueue:
 
     def __str__(self):
         count = self.count
-        active = self.isWorking
+        active = self.working
         return f"Total Items - {len(self.DB)} | Active - {active} | Count - {count}"
 
     @property
@@ -44,9 +44,9 @@ class forwarderQueue:
 
     def run(self):
         if not (DB := self.DB):
-            self.isWorking = False
+            self.working = False
             return
-        self.isWorking = True
+        self.working = True
         key = next(iter(DB))
         asyncio.run(self.runfunc(DB.get(key)))
         self.cleanup(key)

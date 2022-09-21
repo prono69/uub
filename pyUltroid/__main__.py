@@ -72,11 +72,17 @@ def main():
     # Customize Ultroid Assistant...
     # ultroid_bot.run_in_loop(customize())
 
+    # Auto Forward on Restart..
+    if udB.get_key("AUTOFWD_RESTART") is True:
+        from pyUltroid.fns.forwarder import fwdx
+
+        ultroid_bot.run_in_loop(fwdx(True))
+
     # Load Addons from Plugin Channels.
     if plugin_channels:
         ultroid_bot.run_in_loop(plug(plugin_channels))
 
-    # Pyrogram
+    # Starting Pyrogram..
     from pyrog import _init_pyrog
 
     ultroid_bot.run_in_loop(_init_pyrog())

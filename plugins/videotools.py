@@ -62,7 +62,7 @@ async def gen_sample(e):
         if isinstance(path, Exception):
             return await msg.edit(f"Error in downloading: `{path}`")
     else:
-        await e.eor(get_string("audiotools_8"), time=5)
+        return await e.eor(get_string("audiotools_8"), time=5)
 
     out = os.path.splitext(path)[0] + "_sample.mkv"
     # await asyncio.sleep(1.5)
