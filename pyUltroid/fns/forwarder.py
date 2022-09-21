@@ -2,7 +2,7 @@ import asyncio
 from os import remove, path
 from random import randrange
 
-from telethon.utils import get_display_name as chatTitle
+from telethon.utils import get_peer_id, get_display_name as chatTitle
 from telethon.errors import FloodWaitError
 
 from .helper import cleargif
@@ -88,9 +88,9 @@ class forwarder:
             except Exception as ex:
                 LOGS.exception(f"Channel '{k}' died!")
                 continue
-            chat = self._getname(fin, chatTitle(ent))
+            chat = self._getname(stat, chatTitle(ent))
             await asyncio.sleep(2)
-            if fwd := await self.iter_chat(ent.chat_id, v[1]):
+            if fwd := await self.iter_chat(get_peer_id(ent), v[1]):
                 self.updatedb(k, max(fwd))
                 stat[chat] = len(fwd)
                 LOGS.debug(f"Queued {len(fwd)} files from {chat}")
