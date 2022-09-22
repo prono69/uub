@@ -112,24 +112,27 @@ class forwarder:
         )
 
     async def main(self, file, caption, is_path):
-        album = True if type(file) is list else False
+        if type(file) is list:
+            return await self.main_album(file, caption)
         try:
-            media = (
-                list(filter(bool, [i.media for i in file]))
-                if album
-                else (file if is_path else file.media)
+            client, media, link = (
+                (asst, file, file)
+                if is_path
+                else (file.client, file.media, file.message_link)
             )
-            cpy = await file.client.send_file(self._DESTINATION, media, caption=caption)
+            cpy = await client.send_file(self._DESTINATION, media, caption=caption)
             await self._cleargif(cpy)
             if is_path:
                 remove(file)
         except Exception:
-            link = (
-                file[0].message_link
-                if album
-                else (file if is_path else file.message_link)
-            )
             LOGS.exception(f"Unhandeled Exception, main fwd: {link}")
+
+    async def main_album(self, file, caption):
+        try:
+            media = list(filter(bool, [i.media for i in file]))
+            await file[0].client.send_file(self._DESTINATION, media, caption=caption)
+        except Exception:
+            LOGS.exception(f"Unhandeled Exception, main fwd: {file[0].message_link}")
 
     async def iter_chat(self, chat_id, min_id):
         album, msg_ids = {}, []

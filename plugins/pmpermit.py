@@ -129,11 +129,10 @@ if udB.get_key("PMLOG"):
             chat = udB.get_key("PMLOGGROUP") or LOG_CHANNEL
             await msg.forward_to(chat)
         except MessageIdInvalidError:
-            if msg.media:
-                return await msg.copy(chat)
+            cpy = await msg.copy(chat)
             sender = msg.sender or await msg.get_sender()
-            _msg = f"{inline_mention(sender)}:\n{msg.text}"
-            await asst.send_message(chat, _msg[:4096])
+            msg = f"From: {inline_mention(sender)} - [`{sender.id}`]"
+            await asst.send_message(chat, msg[:4096], reply_to=cpy.id)
         except Exception as exc:
             LOGS.exception(exc)
         finally:

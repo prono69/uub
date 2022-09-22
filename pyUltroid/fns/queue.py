@@ -38,4 +38,4 @@ class PMLogger:
         key = next(iter(DB))
         await self.func(DB.get(key))
         self.pop(key)
-        self.run()
+        await self.run()
