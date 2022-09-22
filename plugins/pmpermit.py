@@ -122,27 +122,24 @@ async def delete_pm_warn_msgs(chat: int):
 
 if udB.get_key("PMLOG"):
 
-    from pyUltroid.fns.queue import forwarderQueue
+    from pyUltroid.fns.queue import PMLogger
 
-    async def pm_frwdr(*args, **kwargs):
+    async def _msglogger(msg):
         try:
             chat = udB.get_key("PMLOGGROUP") or LOG_CHANNEL
-            msg = args[0]
             await msg.forward_to(chat)
         except MessageIdInvalidError:
-            try:
-                if msg.media:
-                    return await msg.copy(chat)
-                msg = f"**By {get_display_name(msg.sender)}:** \n{msg.text}"
-                await asst.send_message(chat, msg[:4095], silent=True)
-            except Exception as exc:
-                LOGS.exception(exc)
+            if msg.media:
+                return await msg.copy(chat)
+            sender = msg.sender or await msg.get_sender()
+            _msg = f"{inline_mention(sender)}:\n{msg.text}"
+            await asst.send_message(chat, _msg[:4096])
         except Exception as exc:
             LOGS.exception(exc)
         finally:
-            await asyncio.sleep(kwargs["sleep"])
+            await asyncio.sleep(randint(8, 16))
 
-    queue = forwarderQueue(pm_frwdr)
+    queue = PMLogger(_msglogger)
 
     @ultroid_cmd(
         pattern="logpm$",
@@ -178,7 +175,7 @@ if udB.get_key("PMLOG"):
         user = await event.get_sender()
         if user.bot or user.is_self or user.verified or is_logger(user.id):
             return
-        queue.add(event, sleep=randint(6, 12))
+        await queue.add(event)
 
 
 if udB.get_key("PMSETTING"):

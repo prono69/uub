@@ -20,6 +20,7 @@ resources/extras/thumbnail.jpg
 # resources/auth
 # resources/temp
 resources/
+pyUltroid/.ignore/
 addons/
 vcbot/
 __pycache__/

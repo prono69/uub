@@ -13,7 +13,8 @@ class forwarder:
     def __init__(self):
         self.DB = {}
         self.count = 0
-        self.working = False
+        self.active = False
+        self.working = self.active
         self._KEYS = udB.get_key("FRWD_DB")
         self._DESTINATION = udB.get_key("TO_FWD")
         self._CAPTION = "#AutoPost  «{0}»  [{1}]({2})\n{3}"
@@ -28,7 +29,9 @@ class forwarder:
 
     @staticmethod
     async def _cleargif(gif):
-        if type(gif) != list and gif.gif:
+        if gif.client._bot:
+            return
+        elif type(gif) != list and gif.gif:
             await cleargif(gif)
 
     @staticmethod
@@ -40,8 +43,8 @@ class forwarder:
 
     def __str__(self):
         count = self.count
-        active = self.working
-        return f"Total Items in Queue - {len(self.DB)} | Working - {active} | Count - {count}"
+        active = self.active
+        return f"Total Items in Queue - {len(self.DB)} | Active - {active} | Count - {count}"
 
     async def __call__(self, fr=False):
         if fr:
@@ -50,7 +53,7 @@ class forwarder:
     async def addQueue(self, *args, callfunc=True):
         self.count += 1
         self.DB[self.count] = args
-        if callfunc and not self.working:
+        if callfunc and not self.active:
             await self.mainQueue()
 
     def popQueue(self, key=None):
@@ -63,13 +66,13 @@ class forwarder:
 
     async def runQueue(self, args):
         await self.main(*args)
-        await asyncio.sleep(randrange(8, 16))
+        await asyncio.sleep(randrange(8, 17))
 
     async def mainQueue(self):
         if not (DB := self.DB):
-            self.working = False
+            self.active = False
             return
-        self.working = True
+        self.active = True
         key = next(iter(DB))
         await self.runQueue(DB.get(key))
         self.popQueue(key)
@@ -80,6 +83,7 @@ class forwarder:
             return LOGS.warning("Found 'RESTART' key! Skipping forwards.")
         if udB.get_key("STOP_FORWARDS"):
             return LOGS.info("not forwarding anything ...")
+
         LOGS.info("Starting Forwards...")
         stat = {}
         for k, v in self._KEYS.items():
@@ -107,17 +111,23 @@ class forwarder:
             f"Forwarded {sum(dct.values())} files from {len(list(filter(bool, dct.values())))} Chats!"
         )
 
-    async def main(self, file, caption):
+    async def main(self, file, caption, is_path):
+        album = True if type(file) is list else False
         try:
-            cpy = await ultroid.send_file(self._DESTINATION, file, caption=caption)
+            media = (
+                list(filter(bool, [i.media for i in file]))
+                if album
+                else (file if is_path else file.media)
+            )
+            cpy = await file.client.send_file(self._DESTINATION, media, caption=caption)
             await self._cleargif(cpy)
-            if type(file) is str and path.isfile(file):
+            if is_path:
                 remove(file)
         except Exception:
             link = (
-                None
-                if type(file) is str
-                else (file[0].message_link if type(file) is list else file.message_link)
+                file[0].message_link
+                if album
+                else (file if is_path else file.message_link)
             )
             LOGS.exception(f"Unhandeled Exception, main fwd: {link}")
 
@@ -136,21 +146,22 @@ class forwarder:
                 continue
             await self.media_handler(x, callfunc=False)
         if album:
-            await self.album_handler(album, callfunc=False)
+            for i in album.values():
+                await self.album_handler(i, callfunc=False)
         return msg_ids
 
-    async def album_handler(self, data, callfunc):
-        for album in data.values():
-            caption = self._CAPTION.format(
-                "³",
-                chatTitle(album[0].chat),
-                album[0].message_link,
-                album[0].text,
-            )
-            await self.addQueue(i, caption[:1023], callfunc=callfunc)
+    async def album_handler(self, album, callfunc=False):
+        is_path = False
+        caption = self._CAPTION.format(
+            "³",
+            chatTitle(album[0].chat),
+            album[0].message_link,
+            album[0].text,
+        )
+        await self.addQueue(album, caption[:1023], is_path, callfunc=callfunc)
 
     async def media_handler(self, file, callfunc=False):
-        media = None
+        media, is_path = None, False
         if file.sticker:
             return
         if file.photo:
@@ -160,6 +171,7 @@ class forwarder:
             and file.file.size < 10 * 1024 * 1024
         ):
             media = await file.download_media("resources/downloads/")
+            is_path = True
         elif self._KEYS[file.chat_id][0] == "vid":
             if file.video or file.gif or file.file.mime_type.split("/")[0] == "video":
                 media = file
@@ -167,11 +179,21 @@ class forwarder:
             caption = self._CAPTION.format(
                 "²", chatTitle(file.chat), file.message_link, file.text or ""
             )
+            if not is_path:
+                if rndx := await self.via_asst(file):
+                    media = rndx
             await self.addQueue(
                 media,
                 caption[:1023],
+                is_path,
                 callfunc=callfunc,
             )
+
+    async def via_asst(self, file):
+        if n := file.chat.username:
+            if randrange(100) > 50:
+                if m := await asst.get_messages(n, ids=file.id):
+                    return m
 
 
 fwdx = forwarder()
