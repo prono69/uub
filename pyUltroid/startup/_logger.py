@@ -68,7 +68,7 @@ log_format1 = logging.Formatter(
 )
 _logger_name = LOG_DATA.get("name", "TGLogger")
 log_format2 = logging.Formatter(
-    f"{_logger_name} [%(levelname)s] ~ %(asctime)s\n> Line %(lineno)s ~ %(filename)s\n> %(message)s",
+    f"{_logger_name} [%(levelname)s] ~ %(asctime)s\n» Line %(lineno)s: %(filename)s\n» %(message)s",
     datefmt="%H:%M:%S",
 )
 
@@ -94,6 +94,7 @@ if LOG_DATA.get("tglog") is True:
 
 # Initiate all Loggers!
 logging.basicConfig(handlers=LOG_HANDLERS)
+del LOG_DATA, LOG_HANDLERS
 
 # ----------------------------------------------------------------------------
 

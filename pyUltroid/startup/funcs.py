@@ -448,11 +448,6 @@ async def plug(plugin_channels):
             LOGS.exception(er)
 
 
-async def idkwhy():
-    await asyncio.sleep(10)
-    LOGS.debug("")
-
-
 # some stuffs
 async def ready():
     from .. import asst, udB, ultroid_bot
@@ -523,8 +518,6 @@ async def ready():
         udB.set_key("OLDANN", get_)
     except Exception as er:
         LOGS.exception(er)
-    finally:
-        asst.loop.create_task(idkwhy())
 
 
 async def WasItRestart(udb):

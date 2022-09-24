@@ -1,6 +1,8 @@
 # Original Source : https://github.com/subinps/tglogging
 # Modified to make compatible with Ultroid.
+#
 # first push : 24-09-2022, v0.7
+#
 
 import asyncio
 from io import BytesIO
@@ -15,7 +17,7 @@ from aiohttp import ClientSession
 loop = asyncio.get_event_loop()
 
 _TG_API = "https://api.telegram.org/bot{}"
-_TG_MSG_LIMIT = 4040
+_TG_MSG_LIMIT = 4030
 _PAYLOAD = {"disable_web_page_preview": True, "parse_mode": "Markdown"}
 _MAX_LOG_LIMIT = 8192
 
@@ -27,13 +29,12 @@ class TGLogHandler(StreamHandler):
         self.count = 0
         self.chat = chat
         self.log_db = []
-        self.current = []
+        self.current = ""
         self.active = False
         self.message_id = None
         self._floodwait = False
         self.__url = _TG_API.format(token)
-        self.__payload = deepcopy(_PAYLOAD)
-        self.__payload.update({"chat_id": chat})
+        _PAYLOAD.update({"chat_id": chat})
         StreamHandler.__init__(self)
 
     def __str__(self):
@@ -57,48 +58,41 @@ class TGLogHandler(StreamHandler):
         await self.handle_logs(db)
         await self.runQueue()
 
-    async def _edit_or_send(self, log, slp):
-        if not self.message_id:
-            await self.send_message(f"```{log}```")
-            self.current = [log]
-        else:
-            current = "".join([f"```{i}```\n" for i in self.current])
-            await self.edit_message(current + f"```{log}```")
-            self.current.append(log)
-        await asyncio.sleep(slp)
+    def splitter(self, logs):
+        _log = []
+        current = self.current
+        for l in logs:
+            edit_left = _TG_MSG_LIMIT - len(current)
+            if edit_left > len(l):
+                current += "\n\n\n" + l
+            else:
+                # x, y = l[:edit_left], l[edit_left:]
+                _log.append(current)
+                current = l
+        _log.append(current)
+        return _log
 
-    async def _send_doc(self, data):
-        await self.send_as_document(data)
-        self.current.clear()
-        self.message_id = None
-        await asyncio.sleep(randrange(8, 17))
-
-    async def handle_edit_or_send(self, edit_left, log_msg):
-        if edit_left > len(log_msg):
-            await self._edit_or_send(log_msg, slp=randrange(6, 13))
-            return
-        to_edit_list = [log_msg[:edit_left]]
-        log_msg = log_msg[edit_left:]
-        temp_list = [
-            log_msg[i : i + _TG_MSG_LIMIT]
-            for i in range(0, len(log_msg), _TG_MSG_LIMIT)
-        ]
-        to_edit_list.extend([temp_list])
-        del temp_list, log_msg
-        for log in lst:
-            await self._edit_or_send(log, slp=randrange(8, 17))
+    async def conditionX(self, log_msg):
+        lst = self.splitter(log_msg)
+        if lst[0] != self.current:
+            await self.edit_message(lst[0], sleep=5)
+        for i in lst[1:]:
+            await self.send_message(i, sleep=randrange(8, 15))
 
     async def handle_logs(self, db):
         pre_len = len(db)
         temp_logs = deepcopy(db)  # db[:pre_len]
-        # if sum of all logs > 8192
-        if sum(map(lambda i: len(i), temp_logs)) > _TG_MSG_LIMIT:
-            await self._send_doc(temp_logs)
-            self.log_db = self.log_db[pre_len:]
-            return
-        for log in temp_logs:
-            edit_left = _TG_MSG_LIMIT - len("".join(self.current))
-            await self.handle_edit_or_send(edit_left, log)
+        _len = len(" ".join(temp_logs))
+        edit_left = _TG_MSG_LIMIT - len(self.current)
+        as_file = any(len(i) > _TG_MSG_LIMIT for i in temp_logs)
+
+        if edit_left > _len:
+            msg = self.current + "\n\n\n".join(temp_logs)
+            await self.edit_message(msg, sleep=randrange(6, 13))
+        elif as_file or _len > _MAX_LOG_LIMIT:
+            await self.send_file("\n\n\n".join(temp_logs), sleep=randrange(10, 20))
+        else:
+            await self.conditionX(temp_logs)
         self.log_db = self.log_db[pre_len:]
 
     async def send_request(self, url, payload):
@@ -110,27 +104,35 @@ class TGLogHandler(StreamHandler):
         await asyncio.sleep(sleep)
         self._floodwait = False
 
-    async def send_message(self, message):
-        payload = deepcopy(self.__payload)
-        payload["text"] = message
+    async def send_message(self, message, sleep):
+        payload = deepcopy(_PAYLOAD)
+        payload["text"] = f"```{message}```"
         res = await self.send_request(self.__url + "/sendMessage", payload)
         if res.get("ok"):
-            self.message_id = res["result"]["message_id"]
+            self.message_id = int(res["result"]["message_id"])
+            self.current = message
+            await asyncio.sleep(sleep)
         else:
             await self.handle_error(res)
 
-    async def edit_message(self, message):
-        payload = deepcopy(PAYLOAD)
-        payload.update({"message_id": self.message_id, "text": message})
+    async def edit_message(self, message, sleep):
+        if not self.message_id:
+            await self.send_message(message, sleep)
+            return
+        payload = deepcopy(_PAYLOAD)
+        payload.update({"message_id": self.message_id, "text": f"```{message}```"})
         res = await self.send_request(self.__url + "/editMessageText", payload)
-        if not res.get("ok"):
+        if res.get("ok"):
+            self.current += "\n\n\n" + message
+            await asyncio.sleep(sleep)
+        else:
             await self.handle_error(res)
 
-    async def send_as_document(self, logs):
+    async def send_file(self, logs, sleep):
         file = BytesIO(logs.encode())
         file.name = "tglogging.txt"
         url = self.__url + "/sendDocument"
-        payload = deepcopy(PAYLOAD)
+        payload = deepcopy(_PAYLOAD)
         payload["caption"] = "Too much logs to send, hence sending as file."
         files = {"document": file}
         payload.pop("disable_web_page_preview", None)
@@ -139,9 +141,12 @@ class TGLogHandler(StreamHandler):
                 "POST", url, params=payload, data=files
             ) as response:
                 res = await response.json()
-        if not res.get("ok"):
+        if res.get("ok"):
+            self.current = ""
+            self.message_id = None
+            await asyncio.sleep(sleep)
+        else:
             await self.handle_error(res)
-        # print("Logs send as a file since there were too much lines to print.")
 
     async def handle_error(self, resp):
         error = resp.get("parameters", {})
@@ -158,6 +163,3 @@ class TGLogHandler(StreamHandler):
             print(f"floodwait in tglogging: sleeping for {s}")
             sleep = s + (s // 3)
             asyncio.gather(cancel_floodwait(sleep))
-
-
-# ----------------------------------------------------------------------------
