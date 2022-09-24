@@ -897,7 +897,7 @@ class googleimagesdownload:
                         arguments["ignore_urls"],
                     )
                 except (TypeError, IndexError) as er:
-                    LOGS.debug(er)
+                    # LOGS.debug(er)
                     download_status = None
 
                 if download_status == "success":

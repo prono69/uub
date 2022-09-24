@@ -33,6 +33,7 @@ if not os.path.exists("./plugins"):
 
 _ult_cache = {}
 _ignore_eval = []
+tasks_db = {}
 
 LOGS.info("Connecting to Database..")
 udB = UltroidDB()

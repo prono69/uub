@@ -88,7 +88,10 @@ def do_pip_recursive(file_data):
 
 
 def on_startup():
+    import nest_asyncio
+
     setTZ()
+    nest_asyncio.apply()
     load_dotenv(override=True)
     if path.isfile("prvenv"):
         load_dotenv("prvenv", override=False)
