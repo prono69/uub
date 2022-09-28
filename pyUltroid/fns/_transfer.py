@@ -31,6 +31,7 @@ from .. import LOGS, udB, ultroid_bot, asst
 
 DUMP_CHANNEL = udB.get_key("TAG_LOG")
 PROGRESS_LOG = {}
+LOGGER_MSG = "Uploading {}! \nPath - {} \nDC - {} \nSize - {}"
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -426,7 +427,12 @@ class pyroUL:
         }
         if self._log:
             LOGS.debug(
-                f"Uploading Video | Path: {self.file} | DC: {self.dc} | Size: {self.metadata['size']}"
+                LOGGER_MSG.format(
+                    "Video",
+                    self.file,
+                    self.dc,
+                    self.metadata["size"],
+                )
             )
         if self.show_progress:
             prog_args = (
@@ -457,7 +463,12 @@ class pyroUL:
         }
         if self._log:
             LOGS.debug(
-                f"Uploading Audio | Path: {self.file} | DC: {self.dc} | Size: {self.metadata['size']}"
+                LOGGER_MSG.format(
+                    "Audio",
+                    self.file,
+                    self.dc,
+                    self.metadata["size"],
+                )
             )
         if self.show_progress:
             prog_args = (
@@ -485,6 +496,15 @@ class pyroUL:
             "width": self.metadata["width"],
             "disable_notification": self.silent,
         }
+        if self._log:
+            LOGS.debug(
+                LOGGER_MSG.format(
+                    "Animation",
+                    self.file,
+                    self.dc,
+                    self.metadata["size"],
+                )
+            )
         try:
             return await self.client.send_animation(**args)
         except BaseException as exc:
@@ -501,7 +521,12 @@ class pyroUL:
         }
         if self._log:
             LOGS.debug(
-                f"Uploading Document | Path: {self.file} | DC: {self.dc} | Size: {self.metadata['size']}"
+                LOGGER_MSG.format(
+                    "Document",
+                    self.file,
+                    self.dc,
+                    self.metadata["size"],
+                )
             )
         if self.show_progress:
             prog_args = (

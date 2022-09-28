@@ -4,6 +4,7 @@ from random import randrange
 
 from telethon.utils import get_peer_id, get_display_name as chatTitle
 from telethon.errors import FloodWaitError
+from telethon.errors.rpcbaseerrors import BadRequestError
 
 from .helper import cleargif
 from .. import asst, LOGS, udB, ultroid_bot as ultroid
@@ -64,17 +65,13 @@ class forwarder:
                 return
         self.DB.pop(key, None)
 
-    async def runQueue(self, args):
-        await self.main(*args)
-        await asyncio.sleep(randrange(8, 17))
-
     async def mainQueue(self):
         if not (DB := self.DB):
             self.active = False
             return
         self.active = True
         key = next(iter(DB))
-        await self.runQueue(DB.get(key))
+        await self.main(*DB.get(key))
         self.popQueue(key)
         await self.mainQueue()
 
@@ -114,23 +111,34 @@ class forwarder:
     async def main(self, file, caption, is_path):
         if type(file) is list:
             return await self.main_album(file, caption)
+        client, media, link = (
+            (asst, file, file)
+            if is_path
+            else (file.client, file.media, file.message_link)
+        )
         try:
-            client, media, link = (
-                (asst, file, file)
-                if is_path
-                else (file.client, file.media, file.message_link)
-            )
             cpy = await client.send_file(self._DESTINATION, media, caption=caption)
+        except BadRequestError as exc:
+            LOGS.exception(exc)
+            if "FILE_REFERENCE" in " ".join(exc.args):
+                media = await client.get_messages(media.chat_id, ids=media.id)
+                cpy = await media.copy(self._DESTINATION, caption=caption)
+        except FloodWaitError as fw:
+            LOGS.exception(fw)
+            await asyncio.sleep(fw.seconds + 20)
+            cpy = await client.send_file(self._DESTINATION, media, caption=caption)
+        except Exception:
+            LOGS.exception(f"Unhandeled Exception, main fwd: {link}")
+        else:
             await self._cleargif(cpy)
             if is_path:
                 remove(file)
-        except Exception:
-            LOGS.exception(f"Unhandeled Exception, main fwd: {link}")
+        finally:
+            await asyncio.sleep(randrange(8, 17))
 
     async def main_album(self, file, caption):
         try:
-            media = list(filter(bool, [i.media for i in file]))
-            await file[0].client.send_file(self._DESTINATION, media, caption=caption)
+            await file[0].client.send_file(self._DESTINATION, file, caption=caption)
         except Exception:
             LOGS.exception(f"Unhandeled Exception, main fwd: {file[0].message_link}")
 
@@ -155,11 +163,13 @@ class forwarder:
 
     async def album_handler(self, album, callfunc=False):
         is_path = False
+        text = list(filter(lambda c: bool(c.text), album))
+        text = text[0].text if text else ""
         caption = self._CAPTION.format(
             "³",
             chatTitle(album[0].chat),
             album[0].message_link,
-            album[0].text,
+            text,
         )
         await self.addQueue(album, caption[:1023], is_path, callfunc=callfunc)
 
@@ -182,7 +192,7 @@ class forwarder:
             caption = self._CAPTION.format(
                 "²", chatTitle(file.chat), file.message_link, file.text or ""
             )
-            if not is_path:
+            if not is_path and randrange(100) > 50:
                 if rndx := await self.via_asst(file):
                     media = rndx
             await self.addQueue(
@@ -194,9 +204,8 @@ class forwarder:
 
     async def via_asst(self, file):
         if n := file.chat.username:
-            if randrange(100) > 50:
-                if m := await asst.get_messages(n, ids=file.id):
-                    return m
+            if m := await asst.get_messages(n, ids=file.id):
+                return m
 
 
 fwdx = forwarder()

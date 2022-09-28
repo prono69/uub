@@ -33,7 +33,6 @@ class TGLogHandler(StreamHandler):
         self.editCount = 0
         self.triggerCount = 0
         self.message_id = None
-        self.processedCount = 0
         self._floodwait = False
         self.doc_message_id = None
         self.__url = _TG_API.format(token)
@@ -79,7 +78,7 @@ class TGLogHandler(StreamHandler):
 
     async def conditionX(self, log_msg):
         lst = self.splitter(log_msg)
-        if lst[0] != self.current:
+        if lst[0] != self.current.replace("```", ''):
             await self.edit_message(lst[0], sleep=5)
         for i in lst[1:]:
             await self.send_message(i, sleep=randrange(6, 15))
@@ -95,7 +94,6 @@ class TGLogHandler(StreamHandler):
         else:
             await self.conditionX(db)
         self.log_db = self.log_db[len(db) :]
-        self.processedCount += 1
 
     async def send_request(self, url, payload):
         async with ClientSession() as session:
