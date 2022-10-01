@@ -3,8 +3,7 @@ from os import remove, path
 from random import randrange
 
 from telethon.utils import get_peer_id, get_display_name as chatTitle
-from telethon.errors import FloodWaitError
-from telethon.errors.rpcbaseerrors import BadRequestError
+from telethon.errors import BadRequestError, FloodWaitError, FileReferenceExpiredError
 
 from .helper import cleargif
 from .. import asst, LOGS, udB, ultroid_bot as ultroid
@@ -118,11 +117,11 @@ class forwarder:
         )
         try:
             cpy = await client.send_file(self._DESTINATION, media, caption=caption)
-        except BadRequestError as exc:
-            LOGS.exception(exc)
-            if "FILE_REFERENCE" in " ".join(exc.args):
-                media = await client.get_messages(media.chat_id, ids=media.id)
-                cpy = await media.copy(self._DESTINATION, caption=caption)
+        except (BadRequestError, FileReferenceExpiredError) as exc:
+            LOGS.exception("Handling FileReference error: ")
+            media = await client.get_messages(media.chat_id, ids=media.id)
+            await asyncio.sleep(2)
+            cpy = await media.copy(self._DESTINATION, caption=caption)
         except FloodWaitError as fw:
             LOGS.exception(fw)
             await asyncio.sleep(fw.seconds + 20)
@@ -140,7 +139,7 @@ class forwarder:
         try:
             await file[0].client.send_file(self._DESTINATION, file, caption=caption)
         except Exception:
-            LOGS.exception(f"Unhandeled Exception, main fwd: {file[0].message_link}")
+            LOGS.exception(f"Unhandeled Exception, Album FWD: {file[0].message_link}")
 
     async def iter_chat(self, chat_id, min_id):
         album, msg_ids = {}, []

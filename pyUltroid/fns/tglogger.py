@@ -78,7 +78,7 @@ class TGLogHandler(StreamHandler):
 
     async def conditionX(self, log_msg):
         lst = self.splitter(log_msg)
-        if lst[0] != self.current.replace("```", ''):
+        if lst[0] != self.current.replace("```", ""):
             await self.edit_message(lst[0], sleep=5)
         for i in lst[1:]:
             await self.send_message(i, sleep=randrange(6, 15))

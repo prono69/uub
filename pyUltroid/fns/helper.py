@@ -136,6 +136,7 @@ def un_plug(shortname):
 
 async def safeinstall(event):
     from .. import HNDLR
+    from ..startup import KEEP_SAFE
     from ..startup.utils import load_addons
 
     if not event.reply_to:
