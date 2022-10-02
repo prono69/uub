@@ -55,7 +55,7 @@ def get_string(key: str, _res: bool = True) -> Any:
 
 
 def get_help(key):
-    doc = get_string(key, _res=False)
+    doc = get_string(f"help_{key}", _res=False)
     if doc:
         return get_string("cmda") + doc
 

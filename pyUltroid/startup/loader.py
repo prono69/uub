@@ -6,6 +6,7 @@
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
 import os
+import subprocess
 from shutil import rmtree
 
 from decouple import config
@@ -22,11 +23,12 @@ def _after_load(loader, module, plugin_name=""):
         return
     from strings import get_help
 
-    if doc_ := module.__doc__ or get_help(plugin_name):
+    if doc_ := get_help(plugin_name) or module.__doc__:
         try:
             doc = doc_.format(i=HNDLR)
         except Exception:
-            loader._logger.exception(f"Error in: {plugin_name}")
+            loader._logger.exception(er)
+            loader._logger.info(f"Error in {plugin_name}: {module}")
             return
         if loader.key in HELP.keys():
             update_cmd = HELP[loader.key]
@@ -64,24 +66,26 @@ def load_other_plugins(addons=None, pmbot=None, manager=None, vcbot=None):
     # for addons
     if addons:
         if url := udB.get_key("ADDONS_URL"):
-            os.system(f"git clone -q {url} addons")
+            subprocess.run(f"git clone -q {url} addons", shell=True)
         if os.path.exists("addons") and not os.path.exists("addons/.git"):
             rmtree("addons")
         if not os.path.exists("addons"):
-            os.system(
-                f"git clone -q -b {Repo().active_branch} https://github.com/TeamUltroid/UltroidAddons.git addons"
+            subprocess.run(
+                f"git clone -q -b {Repo().active_branch} https://github.com/TeamUltroid/UltroidAddons.git addons",
+                shell=True,
             )
         else:
-            os.system("cd addons && git pull -q --ff-only ; cd ..")
+            subprocess.run("cd addons && git pull -q --rebase", shell=True)
 
         if not os.path.exists("addons"):
-            os.system(
-                "git clone -q https://github.com/TeamUltroid/UltroidAddons.git addons"
+            subprocess.run(
+                "git clone -q https://github.com/TeamUltroid/UltroidAddons.git addons",
+                shell=True,
             )
         if os.path.exists("addons/addons.txt"):
             # generally addons req already there so it won't take much time
-            # os.system("rm -rf /usr/local/lib/python3.9/site-packages/pip/_vendor/.wh.appdirs.py")
-            # os.system("pip3 install --no-cache-dir -q -r ./addons/addons.txt")
+            # subprocess.run("rm -rf /usr/local/lib/python3.9/site-packages/pip/_vendor/.wh.appdirs.py", shell=True)
+            # subprocess.run("pip3 install --no-cache-dir -q -r ./addons/addons.txt", shell=True)
             pass  # no need for all this
 
         _exclude = udB.get_key("EXCLUDE_ADDONS")
@@ -112,14 +116,13 @@ def load_other_plugins(addons=None, pmbot=None, manager=None, vcbot=None):
 
             if os.path.exists("vcbot"):
                 if os.path.exists("vcbot/.git"):
-                    os.system("cd vcbot && git pull -q --ff-only ; cd ..")
+                    subprocess.run("cd vcbot && git pull -q --rebase", shell=True)
                 else:
                     rmtree("vcbot")
             if not os.path.exists("vcbot"):
-                os.system("git clone https://github.com/TeamUltroid/VcBot vcbot")
+                subprocess.run("git clone https://github.com/TeamUltroid/VcBot vcbot", shell=True)
             try:
-                if not os.path.exists("vcbot/downloads"):
-                    os.mkdir("vcbot/downloads")
+                os.makedirs("vcbot/downloads", exist_ok=True)
                 Loader(path="vcbot", key="VCBot").load(after_load=_after_load)
             except FileNotFoundError as e:
                 LOGS.error(f"{e} Skipping VCBot Installation.")
