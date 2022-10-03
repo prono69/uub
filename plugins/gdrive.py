@@ -114,7 +114,7 @@ async def _(event):
         if isinstance(filename, Exception):
             return await mone.edit(f"Error in downloading: `{filename}`")
         await mone.edit(
-            f"`Downloaded to ``{filename}`.`",
+            f"`Downloaded to ```{filename}```",
         )
     else:
         filename = input_file.strip()

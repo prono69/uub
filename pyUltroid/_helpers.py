@@ -41,7 +41,7 @@ def cleanup_stuff(init=False):
         "/usr/local/lib/python3.10/site-packages/.wh.setuptools-58.1.0.dist-info",
     ]
     if init:
-        to_del.extend(list(("jewel", "bird", ".wget-hsts")))
+        to_del.extend(["jewel", "bird", ".wget-hsts", "prvenv"])
     osremove(to_del, folders=init, verbose=False)
 
 
@@ -67,21 +67,16 @@ def setTZ(TZ=None):
 
 
 def _user_specifics(Var, LOGS):
-    if Var.USER.lower() == "dotarc":
-        if Var.HOST.lower() == "heroku":
+    if Var.HOST.lower() == "heroku":
+        if environ.get("qBit"):
             LOGS.info("Starting qBittorrent Web-UI")
             system("bash 1337x &")
-
-    elif Var.USER.lower() == "aprish" and Var.HOST.lower() == "heroku":
-        LOGS.info("Starting qBittorrent Web-UI")
-        system("bash 1337x &")
 
 
 def do_pip_recursive(file_data):
     def checkr(txt):
         t = txt.strip()
         return t and not t.startswith("#")
-
     _data = filter(checkr, file_data.split("\n"))
     for reqs in _data:
         system("pip3 install -q --no-cache-dir " + reqs.strip())
@@ -93,9 +88,6 @@ def on_startup():
     setTZ()
     nest_asyncio.apply()
     load_dotenv(override=True)
-    if path.isfile("prvenv"):
-        load_dotenv("prvenv", override=False)
-        remove("prvenv")
     from .configs import Var
 
     if Var.HOST.lower() != "local":
