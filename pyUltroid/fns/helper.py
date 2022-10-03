@@ -47,6 +47,7 @@ from functools import partial, wraps
 
 from telethon.helpers import _maybe_await
 from telethon.tl import types
+from telethon.tl.functions.messages import SaveGifRequest
 from telethon.utils import get_display_name, get_input_document
 
 from .._misc import CMD_HELP
@@ -56,8 +57,8 @@ from . import *
 
 from ..dB._core import ADDONS, HELP, LIST, LOADED
 
-from .._helpers import osremove
 from ..version import ultroid_version
+from .._helpers import osremove, timeit
 from .FastTelethon import download_file as downloadable
 from .FastTelethon import upload_file as uploadable
 
@@ -192,7 +193,6 @@ async def safeinstall(event):
 
 async def heroku_logs(event):
     """post heroku logs"""
-    from .. import LOGS
     from ..heroku import Heroku
 
     xx = await eor(event, "`Processing...`")
@@ -274,13 +274,11 @@ async def bash(cmd, run_code=0):
 
 
 async def cleargif(gif):
-    from telethon.tl.functions.messages import SaveGifRequest
-    from .. import LOGS, ultroid_bot
-
-    try:
-        await ultroid_bot(SaveGifRequest(id=get_input_document(gif), unsave=True))
-    except Exception as ex:
-        return LOGS.exception("'cleargif' exception")
+    if not gif.client._bot and gif.gif:
+        try:
+            await gif.client(SaveGifRequest(id=get_input_document(gif), unsave=True))
+        except Exception as ex:
+            return LOGS.exception("'cleargif' exception")
 
 
 # ---------------------------UPDATER-------------------------------- #
@@ -289,8 +287,6 @@ async def cleargif(gif):
 
 
 async def updater():
-    from .. import LOGS
-
     try:
         repo = Repo()
     except BaseException:
@@ -538,8 +534,6 @@ async def progress(current, total, event, start, type_of_ps, file_name=None):
         No_Flood.update({jost: now})
         await event.edit(to_edit)
     except MessageNotModifiedError as exc:
-        from .. import LOGS
-
         LOGS.error("err in progress: message_not_modified")
 
 
@@ -548,7 +542,7 @@ async def progress(current, total, event, start, type_of_ps, file_name=None):
 
 
 async def restart(ult=None, EDIT=False):
-    from .. import HOSTED_ON, LOGS
+    from .. import HOSTED_ON
 
     if HOSTED_ON == "heroku":
         from ..heroku import Heroku
@@ -581,7 +575,7 @@ async def restart(ult=None, EDIT=False):
 
 
 async def shutdown(ult):
-    from .. import HOSTED_ON, LOGS
+    from .. import HOSTED_ON
 
     ult = await eor(ult, "Shutting Down")
     if HOSTED_ON == "heroku":

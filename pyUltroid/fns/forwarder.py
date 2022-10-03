@@ -29,9 +29,7 @@ class forwarder:
 
     @staticmethod
     async def _cleargif(gif):
-        if gif.client._bot:
-            return
-        elif type(gif) != list and gif.gif:
+        if type(gif) != list:
             await cleargif(gif)
 
     @staticmethod

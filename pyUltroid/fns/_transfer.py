@@ -200,6 +200,7 @@ class pyroUL:
         self._cancelled = False
         self.path = self.listFiles(_path)
         self.show_progress = show_progress
+        self.defaultValues()
 
     @staticmethod
     def listFiles(_path):
@@ -252,7 +253,7 @@ class pyroUL:
 
         if type(self.path) is str:
             return await self.event.edit(self.path)
-        self.defaultValues()
+        # self.defaultValues()
         self.pre_time = time()
         for count, file in enumerate(sorted(self.path), start=1):
             self.updateAttrs(kwargs, file, count)
@@ -375,8 +376,7 @@ class pyroUL:
                     delattr(self, attr)
 
     async def coroutineTask(self, m1, m2):
-        if m2.gif and not m2.client._bot:
-            await cleargif(m2)
+        await cleargif(m2)
         await asyncio.sleep(getattr(self, "cleanup_sleep", 2.5))
         if self.schd_delete:
             await m1.delete()
@@ -600,6 +600,18 @@ async def audioThumb(_path):
         return thumby if path.exists(thumby) else None
     except BaseException as exc:
         return LOGS.error(exc)
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+# Custom Exceptions
+class UploadError(Exception):
+    pass
+
+
+class DownloadError(Exception):
+    pass
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

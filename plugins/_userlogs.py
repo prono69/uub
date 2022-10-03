@@ -7,7 +7,7 @@
 
 import os
 import re
-from asyncio import sleep
+import asyncio
 from datetime import timezone
 
 from telethon.errors.rpcerrorlist import (
@@ -83,9 +83,9 @@ async def all_messages_catcher(e):
                 # media = await e.download_media()
                 # sent = await asst.send_message(NEEDTOLOG, e.message.text, file=media, buttons=buttons)
                 media = await e.copy(NEEDTOLOG)
-                await sleep(1)
+                await asyncio.sleep(2)
                 _get = await asst.get_messages(NEEDTOLOG, ids=media.id)
-                await media.delete()
+                await asyncio.gather(cleargif(media), media.delete())
                 sent = await _get.copy(NEEDTOLOG, buttons=buttons)
                 del media, _get
                 if TAG_EDITS.get(e.chat_id):

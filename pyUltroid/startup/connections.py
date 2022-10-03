@@ -32,6 +32,7 @@ DC_IPV4 = {
 
 def validate_session(session, logger=LOGS, _exit=True):
     from strings import get_string
+
     if session:
         # Telethon Session
         if session.startswith(CURRENT_VERSION):
@@ -74,6 +75,7 @@ def validate_session(session, logger=LOGS, _exit=True):
 
 def vc_connection(udB, ultroid_bot):
     from strings import get_string
+
     VC_SESSION = Var.VC_SESSION or udB.get_key("VC_SESSION")
     if VC_SESSION and VC_SESSION != Var.SESSION:
         LOGS.info("Starting up VcClient.")
@@ -81,7 +83,7 @@ def vc_connection(udB, ultroid_bot):
             return UltroidClient(
                 validate_session(VC_SESSION, _exit=False),
                 log_attempt=False,
-                exit_on_error=False
+                exit_on_error=False,
             )
         except (AuthKeyDuplicatedError, EOFError):
             LOGS.info(get_string("py_c3"))

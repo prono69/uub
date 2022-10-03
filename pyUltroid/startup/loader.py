@@ -120,7 +120,9 @@ def load_other_plugins(addons=None, pmbot=None, manager=None, vcbot=None):
                 else:
                     rmtree("vcbot")
             if not os.path.exists("vcbot"):
-                subprocess.run("git clone https://github.com/TeamUltroid/VcBot vcbot", shell=True)
+                subprocess.run(
+                    "git clone https://github.com/TeamUltroid/VcBot vcbot", shell=True
+                )
             try:
                 os.makedirs("vcbot/downloads", exist_ok=True)
                 Loader(path="vcbot", key="VCBot").load(after_load=_after_load)
