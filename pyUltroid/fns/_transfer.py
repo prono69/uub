@@ -6,6 +6,7 @@
 #  - changed lots of helper functions.
 #  - added pyroDL on 23-07-22
 #  - fixed for 0.7: 06-09-22
+#  - overhaul 0.7.1: 06-10-22
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -20,7 +21,7 @@ from os import path, remove, rename, walk, getcwd
 # from mimetypes import guess_all_extensions
 from music_tag import load_file
 from telethon.utils import get_display_name
-from telethon.errors.rpcerrorlist import MessageNotModifiedError
+from telethon.errors import MessageNotModifiedError, MessageIdInvalidError
 
 from .helper import bash, time_formatter, inline_mention, cleargif, msg_link
 from .tools import media_info, check_filename, humanbytes, shq
@@ -31,7 +32,7 @@ from .. import LOGS, udB, ultroid_bot, asst
 
 DUMP_CHANNEL = udB.get_key("TAG_LOG")
 PROGRESS_LOG = {}
-LOGGER_MSG = "Uploading {}! \nPath - {} \nDC - {} \nSize - {}"
+LOGGER_MSG = "Uploading {} | Path: {} | DC: {} | Size: {}"
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -74,8 +75,8 @@ async def pyro_progress(
     try:
         PROGRESS_LOG.update({jost: now})
         await message.edit(to_edit)
-    except MessageNotModifiedError:
-        LOGS.exception("pyro progress err: ")
+    except MessageNotModifiedError as exc:
+        LOGS.exception(exc)
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -123,7 +124,7 @@ class pyroDL:
         _msg = await self.copy_msg()
         if type(_msg) == str:
             return await self.event.edit(_msg)
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.75)
         self.dc = kwargs.pop("dc", self.getDC(_msg))
         self.client = app(self.dc)
         self.msg = await self.client.get_messages(DUMP_CHANNEL, _msg.id)
@@ -197,10 +198,9 @@ class pyroDL:
 class pyroUL:
     def __init__(self, event, _path, show_progress=True):
         self.event = event
-        self._cancelled = False
-        self.path = self.listFiles(_path)
         self.show_progress = show_progress
-        self.defaultValues()
+        self.path = self.listFiles(_path)
+        self.set_default_attributes()
 
     @staticmethod
     def listFiles(_path):
@@ -213,117 +213,83 @@ class pyroUL:
             for dir, _, file in walk(_path):
                 for _ in file:
                     col.append(path.join(dir, _))
-            return tuple(col) if col else f"Folder is Empty: `{_path}`"
+            return tuple(col) if col else f"No files in this folder: `{_path}`"
         else:
-            return f"Wrong Path: `{_path}`"
+            return f"Path doesn't exists: `{_path}`"
 
-    def defaultValues(self):
+    # main functions
+
+    def set_default_attributes(self):
+        self._cancelled = False
         self.chat_id = DUMP_CHANNEL
         self.delete_file = False
         self.delete_thumb = True
         self.schd_delete = False
         self.auto_edit = True
-        self.return_obj = False  # only for single file
+        self.return_obj = False
         self.dc = 1
         self._log = True
         self.success = 0
         self.failed = 0
         self.silent = True
         self.force_document = False
-        self.delay = 8  # progress_delay
-
-    def updateAttrs(self, kwargs, file, count):
-        self.file = file
-        self.count = count
-        event = getattr(self, "event", None)
-        self.reply_to = getattr(event, "reply_to_msg_id", event.id) if event else None
-        self.copy_to = event.chat_id if event else DUMP_CHANNEL
-        if self.show_progress:
-            self.progress = pyro_progress
-            self.progress_text = (
-                f"`{self.count}/{len(self.path)} | Uploading {self.file}..`"
-            )
-        if list(filter(bool, [kwargs.pop(i, None) for i in ("schd_delete", "df")])):
-            self.schd_delete = True
-        for k, v in kwargs.items():
-            setattr(self, k, v)
+        self.delay = 8  # progress edit delay
 
     async def upload(self, **kwargs):
+        if type(self.path) == str:
+            if self.event:
+                await self.event.edit(self.path)
+            return
+        self.perma_attributes()
+        for count, file in enumerate(sorted(self.path), start=1):
+            self.update_attributes(kwargs, file, count)
+            try:
+                self.pre_upload()
+                ulfunc = self.uploader_func()
+                out = await ulfunc()
+                self.post_upload()
+                if self.return_obj:
+                    return out  # (for single file)
+                await self.finalize(out)
+                await self.handle_edits(success=True)
+                await asyncio.sleep(self.sleeptime)
+            except UploadError as exc:
+                if event_deleted := await self.handle_errors(exc):
+                    return
+                continue
+        await self.do_final_edit()
+
+    def perma_attributes(self):
         from pyrog import app
 
-        if type(self.path) is str:
-            return await self.event.edit(self.path)
-        # self.defaultValues()
         self.pre_time = time()
-        for count, file in enumerate(sorted(self.path), start=1):
-            self.updateAttrs(kwargs, file, count)
-            self.client = app(self.dc)
-            if sizerr := self.checkSize(self.file):
-                await self.handleError(error_msg=sizerr)
-                continue
-            _ulfunc = await self.getMetadata()
-            out = await _ulfunc()
-            await self.cleanup()  # caption // ul_time
-            if isinstance(out, Exception):
-                await self.handleError(
-                    error_msg="__Got Error in Uploading,__  ```{self.file}```"
-                )
-                continue
-            if self.return_obj:
-                return out
-            if err := await self.finalize(out):
-                await self.handleError(
-                    error_msg="__Error while copying Uploaded file...__"
-                )
-                continue
-            await self.handleEdits(out=out, finished=False)
-            await asyncio.sleep(self.sleepTime(len(self.path)))
-        await self.handleEdits(finished=True)
+        self.client = app(self.dc)
+        if self.show_progress:
+            self.progress = pyro_progress
+        e = self.event
+        self.reply_to = getattr(e, "reply_to_msg_id", e.id) if e else None
+        self.copy_to = e.chat_id if e else DUMP_CHANNEL
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+        if list(filter(bool, [kwargs.pop(i, None) for i in ("schd_delete", "df")])):
+            self.schd_delete = True
 
-    @staticmethod
-    def checkSize(_path):
-        size = path.getsize(_path)
-        if size > 2097152000:
-            return "`File Size is Greater than 2GB..`"
-        elif size == 0:
-            return "`File Size = 0 B...`"
+    def update_attributes(self, kwargs, file, count):
+        self.file = file
+        self.count = count
+        if self.show_progress:
+            self.progress_text = (
+                f"__({self.count}/{len(self.path)})__ | ```Uploading {self.file}..```"
+            )
 
-    @staticmethod
-    def sleepTime(_):
-        return 1.5 if _ in range(5) else (3.75 if _ < 25 else 7)
+    def pre_upload(self):
+        self.size_checks(self.file)
+        await self.get_metadata()
+        self.handle_webm()
+        self.set_captions(pre=True)
 
-    async def handleError(self, error_msg):
-        if self.event and error_msg:
-            try:
-                await self.event.edit(error_msg)
-            except Exception as exc:
-                LOGS.exception(exc)
-        await asyncio.sleep(self.sleepTime(len(self.path)))
-
-    async def getMetadata(self):
-        self.metadata = media_info(self.file)
-        self.pre_caption = getattr(self, "caption", None) if self.return_obj else None
-        type = self.metadata.get("type").lower()
-        if not (self.force_document or hasattr(self, "thumb")):
-            self.thumb = None
-            if type == "video":
-                self.thumb = await videoThumb(self.file, self.metadata["duration"])
-            elif type == "audio":
-                self.thumb = await audioThumb(self.file)
-            elif type == "gif":
-                self.thumb = await videoThumb(self.file, False)
-        self.handleWebm(type)
-        self.start_time = time()
-        return self.get_type(type)
-
-    def handleWebm(self, type):
-        if type != "sticker" and self.file.lower().endswith(".webm"):
-            ext = "" if self.file[:-5].lower().endswith((".mkv", ".mp4")) else ".mkv"
-            new_pth = check_filename(self.file[:-5] + ext)
-            rename(self.file, new_pth)
-            self.file = new_pth
-
-    def get_type(self, type):
+    def uploader_func(self):
+        type = self.metadata.get("type")
         if self.force_document:
             return self.document_uploader
         elif type == "video":
@@ -339,80 +305,135 @@ class pyroUL:
         else:
             return self.document_uploader
 
-    async def cleanup(self):
+    def post_upload(self):
         self.ul_time = time_formatter((time() - self.start_time) * 1000)
+        self.cleanups()
+        self.set_captions()
+
+    async def finalize(self, out):
+        try:
+            client = self.event.client if self.event else ultroid_bot
+            await asyncio.sleep(1)
+            file = await client.get_messages(out.chat.id, ids=out.id)
+            if not (file and file.media):
+                raise UploadError("Media not found // Error occurred in Uploading..")
+            copy = await file.copy(
+                self.copy_to,
+                caption=self.caption,
+                silent=self.silent,
+                reply_to=self.reply_to,
+            )
+            asyncio.gather(self.coroutineTask(out, copy))
+        except Exception as exc:
+            er = "Error while copying file from DUMP: "
+            LOGS.exception(er)
+            raise UploadError(er)
+
+    async def handle_edits(self, success, err=None):
+        if success:
+            self.success += 1
+            msg = f"__**Successfully Uploaded!  ({self.count}/{len(self.path)})**__ \n**>**  ```{self.file}```"
+        else:
+            self.failed += 1
+            msg = f"__**Error While Uploading:**__ \n>  ```{self.file}``` \n>  `{err}`"
+        if self.auto_edit and self.event:
+            await self.event.edit(msg)
+
+    async def handle_errors(self, error):
+        self.failed += 1
+        if self.event:
+            try:
+                await self.event.edit(error)
+            except MessageIdInvalidError:
+                return True  # to stop process.
+            except Exception as exc:
+                LOGS.exception("Error in editing Message.")
+        await asyncio.sleep(self.sleeptime)
+
+    async def do_final_edit(self):
+        if len(self.path) > 1 and self.auto_edit and self.event:
+            msg = f"__**Uploaded {self.success} files in {time_formatter((time() - self.pre_time) * 1000)}**__"
+            if self.failed > 0:
+                msg += f"\n\n**Got Error in {self.failed} files.**"
+            await self.event.edit(txt)
+
+    # Helper functions
+
+    @staticmethod
+    def size_checks(_path):
+        size = path.getsize(_path)
+        if size > 2097152000:
+            raise UploadError("File Size is Greater than 2GB..")
+        elif size == 0:
+            raise UploadError("File Size = 0 B ...")
+
+    async def get_metadata(self):
+        self.metadata = media_info(self.file)
+        type = self.metadata.get("type").lower()
+        if not (self.force_document or hasattr(self, "thumb")):
+            self.thumb = None
+            if type == "video":
+                self.thumb = await videoThumb(self.file, self.metadata["duration"])
+            elif type == "audio":
+                self.thumb = await audioThumb(self.file)
+            elif type == "gif":
+                self.thumb = await videoThumb(self.file, False)
+
+    @property
+    def sleeptime(self):
+        _ = len(self.path)
+        return 2 if _ in range(5) else (4 if _ < 25 else 8)
+
+    def handle_webm(self, type):
+        type = self.metadata.get("type")
+        if type != "sticker" and self.file.lower().endswith(".webm"):
+            ext = "" if self.file[:-5].lower().endswith((".mkv", ".mp4")) else ".mkv"
+            new_pth = check_filename(self.file[:-5] + ext)
+            rename(self.file, new_pth)
+            self.file = new_pth
+
+    def set_captions(self, pre=False):
+        if pre:
+            caption = getattr(self, "caption", None)
+            self.pre_caption = caption if self.return_obj else None
+            return
         if not hasattr(self, "caption"):
             self.caption = "__**Uploaded in {0}** • ({1})__ \n**>**  ```{2}```".format(
                 self.ul_time,
                 self.metadata["size"],
                 self.file,
             )
+
+    def cleanups(self):
         if self.delete_file:
             remove(self.file)
         if x := getattr(self, "thumb", None):
             if self.delete_thumb and "ultroid.jpg" not in x:
                 remove(x)
 
-    async def finalize(self, msg):
-        try:
-            await asyncio.sleep(1)
-            file = await self.event.client.get_messages(msg.chat.id, ids=msg.id)
-            if not (file and file.media):
-                raise BaseException("Media not found // Error occurred in Uploading.")
-            fx = await file.copy(
-                self.copy_to,
-                caption=self.caption,
-                silent=self.silent,
-                reply_to=self.reply_to,
-            )
-        except BaseException as exc:
-            LOGS.exception("Err while copying file: ")
-            return exc
-        else:
-            asst.loop.create_task(self.coroutineTask(msg, fx))
-        finally:
-            for attr in ("thumb", "caption"):
-                if hasattr(self, attr):
-                    delattr(self, attr)
-
-    async def coroutineTask(self, m1, m2):
-        await cleargif(m2)
-        await asyncio.sleep(getattr(self, "cleanup_sleep", 2.5))
+    async def coroutineTask(self, upl, copy):
+        await cleargif(copy)
         if self.schd_delete:
-            await m1.delete()
+            await upl.delete()
         else:
             dumpCaption = "#PyroUL ~ {0} \n\n•  Chat:  [{1}]({2}) \n•  User:  {3} - {4} \n•  Path:  ```{5}```"
-            sndr = m2.sender or await m2.get_sender()
+            sndr = copy.sender or await copy.get_sender()
             text = dumpCaption.format(
                 f"{self.count}/{len(self.path)}",
-                get_display_name(m2.chat),
-                await msg_link(m2),
+                get_display_name(copy.chat),
+                await msg_link(copy),
                 get_display_name(sndr),
                 inline_mention(sndr, custom=sndr.id),
                 self.file,
             )
             try:
-                if not m2.sticker:
-                    await m1.edit_caption(text)
-            except BaseException:
-                LOGS.exception("editing dump media (pass):")
+                if not copy.sticker:
+                    await asyncio.sleep(5)
+                    await upl.edit_caption(text)
+            except Exception:
+                LOGS.exception("Editing Dump Media. <(ignore)>")
 
-    async def handleEdits(self, out=None, finished=False):
-        if finished:
-            if len(self.path) > 1 and self.auto_edit:
-                txt = f"__**Uploaded {self.success} files in {time_formatter((time() - self.pre_time) * 1000)}**__"
-                if self.failed > 0:
-                    txt += f"\n\n**Got #Error in {self.failed} files.**"
-                await self.event.edit(txt)
-            return
-        if isinstance(out, BaseException):
-            txt = f"__**Error While Uploading:**__ \n>  ```{self.file}``` \n>  `{out}`"
-            self.failed += 1
-        else:
-            txt = f"__**Successfully Uploaded!  ({self.count}/{len(self.path)})**__ \n**>**  ```{self.file}```"
-            self.success += 1
-        if self.auto_edit:
-            await self.event.edit(txt)
+    # Uploader functions
 
     async def video_uploader(self):
         args = {
@@ -425,30 +446,13 @@ class pyroUL:
             "width": self.metadata["width"],
             "disable_notification": self.silent,
         }
-        if self._log:
-            LOGS.debug(
-                LOGGER_MSG.format(
-                    "Video",
-                    self.file,
-                    self.dc,
-                    self.metadata["size"],
-                )
-            )
-        if self.show_progress:
-            prog_args = (
-                self.event,
-                self.progress_text,
-                time(),
-                self.client,
-                self.delay,
-                self._cancelled,
-            )
-            args.update({"progress": self.progress, "progress_args": prog_args})
+        type = "Video"
+        self._log_info(type)
+        args = self._progress_args(args)
         try:
             return await self.client.send_video(**args)
-        except BaseException as exc:
-            LOGS.exception(f"Video Uploader: {self.file}")
-            return exc
+        except Exception as exc:
+            self._handle_upload_error(type, exc)
 
     async def audio_uploader(self):
         args = {
@@ -461,30 +465,13 @@ class pyroUL:
             "performer": self.metadata["artist"],
             "disable_notification": self.silent,
         }
-        if self._log:
-            LOGS.debug(
-                LOGGER_MSG.format(
-                    "Audio",
-                    self.file,
-                    self.dc,
-                    self.metadata["size"],
-                )
-            )
-        if self.show_progress:
-            prog_args = (
-                self.event,
-                self.progress_text,
-                time(),
-                self.client,
-                self.delay,
-                self._cancelled,
-            )
-            args.update({"progress": self.progress, "progress_args": prog_args})
+        type = "Audio"
+        self._log_info(type)
+        args = self._progress_args(args)
         try:
             return await self.client.send_audio(**args)
-        except BaseException as exc:
-            LOGS.exception(f"Audio Uploader: {self.file}")
-            return exc
+        except Exception as exc:
+            self._handle_upload_error(type, exc)
 
     async def animation_uploader(self):
         args = {
@@ -496,20 +483,12 @@ class pyroUL:
             "width": self.metadata["width"],
             "disable_notification": self.silent,
         }
-        if self._log:
-            LOGS.debug(
-                LOGGER_MSG.format(
-                    "Animation",
-                    self.file,
-                    self.dc,
-                    self.metadata["size"],
-                )
-            )
+        type = "Animation"
+        self._log_info(type)
         try:
             return await self.client.send_animation(**args)
-        except BaseException as exc:
-            LOGS.exception(f"Animation Uploader: {self.file}")
-            return exc
+        except Exception as exc:
+            self._handle_upload_error(type, exc)
 
     async def document_uploader(self):
         args = {
@@ -519,30 +498,13 @@ class pyroUL:
             "thumb": self.thumb,
             "disable_notification": self.silent,
         }
-        if self._log:
-            LOGS.debug(
-                LOGGER_MSG.format(
-                    "Document",
-                    self.file,
-                    self.dc,
-                    self.metadata["size"],
-                )
-            )
-        if self.show_progress:
-            prog_args = (
-                self.event,
-                self.progress_text,
-                time(),
-                self.client,
-                self.delay,
-                self._cancelled,
-            )
-            args.update({"progress": self.progress, "progress_args": prog_args})
+        type = "Document"
+        self._log_info(type)
+        args = self._progress_args(args)
         try:
             return await self.client.send_document(**args)
-        except BaseException as exc:
-            LOGS.exception(f"Document Uploader: {self.file}")
-            return exc
+        except Exception as exc:
+            self._handle_upload_error(type, exc)
 
     async def image_uploader(self):
         args = {
@@ -553,9 +515,8 @@ class pyroUL:
         }
         try:
             return await self.client.send_photo(**args)
-        except BaseException as exc:
-            LOGS.exception(f"Image Uploader: {self.file}")
-            return exc
+        except Exception as exc:
+            self._handle_upload_error("Image", exc)
 
     async def sticker_uploader(self):
         args = {
@@ -565,9 +526,39 @@ class pyroUL:
         }
         try:
             return await self.client.send_sticker(**args)
-        except BaseException as exc:
-            LOGS.exception(f"Sticker Uploader: {self.file}")
-            return exc
+        except Exception as exc:
+            self._handle_upload_error("Sticker", exc)
+
+    # Uploader helper functions.
+
+    def _log_info(self, format):
+        if self._log:
+            n = LOGGER_MSG.format(format, self.file, self.dc, self.metadata["size"])
+            LOGS.debug(n)
+
+    def _progress_args(self, args):
+        if self.show_progress and self.event:
+            progress_args = (
+                self.event,
+                self.progress_text,
+                time(),
+                self.client,
+                self.delay,
+                self._cancelled,
+            )
+            args.update(
+                {
+                    "progress": self.progress,
+                    "progress_args": progress_args,
+                }
+            )
+        return args
+
+    def _handle_upload_error(self, type, error):
+        LOGS.exception(f"{type} Uploader: {self.file}")
+        raise UploadError(
+            f"{error.__class__.__name__} while uploading {type}: `{', '.join(error.args)}`",
+        )
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -605,12 +596,11 @@ async def audioThumb(_path):
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-# Custom Exceptions
 class UploadError(Exception):
     pass
 
 
-class DownloadError(Exception):
+class ProcessCancelled(Exception):
     pass
 
 

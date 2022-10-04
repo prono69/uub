@@ -46,7 +46,7 @@ def timeit(func):
             start = perf_counter()
             result = await func(*args, **kwargs)
             time_taken = perf_counter() - start
-            return f"Function: {func.__name__} \nOutput: {result} \nTime taken: {time_taken:.4f} seconds."
+            return f"Function: {func.__name__} \nTime taken: {time_taken:.4f} seconds."
 
         return exec_time
     else:
