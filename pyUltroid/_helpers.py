@@ -1,8 +1,8 @@
 # some custom helper functions
 
+from asyncio import iscoroutinefunction as awaitable
 from dotenv import load_dotenv
 from functools import wraps
-from inspect import isawaitable
 from os import environ, path, remove, system
 from time import time, tzset, perf_counter
 
@@ -37,18 +37,28 @@ def osremove(*args, folders=False, verbose=False):
 
 
 # https://gist.github.com/DougAF/ef88f89d1d99763bb05afd81285ef233#file-timer-py
-async def timeit(func):
-    @wraps(func)
-    async def exec_time(*args, **kwargs):
-        start = perf_counter()
-        if isawaitable(func):
-            result = await func(*args, **kwargs)
-        else:
-            result = func(*args, **kwargs)
-        time_taken = perf_counter() - start
-        print(f"Function: {func.__name__} \nTime taken: {time_taken:.4f} seconds.")
+def timeit(func):
+    """To Check running time of functions."""
+    if awaitable(func):
 
-    return exec_time
+        @wraps(func)
+        async def exec_time(*args, **kwargs):
+            start = perf_counter()
+            result = await func(*args, **kwargs)
+            time_taken = perf_counter() - start
+            return f"Function: {func.__name__} \nOutput: {result} \nTime taken: {time_taken:.4f} seconds."
+
+        return exec_time
+    else:
+
+        @wraps(func)
+        def exec_time(*args, **kwargs):
+            start = perf_counter()
+            result = func(*args, **kwargs)
+            time_taken = perf_counter() - start
+            return f"Function: {func.__name__} \nOutput: {result} \nTime taken: {time_taken:.4f} seconds."
+
+        return exec_time
 
 
 def cleanup_stuff(init=False):
