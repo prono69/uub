@@ -240,26 +240,27 @@ class pyroUL:
             if self.event:
                 await self.event.edit(self.path)
             return
-        self.perma_attributes()
+        self.perma_attributes(kwargs)
         for count, file in enumerate(sorted(self.path), start=1):
-            self.update_attributes(kwargs, file, count)
+            self.update_attributes(file, count)
             try:
-                self.pre_upload()
+                await self.pre_upload()
                 ulfunc = self.uploader_func()
                 out = await ulfunc()
                 self.post_upload()
                 if self.return_obj:
                     return out  # (for single file)
                 await self.finalize(out)
-                await self.handle_edits(success=True)
+                await self.handle_edits()
                 await asyncio.sleep(self.sleeptime)
             except UploadError as exc:
-                if event_deleted := await self.handle_errors(exc):
+                if _deleted := await self.handle_errors(exc):
                     return
+                await asyncio.sleep(self.sleeptime)
                 continue
         await self.do_final_edit()
 
-    def perma_attributes(self):
+    def perma_attributes(self, kwargs):
         from pyrog import app
 
         self.pre_time = time()
@@ -274,7 +275,7 @@ class pyroUL:
         if list(filter(bool, [kwargs.pop(i, None) for i in ("schd_delete", "df")])):
             self.schd_delete = True
 
-    def update_attributes(self, kwargs, file, count):
+    def update_attributes(self, file, count):
         self.file = file
         self.count = count
         if self.show_progress:
@@ -282,7 +283,8 @@ class pyroUL:
                 f"__({self.count}/{len(self.path)})__ | ```Uploading {self.file}..```"
             )
 
-    def pre_upload(self):
+    async def pre_upload(self):
+        self.start_time = time()
         self.size_checks(self.file)
         await self.get_metadata()
         self.handle_webm()
@@ -323,39 +325,36 @@ class pyroUL:
                 silent=self.silent,
                 reply_to=self.reply_to,
             )
-            asyncio.gather(self.coroutineTask(out, copy))
+            asyncio.gather(self.dump_stuff(out, copy))
         except Exception as exc:
             er = "Error while copying file from DUMP: "
             LOGS.exception(er)
             raise UploadError(er)
 
-    async def handle_edits(self, success, err=None):
-        if success:
-            self.success += 1
-            msg = f"__**Successfully Uploaded!  ({self.count}/{len(self.path)})**__ \n**>**  ```{self.file}```"
-        else:
-            self.failed += 1
-            msg = f"__**Error While Uploading:**__ \n>  ```{self.file}``` \n>  `{err}`"
+    async def handle_edits(self):
+        self.success += 1
         if self.auto_edit and self.event:
-            await self.event.edit(msg)
+            await self.event.edit(
+                f"__**Successfully Uploaded!  ({self.count}/{len(self.path)})**__ \n**>**  ```{self.file}```",
+            )
 
     async def handle_errors(self, error):
         self.failed += 1
-        if self.event:
+        if self.event and self.auto_edit:
             try:
-                await self.event.edit(error)
+                msg = f"__**Error While Uploading:**__ \n>  ```{self.file}``` \n>  `{error}`"
+                await self.event.edit(msg)
             except MessageIdInvalidError:
-                return True  # to stop process.
+                return True  # stop process..
             except Exception as exc:
-                LOGS.exception("Error in editing Message.")
-        await asyncio.sleep(self.sleeptime)
+                LOGS.exception("Error in editing Message..")
 
     async def do_final_edit(self):
         if len(self.path) > 1 and self.auto_edit and self.event:
             msg = f"__**Uploaded {self.success} files in {time_formatter((time() - self.pre_time) * 1000)}**__"
             if self.failed > 0:
                 msg += f"\n\n**Got Error in {self.failed} files.**"
-            await self.event.edit(txt)
+            await self.event.edit(msg)
 
     # Helper functions
 
@@ -384,7 +383,7 @@ class pyroUL:
         _ = len(self.path)
         return 2 if _ in range(5) else (4 if _ < 25 else 8)
 
-    def handle_webm(self, type):
+    def handle_webm(self):
         type = self.metadata.get("type")
         if type != "sticker" and self.file.lower().endswith(".webm"):
             ext = "" if self.file[:-5].lower().endswith((".mkv", ".mp4")) else ".mkv"
@@ -411,7 +410,8 @@ class pyroUL:
             if self.delete_thumb and "ultroid.jpg" not in x:
                 remove(x)
 
-    async def coroutineTask(self, upl, copy):
+    async def dump_stuff(self, upl, copy):
+        await asyncio.sleep(0.5)
         await cleargif(copy)
         if self.schd_delete:
             await upl.delete()
