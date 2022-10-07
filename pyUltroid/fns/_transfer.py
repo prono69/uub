@@ -33,6 +33,7 @@ from .. import LOGS, udB, ultroid_bot, asst
 DUMP_CHANNEL = udB.get_key("TAG_LOG")
 PROGRESS_LOG = {}
 LOGGER_MSG = "Uploading {} | Path: {} | DC: {} | Size: {}"
+DEFAULT_THUMB = path.join(getcwd(), "resources/extras/ultroid.jpg")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -242,7 +243,7 @@ class pyroUL:
             return
         self.perma_attributes(kwargs)
         for count, file in enumerate(sorted(self.path), start=1):
-            self.update_attributes(file, count)
+            self.update_attributes(kwargs, file, count)
             try:
                 await self.pre_upload()
                 ulfunc = self.uploader_func()
@@ -264,7 +265,6 @@ class pyroUL:
         from pyrog import app
 
         self.pre_time = time()
-        self.client = app(self.dc)
         if self.show_progress:
             self.progress = pyro_progress
         e = self.event
@@ -272,15 +272,18 @@ class pyroUL:
         self.copy_to = e.chat_id if e else DUMP_CHANNEL
         for k, v in kwargs.items():
             setattr(self, k, v)
+        self.client = app(self.dc)
         if list(filter(bool, [kwargs.pop(i, None) for i in ("schd_delete", "df")])):
             self.schd_delete = True
 
-    def update_attributes(self, file, count):
+    def update_attributes(self, kwargs, file, count):
         self.file = file
         self.count = count
+        for k, v in kwargs.items():
+            setattr(self, k, v)
         if self.show_progress:
             self.progress_text = (
-                f"__({self.count}/{len(self.path)})__ | ```Uploading {self.file}..```"
+                f"```{self.count}/{len(self.path)} | Uploading {self.file}..```"
             )
 
     async def pre_upload(self):
@@ -325,6 +328,7 @@ class pyroUL:
                 silent=self.silent,
                 reply_to=self.reply_to,
             )
+            delattr(self, "caption")
             asyncio.gather(self.dump_stuff(out, copy))
         except Exception as exc:
             er = "Error while copying file from DUMP: "
@@ -396,7 +400,12 @@ class pyroUL:
             caption = getattr(self, "caption", None)
             self.pre_caption = caption if self.return_obj else None
             return
-        if not hasattr(self, "caption"):
+        if hasattr(self, "caption"):
+            if cap := getattr(self, "caption"):
+                self.caption = cap.replace("$path", self.file).replace(
+                    "$base", path.basename(self.file)
+                )
+        else:
             self.caption = "__**Uploaded in {0}** • ({1})__ \n**>**  ```{2}```".format(
                 self.ul_time,
                 self.metadata["size"],
@@ -409,6 +418,8 @@ class pyroUL:
         if x := getattr(self, "thumb", None):
             if self.delete_thumb and "ultroid.jpg" not in x:
                 remove(x)
+        if hasattr(self, "thumb"):
+            delattr(self, "thumb")
 
     async def dump_stuff(self, upl, copy):
         await asyncio.sleep(0.5)
@@ -556,8 +567,11 @@ class pyroUL:
 
     def _handle_upload_error(self, type, error):
         LOGS.exception(f"{type} Uploader: {self.file}")
+        err = (
+            (", ".join(tuple(str(i) for i in error.args))) if error.args else "NoneType"
+        )
         raise UploadError(
-            f"{error.__class__.__name__} while uploading {type}: `{', '.join(error.args)}`",
+            f"{error.__class__.__name__} while uploading {type}: `{err}`",
         )
 
 
@@ -565,7 +579,6 @@ class pyroUL:
 
 
 async def videoThumb(_path, duration):
-    default = path.join(getcwd(), "resources/extras/ultroid.jpg")
     if duration is False:
         dur = 1
     else:
@@ -577,7 +590,7 @@ async def videoThumb(_path, duration):
             dur = 1
     thumb_path = path.join(getcwd(), f"resources/temp/{random_string(8)}-{dur}.jpg")
     await bash(f"ffmpeg -ss {dur} -i {shq(_path)} -vframes 1 {shq(thumb_path)} -y")
-    return thumb_path if path.exists(thumb_path) else default
+    return thumb_path if path.exists(thumb_path) else DEFAULT_THUMB
 
 
 async def audioThumb(_path):
@@ -590,7 +603,8 @@ async def audioThumb(_path):
         thumb.save(thumby)
         return thumby if path.exists(thumby) else None
     except BaseException as exc:
-        return LOGS.error(exc)
+        LOGS.error(exc)
+        return DEFAULT_THUMB
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

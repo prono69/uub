@@ -52,7 +52,7 @@ from telethon.utils import get_display_name, get_input_document
 
 from .._misc import CMD_HELP
 from .._misc._wrappers import eod, eor
-from ..configs import Var
+from .. import LOGS, Var
 from . import *
 
 from ..dB._core import ADDONS, HELP, LIST, LOADED

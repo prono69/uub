@@ -115,6 +115,7 @@ class TGLogHandler(StreamHandler):
         if res.get("ok"):
             self.message_id = int(res["result"]["message_id"])
             self.current = message
+            self.doc_message_id = None
             await asyncio.sleep(sleep)
         else:
             await self.handle_error(res)
