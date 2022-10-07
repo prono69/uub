@@ -11,6 +11,7 @@ import os
 import re
 import sys
 import time
+from ast import literal_eval
 from traceback import format_exc
 from urllib.parse import unquote
 from urllib.request import urlretrieve
@@ -648,17 +649,12 @@ class getFlags:
             elif txt.startswith(self.args_seperator) and len(txt) > 1:
                 if self.kwargs_seperator in txt:
                     fms = txt.split(self.kwargs_seperator)
-                    value_ = fms[1].strip()
-                    _key = fms[0] if self.original else fms[0][1:]
-                    key_ = _key.strip()
-                    if self.convert:
-                        # key_ = getFlags.change_types(key_)
-                        value_ = getFlags.change_types(value_)
-                    kwargs[key_] = value_
+                    key_ = fms[0] if self.original else fms[0][1:]
+                    key_, value_ = key_.strip(), fms[1].strip()
+                    kwargs[key_] = self.change_types(value_) if self.convert else value_
                 else:
                     txt = txt if self.original else txt[1:]
-                    key_ = getFlags.change_types(txt) if self.convert else txt
-                    kwargs[key_] = True
+                    kwargs[txt] = True
             else:
                 args.append(txt)
         if args and self.merge_args:
@@ -669,6 +665,6 @@ class getFlags:
     def change_types(text):
         try:
             text = literal_eval(str(text))
-        except BaseException:
+        except:
             pass
         return text
