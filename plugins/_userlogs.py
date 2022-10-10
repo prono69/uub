@@ -30,6 +30,7 @@ from . import (
     Button,
     asst,
     callback,
+    cleargif,
     events,
     get_string,
     inline_mention,
