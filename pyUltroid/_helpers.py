@@ -93,8 +93,11 @@ def setTZ(TZ=None):
         tzset()
 
 
-def _user_specifics(Var, LOGS):
+def _host_specifics(Var, LOGS):
     if Var.HOST.lower() == "heroku":
+        from .heroku import herokuapp
+
+        herokuapp(Var)
         if environ.get("qBit"):
             LOGS.info("Starting qBittorrent Web-UI")
             system("bash 1337x &")
@@ -118,7 +121,7 @@ def on_startup():
     load_dotenv(override=True)
     from .configs import Var
 
-    if Var.HOST.lower() != "local":
+    if Var.HOST.lower() not in ("local", "railway"):
         remove(".env")
     return time(), Var
 
@@ -128,19 +131,10 @@ def post_startup():
     from .fns.multi_db import _init_multi_dbs
     from . import LOGS, udB, Var
 
-    LOGS.debug("Post Startup -> Init")
+    LOGS.debug("Post Startup -> Starting")
     update_envs()
     _version_changes(udB)
-    _user_specifics(Var, LOGS)
+    _host_specifics(Var, LOGS)
     _init_multi_dbs("MULTI_DB")
     cleanup_stuff(init=True)
-
-    if Var.HOST.lower() == "heroku":
-        from .heroku import herokuapp
-
-        try:
-            herokuapp(Var)
-        except BaseException:
-            LOGS.exception("pyUlt.Herokuapp error: ")
-
-    LOGS.debug("Post Startup -> Done")
+    # LOGS.debug("Post Startup -> Done")

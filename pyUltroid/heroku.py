@@ -28,8 +28,8 @@ def herokuapp(Var):
             Heroku["err"] = "`HEROKU_API` or `HEROKU_APP_NAME` var is missing."
             return
 
-    except BaseException as err:
+    except Exception as error:
         from . import LOGS
 
         Heroku["err"] = "Your Heroku 'Data' is Wrong!"
-        return LOGS.exception(err)
+        return LOGS.exception(error)

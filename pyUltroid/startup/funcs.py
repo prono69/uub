@@ -382,7 +382,6 @@ async def plug_unzipper(ult, chat):
     x = moimsg[0]
     if x and x.file.name == "PLUGIN_SOURCE.zip":
         os.mkdir("tplugs")
-        # LOGS.debug("Using: PLUGIN_SOURCE file")
         temp = await x.download_media("source.zip")
     else:
         return True
@@ -395,7 +394,7 @@ async def plug_unzipper(ult, chat):
         plugin = file.name
         _path = os.path.join("addons", plugin)
         if os.path.isfile(_path):
-            if Var.HOST.lower() != "local":
+            if Var.HOST.lower() not in ("local", "railway"):
                 LOGS.warning(f"Plugin {plugin} already Exists in Addons folder.")
             continue
         try:

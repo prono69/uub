@@ -19,7 +19,7 @@ loop = asyncio.get_event_loop()
 _TG_API = "https://api.telegram.org/bot{}"
 _TG_MSG_LIMIT = 4000
 _PAYLOAD = {"disable_web_page_preview": True, "parse_mode": "Markdown"}
-_MAX_LOG_LIMIT = 8192
+_MAX_LOG_LIMIT = 12000
 
 # ----------------------------------------------------------------------------
 
