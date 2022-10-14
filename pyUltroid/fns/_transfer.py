@@ -16,6 +16,7 @@ from time import time
 from io import BytesIO
 from PIL import Image, ImageFilter
 from random import choice, random_string
+from os import remove
 from pathlib import Path
 
 # from mimetypes import guess_all_extensions
@@ -206,23 +207,19 @@ class pyroUL:
     def list_files(self, path):
         _path = Path(path)
         if type(path) in (list, tuple):
-            files = (str(c.absolute()) for c in path if Path(c).is_file())
+            files = (str(Path(i).absolute()) for i in path if Path(i).is_file())
         elif not _path.exists():
             return f"Path doesn't exists: `{path}`"
         elif _path.is_file():
-            files = (str(c.absolute()) for c in (_path,))
+            files = (str(i.absolute()) for i in (_path,))
         elif _path.is_dir():
-            files = (
-                str(c.absolute())
-                for c in _path.rglob("*")  # glob ("**/*")
-                if c.is_file()
-            )
+            files = (str(i.absolute()) for i in _path.rglob("*") if i.is_file())
         else:
             return "Unrecognised Path"
-        self.total_files = sum(1 for l in files)
-        if self.total_files == 0:
-            return f"Path doesn't exists: `{_path}`"
-        return files
+        if not (files := list(files)):
+            return f"Path doesn't exists: `{path}`"
+        self.total_files = len(files)
+        return (i for i in files)
 
     def set_default_attributes(self):
         self._cancelled = False
