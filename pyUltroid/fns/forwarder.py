@@ -1,5 +1,5 @@
 import asyncio
-from os import remove, path
+from os import remove
 from random import randrange
 
 from telethon.utils import get_peer_id, get_display_name as chatTitle

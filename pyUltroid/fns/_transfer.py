@@ -16,7 +16,7 @@ from time import time
 from io import BytesIO
 from PIL import Image, ImageFilter
 from random import choice, random_string
-from os import path, remove, rename, walk, getcwd
+from pathlib import Path
 
 # from mimetypes import guess_all_extensions
 from music_tag import load_file
@@ -33,7 +33,7 @@ from .. import LOGS, udB, ultroid_bot, asst
 DUMP_CHANNEL = udB.get_key("TAG_LOG")
 PROGRESS_LOG = {}
 LOGGER_MSG = "Uploading {} | Path: {} | DC: {} | Size: {}"
-DEFAULT_THUMB = path.join(getcwd(), "resources/extras/ultroid.jpg")
+DEFAULT_THUMB = Path.cwd().joinpath("resources/extras/ultroid.jpg")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -187,9 +187,9 @@ class pyroDL:
                     if attr := getattr(mtype, attr, None):
                         return attr
 
-        _default = path.join(getcwd(), "resources/downloads/")
+        _default = Path.cwd().joinpath("resources/downloads/")
         if filename := attrs(event, "file_name"):
-            return check_filename(path.join(_default, filename))
+            return check_filename(_default.joinpath(filename))
         return _default  # no filename, just a folder
 
 
@@ -200,25 +200,29 @@ class pyroUL:
     def __init__(self, event, _path, show_progress=True):
         self.event = event
         self.show_progress = show_progress
-        self.path = self.listFiles(_path)
+        self.path = self.list_files(_path)
         self.set_default_attributes()
 
-    @staticmethod
-    def listFiles(_path):
-        if type(_path) in (list, tuple):
-            return tuple(filter(lambda c: path.isfile(c), _path))
-        elif path.isfile(_path):
-            return (_path,)
-        elif path.isdir(_path):
-            col = []
-            for dir, _, file in walk(_path):
-                for _ in file:
-                    col.append(path.join(dir, _))
-            return tuple(col) if col else f"No files in this folder: `{_path}`"
+    def list_files(self, path):
+        _path = Path(path)
+        if type(path) in (list, tuple):
+            files = (str(c.absolute()) for c in path if Path(c).is_file())
+        elif not _path.exists():
+            return f"Path doesn't exists: `{path}`"
+        elif _path.is_file():
+            files = (str(c.absolute()) for c in (_path,))
+        elif _path.is_dir():
+            files = (
+                str(c.absolute())
+                for c in _path.rglob("*")  # glob ("**/*")
+                if c.is_file()
+            )
         else:
+            return "Unrecognised Path"
+        self.total_files = sum(1 for l in files)
+        if self.total_files == 0:
             return f"Path doesn't exists: `{_path}`"
-
-    # main functions
+        return files
 
     def set_default_attributes(self):
         self._cancelled = False
@@ -242,7 +246,7 @@ class pyroUL:
                 await self.event.edit(self.path)
             return
         self.perma_attributes(kwargs)
-        for count, file in enumerate(sorted(self.path), start=1):
+        for count, file in enumerate(self.path, start=1):
             self.update_attributes(kwargs, file, count)
             try:
                 await self.pre_upload()
@@ -283,12 +287,12 @@ class pyroUL:
             setattr(self, k, v)
         if self.show_progress:
             self.progress_text = (
-                f"```{self.count}/{len(self.path)} | Uploading {self.file}..```"
+                f"```{self.count}/{self.total_files} | Uploading {self.file}..```"
             )
 
     async def pre_upload(self):
         self.start_time = time()
-        self.size_checks(self.file)
+        pyroUL.size_checks(self.file)
         await self.get_metadata()
         self.handle_webm()
         self.set_captions(pre=True)
@@ -339,7 +343,7 @@ class pyroUL:
         self.success += 1
         if self.auto_edit and self.event:
             await self.event.edit(
-                f"__**Successfully Uploaded!  ({self.count}/{len(self.path)})**__ \n**>**  ```{self.file}```",
+                f"__**Successfully Uploaded!  ({self.count}/{self.total_files})**__ \n**>**  ```{self.file}```",
             )
 
     async def handle_errors(self, error):
@@ -354,7 +358,7 @@ class pyroUL:
                 LOGS.exception("Error in editing Message..")
 
     async def do_final_edit(self):
-        if len(self.path) > 1 and self.auto_edit and self.event:
+        if self.total_files > 1 and self.auto_edit and self.event:
             msg = f"__**Uploaded {self.success} files in {time_formatter((time() - self.pre_time) * 1000)}**__"
             if self.failed > 0:
                 msg += f"\n\n**Got Error in {self.failed} files.**"
@@ -364,11 +368,11 @@ class pyroUL:
 
     @staticmethod
     def size_checks(_path):
-        size = path.getsize(_path)
-        if size > 2097152000:
-            raise UploadError("File Size is Greater than 2GB..")
-        elif size == 0:
+        size = Path(_path).stat().st_size
+        if size == 0:
             raise UploadError("File Size = 0 B ...")
+        elif size > 2097152000:
+            raise UploadError("File Size is Greater than 2GB..")
 
     async def get_metadata(self):
         self.metadata = media_info(self.file)
@@ -384,7 +388,7 @@ class pyroUL:
 
     @property
     def sleeptime(self):
-        _ = len(self.path)
+        _ = self.total_files
         return 2 if _ in range(5) else (4 if _ < 25 else 8)
 
     def handle_webm(self):
@@ -392,8 +396,7 @@ class pyroUL:
         if type != "sticker" and self.file.lower().endswith(".webm"):
             ext = "" if self.file[:-5].lower().endswith((".mkv", ".mp4")) else ".mkv"
             new_pth = check_filename(self.file[:-5] + ext)
-            rename(self.file, new_pth)
-            self.file = new_pth
+            self.file = Path(self.file).rename(new_pth)
 
     def set_captions(self, pre=False):
         if pre:
@@ -402,8 +405,8 @@ class pyroUL:
             return
         if hasattr(self, "caption"):
             if cap := getattr(self, "caption"):
-                self.caption = cap.replace("$path", self.file).replace(
-                    "$base", path.basename(self.file)
+                self.caption = cap.replace("$$path", self.file).replace(
+                    "$$base", Path(self.file).name()
                 )
         else:
             self.caption = "__**Uploaded in {0}** • ({1})__ \n**>**  ```{2}```".format(
@@ -430,7 +433,7 @@ class pyroUL:
             dumpCaption = "#PyroUL ~ {0} \n\n•  Chat:  [{1}]({2}) \n•  User:  {3} - {4} \n•  Path:  ```{5}```"
             sndr = copy.sender or await copy.get_sender()
             text = dumpCaption.format(
-                f"{self.count}/{len(self.path)}",
+                f"{self.count}/{self.total_files}",
                 get_display_name(copy.chat),
                 await msg_link(copy),
                 get_display_name(sndr),
@@ -578,7 +581,7 @@ class pyroUL:
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-async def videoThumb(_path, duration):
+async def videoThumb(path, duration):
     if duration is False:
         dur = 1
     else:
@@ -588,20 +591,20 @@ async def videoThumb(_path, duration):
             )
         else:
             dur = 1
-    thumb_path = path.join(getcwd(), f"resources/temp/{random_string(8)}-{dur}.jpg")
-    await bash(f"ffmpeg -ss {dur} -i {shq(_path)} -vframes 1 {shq(thumb_path)} -y")
-    return thumb_path if path.exists(thumb_path) else DEFAULT_THUMB
+    thumb_path = Path(f"resources/temp/{random_string(8)}-{dur}.jpg").absolute()
+    await bash(f"ffmpeg -ss {dur} -i {shq(path)} -vframes 1 {shq(str(thumb_path))} -y")
+    return str(thumb_path) if thumb_path.exists() else DEFAULT_THUMB
 
 
-async def audioThumb(_path):
-    thumby = f"resources/temp/{random_string(8).lower()}.jpg"
+async def audioThumb(path):
+    thumby = Path(f"resources/temp/{random_string(8).lower()}.jpg")
     try:
-        if not (album_art := load_file(_path).get("artwork")):
-            return LOGS.error(f"no artwork found: {_path}")
+        if not (album_art := load_file(path).get("artwork")):
+            return LOGS.error(f"no artwork found: {path}")
         data = album_art.value.data
         thumb = Image.open(BytesIO(data))
-        thumb.save(thumby)
-        return thumby if path.exists(thumby) else None
+        thumb.save(str(thumby))
+        return str(thumby) if thumby.exists() else DEFAULT_THUMB
     except BaseException as exc:
         LOGS.error(exc)
         return DEFAULT_THUMB

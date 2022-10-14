@@ -14,6 +14,7 @@ import sys
 import traceback
 from io import BytesIO, StringIO
 from os import remove
+from pathlib import Path
 from pprint import pprint
 from random import choice
 
