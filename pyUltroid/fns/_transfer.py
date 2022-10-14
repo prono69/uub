@@ -403,7 +403,7 @@ class pyroUL:
         if hasattr(self, "caption"):
             if cap := getattr(self, "caption"):
                 self.caption = cap.replace("$$path", self.file).replace(
-                    "$$base", Path(self.file).name()
+                    "$$base", Path(self.file).name
                 )
         else:
             self.caption = "__**Uploaded in {0}** • ({1})__ \n**>**  ```{2}```".format(

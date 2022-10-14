@@ -558,6 +558,15 @@ async def restart(ult=None, EDIT=False):
             LOGS.exception(er)
             await ult.eor("Something Wrong Occured!")
     else:
+        import psutil
+
+        try:
+            pid = psutil.Process(os.getpid())
+            for handler in (pid.open_files() + pid.connections()):
+                os.kill(handler.fd)
+        except Exception as exc:
+            LOGS.exception(exc)
+        await asyncio.sleep(3)
         if len(sys.argv) == 1:
             os.execl(sys.executable, sys.executable, "-m", "pyUltroid")
         else:
