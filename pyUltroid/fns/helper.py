@@ -558,15 +558,29 @@ async def restart(ult=None, EDIT=False):
             LOGS.exception(er)
             await ult.eor("Something Wrong Occured!")
     else:
-        import psutil
+        from psutil import Process
+        from subprocess import run
+        from pathlib import Path
 
+        """
         try:
-            pid = psutil.Process(os.getpid())
+            pid = Process(os.getpid())
             for handler in (pid.open_files() + pid.connections()):
                 os.kill(handler.fd)
         except Exception as exc:
             LOGS.exception(exc)
-        await asyncio.sleep(3)
+        await asyncio.sleep(5)
+        """
+
+        run(
+            [
+                "/bin/bash",
+                str(Path("reboot.sh").absolute()),
+                os.getpid(),
+            ]
+        )
+
+        """
         if len(sys.argv) == 1:
             os.execl(sys.executable, sys.executable, "-m", "pyUltroid")
         else:
@@ -582,6 +596,7 @@ async def restart(ult=None, EDIT=False):
                 sys.argv[5],
                 sys.argv[6],
             )
+        """
 
 
 async def shutdown(ult):

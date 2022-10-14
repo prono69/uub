@@ -255,7 +255,6 @@ def ultroid_cmd(
             ultroid_bot.add_event_handler(
                 wrapp,
                 MessageEdited(
-                    incoming=True,
                     pattern=cmd,
                     forwards=False,
                     func=_isEdit,
@@ -268,7 +267,6 @@ def ultroid_cmd(
             ultroid_bot.add_event_handler(
                 wrapp,
                 MessageEdited(
-                    incoming=True,
                     pattern=cmd,
                     forwards=False,
                     func=_isEdit,
