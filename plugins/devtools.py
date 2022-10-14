@@ -138,7 +138,7 @@ async def _(event):
             await xx.delete()
     else:
         await xx.edit(OUT, link_preview=not yamlf)
-    asst.loop.create_task(evalogger(cmd, event))
+    await evalogger(cmd, event)
 
 
 pp = pprint  # ignore: pylint
@@ -298,7 +298,7 @@ async def _(event):
             )
         return await xx.delete()
     await xx.edit(final_output, link_preview=carb)
-    asst.loop.create_task(evalogger(cmd, event))
+    await evalogger(cmd, event)
 
 
 def _stringify(text=None, *args, **kwargs):
@@ -321,7 +321,7 @@ async def evalogger(cmd, e):
             get_display_name(e.chat or await e.get_chat()),
         )
         await asst.send_message(TAG_LOG, _msg, link_preview=False, parse_mode="html")
-    except BaseException:
+    except Exception:
         return LOGS.exception("EVAL Logger error")
 
 

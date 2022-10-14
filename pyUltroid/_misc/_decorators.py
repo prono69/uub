@@ -247,7 +247,8 @@ def ultroid_cmd(
         )
 
         def _isEdit(x):
-            return not (x.is_channel or x.chat.broadcast or x.via_bot_id)
+            # is_channel probably refers to megagroup ;_;
+            return not (x.via_bot_id or (x.is_channel and x.chat.broadcast))
 
         if TAKE_SUDO_EDITS and allow_sudo:
             if pattern:
@@ -255,6 +256,7 @@ def ultroid_cmd(
             ultroid_bot.add_event_handler(
                 wrapp,
                 MessageEdited(
+                    incoming=True,
                     pattern=cmd,
                     forwards=False,
                     func=_isEdit,
@@ -267,6 +269,7 @@ def ultroid_cmd(
             ultroid_bot.add_event_handler(
                 wrapp,
                 MessageEdited(
+                    outgoing=True,
                     pattern=cmd,
                     forwards=False,
                     func=_isEdit,

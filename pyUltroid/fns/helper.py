@@ -562,16 +562,13 @@ async def restart(ult=None, EDIT=False):
         from subprocess import run
         from pathlib import Path
 
-        """
         try:
             pid = Process(os.getpid())
             for handler in (pid.open_files() + pid.connections()):
                 os.kill(handler.fd)
         except Exception as exc:
             LOGS.exception(exc)
-        await asyncio.sleep(5)
-        """
-
+        await asyncio.sleep(6)
         run(
             [
                 "/bin/bash",
@@ -579,7 +576,7 @@ async def restart(ult=None, EDIT=False):
                 os.getpid(),
             ]
         )
-
+        sys.exit()
         """
         if len(sys.argv) == 1:
             os.execl(sys.executable, sys.executable, "-m", "pyUltroid")
@@ -596,7 +593,7 @@ async def restart(ult=None, EDIT=False):
                 sys.argv[5],
                 sys.argv[6],
             )
-        """
+            """
 
 
 async def shutdown(ult):
