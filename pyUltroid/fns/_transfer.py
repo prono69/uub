@@ -34,7 +34,7 @@ from .. import LOGS, udB, ultroid_bot, asst
 DUMP_CHANNEL = udB.get_key("TAG_LOG")
 PROGRESS_LOG = {}
 LOGGER_MSG = "Uploading {} | Path: {} | DC: {} | Size: {}"
-DEFAULT_THUMB = Path.cwd().joinpath("resources/extras/ultroid.jpg")
+DEFAULT_THUMB = str(Path.cwd().joinpath("resources/extras/ultroid.jpg"))
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -205,18 +205,23 @@ class pyroUL:
         self.set_default_attributes()
 
     def list_files(self, path):
-        _path = Path(path)
         if type(path) in (list, tuple):
-            files = (str(Path(i).absolute()) for i in path if Path(i).is_file())
-        elif not _path.exists():
-            return f"Path doesn't exists: `{path}`"
-        elif _path.is_file():
-            files = (str(i.absolute()) for i in (_path,))
-        elif _path.is_dir():
-            files = (str(i.absolute()) for i in _path.rglob("*") if i.is_file())
+            files = (
+                str(Path(i).absolute())
+                for i in path
+                if Path(i).is_file()
+            )
         else:
-            return "Unrecognised Path"
-        if not (files := list(files)):
+            _path = Path(path)
+            if not _path.exists():
+                return f"Path doesn't exists: `{path}`"
+            elif _path.is_file():
+                files = (str(i.absolute()) for i in (_path,))
+            elif _path.is_dir():
+                files = (str(i.absolute()) for i in _path.rglob("*") if i.is_file())
+            else:
+                return "Unrecognised Path"
+        if not (files := tuple(files)):
             return f"Path doesn't exists: `{path}`"
         self.total_files = len(files)
         return (i for i in files)
