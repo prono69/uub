@@ -159,8 +159,8 @@ def _parse_eval(value=None):
             pass
     elif isinstance(value, dict):
         try:
-            return json_parser(value, indent=1)
-        except BaseException:
+            return json_parser(value, indent=2)
+        except Exception:
             pass
     return str(value)
 
@@ -350,7 +350,7 @@ int main(){
 """
 
 
-@ultroid_cmd(pattern="cpp", only_devs=True)
+@ultroid_cmd(pattern="cpp", only_devs=True, fullsudo=True)
 async def doie(e):
     match = e.text.split(" ", maxsplit=1)
     try:
@@ -361,17 +361,16 @@ async def doie(e):
     if "main(" not in match:
         new_m = "".join(" " * 4 + i + "\n" for i in match.split("\n"))
         match = DUMMY_CPP.replace("!code", new_m)
-    open("cpp-ultroid.cpp", "w").write(match)
+    with open("cpp-ultroid.cpp", "w+") as f:
+        f.write(match)
     m = await bash("g++ -o CppUltroid cpp-ultroid.cpp")
     o_cpp = f"• **Eval-Cpp**\n`{match}`"
     if m[1]:
         o_cpp += f"\n\n**• Error :**\n`{m[1]}`"
+        osremove("cpp-ultroid.cpp", "CppUltroid")
         if len(o_cpp) > 3000:
-            os.remove("cpp-ultroid.cpp")
-            if os.path.exists("CppUltroid"):
-                os.remove("CppUltroid")
             with BytesIO(str.encode(o_cpp)) as out_file:
-                out_file.name = "error.txt"
+                out_file.name = "compile-error-g++.txt"
                 return await msg.reply(f"`{match}`", file=out_file)
         return await eor(msg, o_cpp)
     m = await bash("./CppUltroid")
@@ -381,9 +380,43 @@ async def doie(e):
         o_cpp += f"\n\n**• Error :**\n`{m[1]}`"
     if len(o_cpp) > 3000:
         with BytesIO(str.encode(o_cpp)) as out_file:
-            out_file.name = "eval.txt"
+            out_file.name = "g++_output.txt"
             await msg.reply(f"`{match}`", file=out_file)
     else:
         await eor(msg, o_cpp)
     os.remove("CppUltroid")
     os.remove("cpp-ultroid.cpp")
+
+
+# for running C code with gcc (no dummy cpp)
+@ultroid_cmd(pattern="gcc", only_devs=True, fullsudo=True)
+async def _gcc_compiler(e):
+    try:
+        match = e.text.split(" ", maxsplit=1)[1]
+    except IndexError:
+        return await e.eor(get_string("devs_3"))
+    msg = await e.eor(get_string("com_1"))
+    with open("ultroid.c", "w+") as f:
+        f.write(match)
+    m = await bash("gcc ultroid.c -o ultroid.out")
+    out = f"• **Eval-C**\n```{match}```"
+    if m[1]:
+        out += f"\n\n**• Error :**\n```{m[1]}```"
+        osremove("ultroid.c", "ultroid.out")
+        if len(out) > 4000:
+            with BytesIO(str.encode(out)) as out_file:
+                out_file.name = "compile-error-gcc.txt"
+                return await msg.reply(f"```{match}```", file=out_file)
+        return await eor(msg, out)
+    m = await bash("./ultroid.out")
+    if m[0] != "":
+        out += f"\n\n**• Output :**\n```{m[0]}```"
+    if m[1]:
+        out += f"\n\n**• Error :**\n```{m[1]}```"
+    if len(out) > 4000:
+        with BytesIO(str.encode(out)) as out_file:
+            out_file.name = "gcc_output.txt"
+            await msg.reply(f"```{match[:1023]}```", file=out_file)
+    else:
+        await msg.edit(out)
+    osremove("ultroid.out", "ultroid.c")
