@@ -186,10 +186,10 @@ class UltroidClient(TelegramClient):
         start_time = time.time()
         # Auto-generate Filename
         if not filename:
-            try:
-                if isinstance(file.attributes[-1], DocumentAttributeFilename):
-                    filename = file.attributes[-1].file_name
-            except IndexError:
+            for i in file.attributes:
+                if isinstance(i, DocumentAttributeFilename):
+                    filename = i.file_name
+            else:
                 mimetype = file.mime_type
                 filename = (
                     mimetype.split("/")[0]
