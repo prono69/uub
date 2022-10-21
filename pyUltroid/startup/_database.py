@@ -402,7 +402,7 @@ def UltroidDB():
     from .. import HOSTED_ON
 
     try:
-        if Redis:
+        if Var.REDIS_URI or Var.REDISHOST:
             return RedisDB(
                 host=Var.REDIS_URI or Var.REDISHOST,
                 password=Var.REDIS_PASSWORD or Var.REDISPASSWORD,
@@ -414,9 +414,9 @@ def UltroidDB():
                 to_cache=True,
                 _name="Redis",
             )
-        if MongoClient:
+        elif Var.MONGO_URI:
             return MongoDB(key=Var.MONGO_URI, _name="Mongo", to_cache=True)
-        if psycopg2:
+        elif Var.DATABASE_URL:
             return SqlDB(url=Var.DATABASE_URL, to_cache=True, _name="SQL")
     except BaseException as err:
         LOGS.exception(err)
