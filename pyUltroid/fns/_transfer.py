@@ -206,11 +206,7 @@ class pyroUL:
 
     def list_files(self, path):
         if type(path) in (list, tuple):
-            files = (
-                str(Path(i).absolute())
-                for i in path
-                if Path(i).is_file()
-            )
+            files = (str(Path(i).absolute()) for i in path if Path(i).is_file())
         else:
             _path = Path(path)
             if not _path.exists():

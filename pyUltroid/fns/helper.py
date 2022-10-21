@@ -564,7 +564,7 @@ async def restart(ult=None, EDIT=False):
 
         try:
             pid = Process(os.getpid())
-            for handler in (pid.open_files() + pid.connections()):
+            for handler in pid.open_files() + pid.connections():
                 os.kill(handler.fd)
         except Exception as exc:
             LOGS.exception(exc)

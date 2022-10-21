@@ -423,9 +423,9 @@ async def plug(plugin_channels):
             f.write("from plugins import *\n\nbot = ultroid_bot")
     LOGS.info("• Loading Plugins from Plugin Channel(s) •")
     for chat in plugin_channels:
-        plugUnzippr = await plug_unzipper(ultroid_bot, chat)
-        if not plugUnzippr:
-            continue
+        # plugUnzippr = await plug_unzipper(ultroid_bot, chat)
+        # if not plugUnzippr:
+        # continue
         try:
             LOGS.info(f"{'•'*4} {chat}")
             async for x in ultroid_bot.iter_messages(
