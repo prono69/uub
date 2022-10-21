@@ -221,9 +221,9 @@ async def restartbt(ult):
     udB.set_key("_RESTART", f"{who}_{ult.chat_id}_{ok.id}")
     if heroku_api:
         return await restart(ok)
-    elif Var.HOST.lower() == "wfs":
-        await ultroid_bot.send_message(LOG_CHANNEL, "/wfs restart")
-        return
+    # elif Var.HOST.lower() == "wfs":
+    # await ultroid_bot.send_message(LOG_CHANNEL, "/wfs restart")
+    # return
 
     # await bash("git pull && pip3 install -r requirements.txt")
     if len(sys.argv) > 1:

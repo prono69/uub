@@ -121,7 +121,7 @@ def on_startup():
     load_dotenv(override=True)
     from .configs import Var
 
-    if Var.HOST.lower() not in ("local", "railway"):
+    if Var.HOST.lower() not in ("local", "railway", "wfs"):
         remove(".env")
     return time(), Var
 

@@ -6,7 +6,6 @@
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
 import os
-import sys
 
 from ._helpers import on_startup, post_startup
 from .version import __version__, ultroid_version
