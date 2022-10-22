@@ -13,6 +13,7 @@ from . import *
 def main():
     import time
 
+    from pyrog import _init_pyrog
     from .fns.helper import time_formatter, updater, bash
     from .startup.funcs import (
         WasItRestart,
@@ -47,6 +48,9 @@ def main():
 
     ultroid_bot.run_in_loop(autopilot())
 
+    # Starting Pyrogram..
+    ultroid_bot.run_in_loop(_init_pyrog())
+
     pmbot = udB.get_key("PMBOT")
     manager = udB.get_key("MANAGER")
     addons = udB.get_key("ADDONS") or Var.ADDONS
@@ -68,7 +72,7 @@ def main():
             ----------------------------------------------------------------------
     """
 
-    # for channel plugins
+    # for plugin channels
     plugin_channels = udB.get_key("PLUGIN_CHANNEL")
 
     # Customize Ultroid Assistant...
@@ -83,11 +87,6 @@ def main():
     # Load Addons from Plugin Channels.
     if plugin_channels:
         ultroid_bot.run_in_loop(plug(plugin_channels))
-
-    # Starting Pyrogram..
-    from pyrog import _init_pyrog
-
-    ultroid_bot.run_in_loop(_init_pyrog())
 
     # Edit Restarting Message (if It's restarting)
     ultroid_bot.run_in_loop(WasItRestart(udB))
