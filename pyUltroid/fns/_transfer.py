@@ -174,7 +174,7 @@ class pyroDL:
 
     @staticmethod
     def get_filename(event):
-        def attrs(event, attr="file_name"):
+        def get_attrs(event, attr):
             media_types = (
                 "video",
                 "photo",
@@ -185,13 +185,19 @@ class pyroDL:
             )
             for i in media_types:
                 if mtype := getattr(event, i, None):
-                    if attr := getattr(mtype, attr, None):
-                        return attr
+                    if data := getattr(mtype, attr, None):
+                        return data
 
         _default = Path.cwd().joinpath("resources/downloads/")
-        if filename := attrs(event, "file_name"):
-            return check_filename(_default.joinpath(filename))
-        return _default  # no filename, just a folder
+        if filename := get_attrs(event, "file_name"):
+            return check_filename(str(_default.joinpath(filename)))
+
+        from mimetypes import guess_extension
+
+        if mime := get_attrs(event, "mime_type"):
+            path = f"{mime.split('/')[0]}-{round(time())}{guess_extension(mime)}"
+            return check_filename(str(_default.joinpath(path)))
+        return str(_default)  # no filename, just a folder
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

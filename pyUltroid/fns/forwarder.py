@@ -200,9 +200,9 @@ class forwarder:
             )
 
     async def via_asst(self, file):
-        if n := file.chat.username:
-            if m := await asst.get_messages(n, ids=file.id):
-                return m
+        if chat := getattr(file.chat, "username", None):
+            if msg := await asst.get_messages(chat, ids=file.id):
+                return msg
 
 
 fwdx = forwarder()
