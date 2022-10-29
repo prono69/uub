@@ -58,7 +58,7 @@ def _init_multi_dbs(var):
         if type(v) in (tuple, list):
             v, to_cache = v
         key = "udB" + str(co)
-        if "redislabs.com" in v:
+        if "redislabs" in v:
             _type = "redis"
         elif "mongodb" in v:
             _type = "mongo"
