@@ -9,13 +9,13 @@ from io import BytesIO
 from copy import deepcopy
 from random import randrange
 from logging import StreamHandler
+
 from aiohttp import ClientSession
 
 
 # ----------------------------------------------------------------------------
 
-loop = asyncio.get_event_loop()
-
+__DO_NOT_ACCESS__ = []
 _TG_API = "https://api.telegram.org/bot{}"
 _TG_MSG_LIMIT = 4000
 _PAYLOAD = {"disable_web_page_preview": True, "parse_mode": "Markdown"}
@@ -23,6 +23,13 @@ _MAX_LOG_LIMIT = 12000
 
 # ----------------------------------------------------------------------------
 
+try:
+    loop = asyncio.get_running_loop()
+except RuntimeError:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+# ----------------------------------------------------------------------------
 
 class TGLogHandler(StreamHandler):
     def __init__(self, chat, token):
@@ -45,13 +52,18 @@ class TGLogHandler(StreamHandler):
         active = self.active
         return f"Total Queued Items - {len(self.log_db)} \nActive - {active} \nTriggered - {tcount} times \nTotal edits - {ecount} times."
 
+    def __clear(self, *args):
+        __DO_NOT_ACCESS__.clear()
+
     def emit(self, record):
         msg = self.format(record)
         self.log_db.append("\n\n\n" + msg)
         self.triggerCount += 1
         if not (self.active or self._floodwait):
             self.active = True
-            loop.create_task(self.runQueue())
+            task = loop.create_task(self.runQueue())
+            __DO_NOT_ACCESS__.append(task)
+            task.add_done_callback(self.__clear)
 
     async def runQueue(self):
         await asyncio.sleep(3)
@@ -59,8 +71,7 @@ class TGLogHandler(StreamHandler):
             self.active = False
             return
         self.active = True
-        cpy = deepcopy(self.log_db)
-        await self.handle_logs(cpy)
+        await self.handle_logs(self.log_db.copy())
         await self.runQueue()
 
     def splitter(self, logs):
@@ -88,7 +99,7 @@ class TGLogHandler(StreamHandler):
         edit_left = _TG_MSG_LIMIT - len(self.current)
         as_file = any(len(i) > _TG_MSG_LIMIT for i in db)
         if edit_left > len(msgs):
-            await self.edit_message(self.current + msgs, sleep=randrange(4, 10))
+            await self.edit_message(self.current + msgs, sleep=randrange(5, 12))
         elif as_file or len(msgs) > _MAX_LOG_LIMIT:
             await self.send_file(msgs, sleep=randrange(8, 15))
         else:
