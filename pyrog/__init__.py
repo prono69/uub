@@ -38,7 +38,6 @@ def app(n=None):
 
 
 def get_clients():
-    global PYROG_CLIENTS
     # plugins = {"root": "pyrog/plugins"}
     var = "PYROGRAM_CLIENTS"
     stuff = environ.get(var)
@@ -57,25 +56,21 @@ def get_clients():
         PYROG_CLIENTS.update({int(k): Client(**_default)})
 
 
-async def _start(count, client):
+async def start(count, client):
     try:
         await client.start()
-    except BaseException:
-        LOGS.exception(f"Error while starting Client {count}: ")
-        return count
+    except Exception:
+        LOGS.exception(f"Error while starting Client: {count}")
+        PYROG_CLIENTS.pop(count, None)
 
 
 async def _init_pyrog():
     LOGS.info("Starting Pyrogram...")
     if get_clients():
         return
-    err = await asyncio.gather(
-        *[_start(count, client) for count, client in PYROG_CLIENTS.items()]
+    await asyncio.gather(
+        *[start(count, client) for count, client in PYROG_CLIENTS.copy().items()]
     )
-    if ded_clients := list(filter(bool, err)):
-        for i in ded_clients:
-            PYROG_CLIENTS.pop(i)
-
     return LOGS.info(
         f"{len(PYROG_CLIENTS)} Clients Running -> {tuple(PYROG_CLIENTS.keys())}"
     )
