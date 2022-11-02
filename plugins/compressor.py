@@ -20,6 +20,7 @@ from datetime import datetime as dt
 
 from telethon.errors.rpcerrorlist import MessageNotModifiedError, MessageIdInvalidError
 
+from pyUltroid.fns._transfer import pyroDL, pyroUL
 from . import (
     LOGS,
     asyncread,
@@ -65,8 +66,6 @@ async def compressor(e):
         await xxx.edit(f"`Found Path {path}\n\nNow Compressing...`")
 
     elif vido and vido.media and "video" in mediainfo(vido.media):
-        from pyUltroid.fns._transfer import pyroDL
-
         await xxx.edit(get_string("audiotools_5"))
         dlx = pyroDL(event=xxx, source=vido)
         path = await dlx.download(_log=False, auto_edit=False, **args.kwargs)
@@ -149,8 +148,6 @@ async def compressor(e):
         f"**Compression Ratio: **`{differ:.2f}%`\n"
         f"\n**Time Taken To Compress: **`{difff}`"
     )
-    from pyUltroid.fns._transfer import pyroUL
-
     x = pyroUL(event=xxx, _path=out)
     await x.upload(
         caption=caption,

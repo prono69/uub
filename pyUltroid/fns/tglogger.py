@@ -17,7 +17,7 @@ from aiohttp import ClientSession
 
 __DO_NOT_ACCESS__ = []
 _TG_API = "https://api.telegram.org/bot{}"
-_TG_MSG_LIMIT = 4000
+_TG_MSG_LIMIT = 4020
 _PAYLOAD = {"disable_web_page_preview": True, "parse_mode": "Markdown"}
 _MAX_LOG_LIMIT = 12000
 
@@ -30,6 +30,7 @@ except RuntimeError:
     asyncio.set_event_loop(loop)
 
 # ----------------------------------------------------------------------------
+
 
 class TGLogHandler(StreamHandler):
     def __init__(self, chat, token):
@@ -184,4 +185,5 @@ class TGLogHandler(StreamHandler):
             self._floodwait = True  # error.get("retry_after")
             print(f"floodwait in tglogging of {s}")
             sleep = s + (s // 3)
-            asyncio.gather(cancel_floodwait(sleep))
+            task = loop.create_task(cancel_floodwait(sleep))
+            __DO_NOT_ACCESS__.append(task)
