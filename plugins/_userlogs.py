@@ -206,41 +206,10 @@ if udB.get_key("TAG_LOG"):
             if chat and msg:
                 try:
                     await ultroid_bot.send_message(chat, e.message, reply_to=msg)
-                except BaseException as er:
+                except Exception as er:
                     LOGS.exception(er)
 
 
-# log for assistant/user joins/add
-async def when_added_or_joined(event):
-    user = await event.get_user()
-    chat = await event.get_chat()
-    if not (user and user.is_self):
-        return
-    if getattr(chat, "username", None):
-        chat = f"[{chat.title}](https://t.me/{chat.username}/{event.action_message.id})"
-    else:
-        chat = f"[{chat.title}](https://t.me/c/{chat.id}/{event.action_message.id})"
-    key = "bot" if event.client._bot else "user"
-    buttons = Button.inline(
-        get_string("userlogs_3"), data=f"leave_ch_{event.chat_id}|{key}"
-    )
-    if event.user_added:
-        tmp = event.added_by
-        text = f"#ADD_LOG\n\n{inline_mention(tmp)} just added {inline_mention(user)} to {chat}."
-    elif event.from_request:
-        text = f"#APPROVAL_LOG\n\n{inline_mention(user)} just got Chat Join Approval to {chat}."
-    else:
-        text = f"#JOIN_LOG\n\n{inline_mention(user)} just joined {chat}."
-    await asst.send_message(int(udB.get_key("LOG_CHANNEL")), text, buttons=buttons)
-
-
-asst.add_event_handler(
-    when_added_or_joined, events.ChatAction(func=lambda x: x.user_added)
-)
-ultroid_bot.add_event_handler(
-    when_added_or_joined,
-    events.ChatAction(func=lambda x: x.user_added or x.user_joined),
-)
 _client = {"bot": asst, "user": ultroid_bot}
 
 
