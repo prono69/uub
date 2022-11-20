@@ -32,7 +32,7 @@ def _connect_single_db(data, type, petname, cache):
             _name=name,
             platform=HOSTED_ON,
             decode_responses=True,
-            socket_timeout=5,
+            socket_timeout=6,
             retry_on_timeout=True,
             to_cache=cache,
         )

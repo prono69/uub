@@ -9,6 +9,9 @@ from .helper import cleargif
 from .. import asst, LOGS, udB, ultroid_bot as ultroid
 
 
+# shit code and unusable
+
+
 class forwarder:
     def __init__(self):
         self.DB = {}

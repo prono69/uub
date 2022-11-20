@@ -103,16 +103,6 @@ def _host_specifics(Var, LOGS):
             system("bash 1337x &")
 
 
-def do_pip_recursive(file_data):
-    def checkr(txt):
-        t = txt.strip()
-        return t and not t.startswith("#")
-
-    _data = filter(checkr, file_data.split("\n"))
-    for reqs in _data:
-        system("pip3 install -q --no-cache-dir " + reqs.strip())
-
-
 def on_startup():
     import nest_asyncio
 

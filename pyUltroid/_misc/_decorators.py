@@ -47,6 +47,7 @@ from ..version import ultroid_version as ult_ver
 from . import SUDO_M, owner_and_sudos
 from ._wrappers import eod
 
+
 MANAGER = udB.get_key("MANAGER")
 TAKE_EDITS = udB.get_key("TAKE_EDITS")
 TAKE_SUDO_EDITS = udB.get_key("TAKE_SUDO_EDITS")

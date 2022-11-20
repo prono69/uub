@@ -9,6 +9,8 @@ import os
 import sys
 from copy import deepcopy
 
+from redis.exceptions import ResponseError
+
 from ..configs import Var
 from . import *
 
@@ -61,6 +63,8 @@ class _BaseDatabase:
         self._cache = {}
         if self.to_cache:
             self.re_cache()
+        else:
+            self.__nocache__()
 
     def ping(self):
         return 1
@@ -82,13 +86,12 @@ class _BaseDatabase:
         if key:
             try:
                 data = self.get(str(key))
-            except:
-                LOGS.debug(f"{self._name} | Key type err: {key}")
-                return "Wrong.Value.TypeError"
+            except ResponseError:
+                return "WRONGTYPE"
         if data:
             try:
                 data = eval(str(data))
-            except BaseException:
+            except Exception:
                 pass
         return data
 
@@ -104,7 +107,7 @@ class _BaseDatabase:
         for key in self.keys():
             self._cache.update({key: self.get_key(key, force=True)})
 
-    def get_key(self, key, force=False):
+    def get_key(self, key, *, force=False):
         if not self.to_cache:
             if key in self.keys():
                 return self._get_data(key=key)
@@ -146,6 +149,14 @@ class _BaseDatabase:
         else:
             data += " " + str(value)
         return self.set_key(key, data)
+
+    def __nocache__(self):
+        from random import randrange
+
+        if randrange(100) > 50:
+            self.set_key("__nocache__", 0)
+        else:
+            self.del_key("__nocache__")
 
 
 # --------------------------------------------------------------------------------------------- #
@@ -274,7 +285,7 @@ class SqlDB(_BaseDatabase):
             self._cursor.execute(f"ALTER TABLE Ultroid DROP COLUMN IF EXISTS {key}")
         except (psycopg2.errors.UndefinedColumn, psycopg2.errors.SyntaxError):
             pass
-        except BaseException as er:
+        except Exception as er:
             LOGS.exception(er)
         self._cache.update({key: value})
         self._cursor.execute(f"ALTER TABLE Ultroid ADD {key} TEXT")
@@ -366,11 +377,14 @@ class RedisDB(_BaseDatabase):
     def real(self, key):
         try:
             return self.db.get(key)
-        except:
+        except ResponseError:
             try:
                 return self.db.lrange(key, 0, -1)
-            except:
-                return self.db.hgetall(key)
+            except ResponseError:
+                try:
+                    return self.db.hgetall(key)
+                except Exception as exc:
+                    LOGS.exception(exc)
 
 
 # --------------------------------------------------------------------------------------------- #
@@ -409,7 +423,7 @@ def UltroidDB():
                 port=Var.REDISPORT,
                 platform=HOSTED_ON,
                 decode_responses=True,
-                socket_timeout=5,
+                socket_timeout=6,
                 retry_on_timeout=True,
                 to_cache=True,
                 _name="Redis",
@@ -428,6 +442,3 @@ def UltroidDB():
     if HOSTED_ON == "termux":
         return LocalDB()
     exit()
-
-
-# --------------------------------------------------------------------------------------------- #

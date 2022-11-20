@@ -63,19 +63,14 @@ async def _try_delete(event):
 
 
 # copy message
-async def copy_message(_msg, to_chat, **kwargs):
-    if isinstance(_msg, MessageService):
-        raise TypeError("Can't copy Service Message.")
-    text = kwargs.get("caption", _msg.text)
-    _buttons = kwargs.get("buttons", _msg.buttons)
-    [kwargs.pop(c, None) for c in ("buttons", "caption")]
-    media = _msg.media if (_msg.media and not hasattr(_msg.media, "webpage")) else None
+async def copy_message(msg, to_chat, **kwargs):
+    if not isinstance(msg, Message) or isinstance(msg, MessageService):
+        raise TypeError("Error: Invalid message")
     try:
-        return await _msg.client.send_message(
-            to_chat, text, file=media, buttons=_buttons, **kwargs
-        )
-    except BaseException as exc:
-        raise exc
+        moi = await msg.client.send_message(to_chat, msg, **kwargs)
+        return moi
+    except Exception:
+        raise
 
 
 setattr(Message, "eor", eor)
