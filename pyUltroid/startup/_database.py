@@ -8,6 +8,7 @@
 import os
 import sys
 from copy import deepcopy
+from random import randrange
 
 from redis.exceptions import ResponseError
 
@@ -151,11 +152,7 @@ class _BaseDatabase:
         return self.set_key(key, data)
 
     def __nocache__(self):
-        from random import randrange
-
-        if randrange(100) > 50:
-            self.set_key("__nocache__", 0)
-        else:
+        if randrange(101) > 75:
             self.del_key("__nocache__")
 
 

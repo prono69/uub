@@ -1,6 +1,8 @@
 import os
 
-from .. import LOGS, HOSTED_ON
+from redis.exceptions import ConnectionError
+
+from .. import HOSTED_ON, LOGS
 
 
 def _connect_single_db(data, type, petname, cache):
@@ -8,38 +10,35 @@ def _connect_single_db(data, type, petname, cache):
 
     if type == "mongo":
         name = "Mongo: " + petname
-        yay = MongoDB(key=data, _name=name, to_cache=cache)
-        if yay.ping():
-            return yay
-        else:
-            return LOGS.error(f"Error in Connecting {petname}")
+        try:
+            return MongoDB(key=data, _name=name, to_cache=cache)
+        except Exception:
+            return LOGS.exception(f"MultiDB - Error in Connecting Mongo: {petname}")
 
     elif type == "sql":
         name = "Sql: " + petname
-        yay = SqlDB(url=data, _name=name, to_cache=cache)
-        if yay.ping():
-            return yay
-        else:
-            return LOGS.error(f"Error in Connecting {petname}")
+        try:
+            return SqlDB(url=data, _name=name, to_cache=cache)
+        except Exception:
+            return LOGS.exception(f"MultiDB - Error in Connecting {petname}")
 
-    else:  # Redis
+    else:
         name = "Redis: " + petname
         stuff = data.split()
-        yay = RedisDB(
-            host=stuff[1],
-            password=stuff[0],
-            port=None,
-            _name=name,
-            platform=HOSTED_ON,
-            decode_responses=True,
-            socket_timeout=6,
-            retry_on_timeout=True,
-            to_cache=cache,
-        )
-        if yay.ping():
-            return yay
-        else:
-            return LOGS.error(f"Error in Connecting: {petname}")
+        try:
+            return RedisDB(
+                host=stuff[1],
+                password=stuff[0],
+                port=None,
+                _name=name,
+                platform=HOSTED_ON,
+                decode_responses=True,
+                socket_timeout=5,
+                retry_on_timeout=True,
+                to_cache=cache,
+            )
+        except ConnectionError:
+            return LOGS.exception(f"MultiDB - Error in Connecting Redis: {petname}")
 
 
 def _init_multi_dbs(var):
@@ -55,21 +54,30 @@ def _init_multi_dbs(var):
     for k, v in data.items():
         co += 1
         to_cache = False
-        if type(v) in (tuple, list):
-            v, to_cache = v
         key = "udB" + str(co)
-        if "redislabs" in v:
-            _type = "redis"
-        elif "mongodb" in v:
-            _type = "mongo"
-        else:
-            _type = "sql"
+        if type(v) in (tuple, list):
+            to_cache = v[1] is True
+            v = v[0]
 
-        if cx := _connect_single_db(v, _type, k, to_cache):
-            dct[len(dct) + 1] = f"{k} -> {_type}"
-            globals()[key] = cx
+        if v == "self":
+            from .. import udB
+
+            dct[co] = f"{k} -> self"
+            globals()[key] = udB
+
+        else:
+            if "redislabs" in v:
+                _type = "redis"
+            elif "mongodb" in v:
+                _type = "mongo"
+            else:
+                _type = "sql"
+
+            if cx := _connect_single_db(v, _type, k, to_cache):
+                dct[co] = f"{k} -> {_type}"
+                globals()[key] = cx
 
     if dct:
         from .tools import json_parser
 
-        LOGS.debug(json_parser(dct, indent=2))
+        LOGS.debug(json_parser(dct, indent=3))
