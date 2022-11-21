@@ -2,12 +2,11 @@ import os
 
 from redis.exceptions import ConnectionError
 
-from .. import HOSTED_ON, LOGS
+from .. import HOSTED_ON, LOGS, udB
+from ..startup._database import MongoDB, RedisDB, SqlDB
 
 
 def _connect_single_db(data, type, petname, cache):
-    from ..startup._database import MongoDB, RedisDB, SqlDB
-
     if type == "mongo":
         name = "Mongo: " + petname
         try:
@@ -60,8 +59,6 @@ def _init_multi_dbs(var):
             v = v[0]
 
         if v == "self":
-            from .. import udB
-
             dct[co] = f"{k} -> self"
             globals()[key] = udB
 
@@ -80,4 +77,4 @@ def _init_multi_dbs(var):
     if dct:
         from .tools import json_parser
 
-        LOGS.debug(json_parser(dct, indent=3))
+        LOGS.debug(json_parser(dct, indent=2))
