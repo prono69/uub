@@ -25,7 +25,7 @@ async def eor(event, text=None, time=None, link_preview=False, edit_time=None, *
                 text,
                 link_preview=link_preview,
                 reply_to=reply_to,
-                **args
+                **args,
             )
         else:
             try:

@@ -22,7 +22,7 @@ class ULTConfig:
 from .startup import *
 from .startup._database import UltroidDB
 from .startup.BaseClient import UltroidClient
-from .startup.connections import validate_session, vc_connection
+from .startup.connections import _teleredis, validate_session, vc_connection
 from .startup.funcs import autobot, enable_inline
 
 
@@ -61,7 +61,11 @@ else:
     )
     ultroid_bot.run_in_loop(autobot())
 
-asst = UltroidClient(None, bot_token=udB.get_key("BOT_TOKEN"), udB=udB)
+asst = UltroidClient(
+    _teleredis(LOGS, udB.get_key("REDIS_SESSION")),
+    bot_token=udB.get_key("BOT_TOKEN"),
+    udB=udB,
+)
 
 if BOT_MODE:
     ultroid_bot = asst
@@ -86,6 +90,7 @@ post_startup()
 
 try:
     del (
+        _teleredis,
         on_startup,
         enable_inline,
         post_startup,
