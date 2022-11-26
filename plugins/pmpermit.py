@@ -4,6 +4,7 @@
 # This file is a part of < https://github.com/TeamUltroid/Ultroid/ >
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
+
 """
 ✘ Commands Available -
 
@@ -122,23 +123,18 @@ async def delete_pm_warn_msgs(chat: int):
 
 if udB.get_key("PMLOG"):
 
-    from pyUltroid.fns.queue import PMLogger
-
+    _alock = asyncio.Lock()
+    _chat = udB.get_key("PMLOGGROUP") or LOG_CHANNEL
     async def _msglogger(msg):
         try:
-            chat = udB.get_key("PMLOGGROUP") or LOG_CHANNEL
-            await msg.forward_to(chat)
+            await msg.forward_to(_chat)
         except MessageIdInvalidError:
-            cpy = await msg.copy(chat)
+            cpy = await msg.copy(_chat)
             sender = msg.sender or await msg.get_sender()
-            msg = f"From: {inline_mention(sender)} - [`{sender.id}`]"
-            await asst.send_message(chat, msg[:4096], reply_to=cpy.id)
-        except Exception as exc:
-            LOGS.exception(exc)
+            msg = f"From: {inline_mention(sender)} – [`{sender.id}`]"
+            await asst.send_message(_chat, msg[:4096], reply_to=cpy.id)
         finally:
-            await asyncio.sleep(randint(8, 16))
-
-    queue = PMLogger(_msglogger)
+            await asyncio.sleep(randint(6, 16))
 
     @ultroid_cmd(
         pattern="logpm$",
@@ -174,7 +170,11 @@ if udB.get_key("PMLOG"):
         user = await event.get_sender()
         if user.bot or user.is_self or user.verified or is_logger(user.id):
             return
-        await queue.add(event)
+        async with _alock:
+            try:
+                await _msglogger(event)
+            except Exception as exc:
+                LOGS.exception("PMLogger forwarder Error..")
 
 
 if udB.get_key("PMSETTING"):
