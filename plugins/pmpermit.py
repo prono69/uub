@@ -134,7 +134,7 @@ if udB.get_key("PMLOG"):
             msg = f"From: {inline_mention(sender)} – [`{sender.id}`]"
             await asst.send_message(_chat, msg[:4096], reply_to=cpy.id)
         finally:
-            await asyncio.sleep(randint(6, 16))
+            await asyncio.sleep(randint(9, 18))
 
     @ultroid_cmd(
         pattern="logpm$",
