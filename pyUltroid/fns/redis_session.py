@@ -246,10 +246,7 @@ class RedisSession(MemorySession):
         key_pattern = "{}:{}:sessions:".format(self.hive_prefix, self.session_name)
         try:
             sessions = self.redis_connection.keys(key_pattern + "*")
-            return [
-                s.replace(key_pattern, "") if strip_prefix else s
-                for s in sessions
-            ]
+            return [s.replace(key_pattern, "") if strip_prefix else s for s in sessions]
         except Exception as ex:
             __log__.exception(ex.args)
             return []

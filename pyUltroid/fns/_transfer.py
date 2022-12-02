@@ -38,6 +38,17 @@ DEFAULT_THUMB = str(Path.cwd().joinpath("resources/extras/ultroid.jpg"))
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+
+class UploadError(Exception):
+    pass
+
+
+class ProcessCancelled(Exception):
+    pass
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 # Progress Bar
 async def pyro_progress(
     current,
@@ -612,17 +623,6 @@ async def audioThumb(path):
     except BaseException as exc:
         LOGS.error(exc)
         return DEFAULT_THUMB
-
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-class UploadError(Exception):
-    pass
-
-
-class ProcessCancelled(Exception):
-    pass
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

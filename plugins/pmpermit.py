@@ -125,6 +125,7 @@ if udB.get_key("PMLOG"):
 
     _alock = asyncio.Lock()
     _chat = udB.get_key("PMLOGGROUP") or LOG_CHANNEL
+
     async def _msglogger(msg):
         try:
             await msg.forward_to(_chat)
