@@ -220,7 +220,9 @@ async def get_imgbb_link(path, **kwargs):
             await asyncio.sleep(2.5)
         return flink
     else:
-        return LOGS.error("ImgBB err: " + post["error"])
+        from .tools import json_parser
+
+        return LOGS.error(json_parser(post, indent=2))
 
 
 async def random_pic(re_photo=False, old_media=False, custom=False):
