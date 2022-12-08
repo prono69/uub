@@ -132,7 +132,7 @@ def in_pattern(pattern=None, owner=False, **kwargs):
                             )
                         ]
                     )
-                except (QueryIdInvalidError, ResultIdDuplicateError):
+                except (QueryIdInvalidError, ResultIdDuplicateError) as err:
                     LOGS.exception(err)
                 except Exception as er:
                     LOGS.exception(er)

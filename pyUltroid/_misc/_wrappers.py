@@ -66,11 +66,11 @@ async def _try_delete(event):
 async def copy_message(msg, to_chat, **kwargs):
     if not isinstance(msg, Message) or isinstance(msg, MessageService):
         raise TypeError("Error: Invalid message type")
-    if text := kwargs.pop("caption", None):
-        msg.text = text
+
     try:
-        moi = await msg.client.send_message(to_chat, msg, **kwargs)
-        return moi
+        if "caption" in kwargs:
+            msg.text = kwargs.pop("caption")
+        return await msg.client.send_message(to_chat, msg, **kwargs)
     except Exception:
         raise
 
