@@ -182,9 +182,10 @@ async def metadata(file):
     return data
 
 
-# ~~~~~~~~~~~~~~~~ Media_Info ~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~ MediaInfo ~~~~~~~~~~~~~~~~
 
 
+# todo: create a seperate media_info class..
 def media_info(file):
     try:
         obj = MediaInfo.parse(file)
@@ -206,6 +207,18 @@ def media_info(file):
 
     def _get(obj, var, _def=None):
         return getattr(obj, var, _def)
+
+    def _get_frame_count():
+        from subprocess import run
+
+        cmd = f"ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets {shq(file)}"
+        try:
+            res = run(cmd.split(" "), capture_output=True, text=True)
+            if res.returncode == 0:
+                if frame := re.findall("\d+", res.stdout):
+                    return int(frame[0])
+        except Exception:
+            LOGS.exception(f"mediainfo error in {file}")
 
     def _audio_stuff(track):
         dct = {"title": "Unknown Track", "artist": "Unknown Artist"}
@@ -245,8 +258,11 @@ def media_info(file):
         }
         if gtrack.format.lower() == "webm" and info["duration"] < 3:
             info["type"] = "sticker"
+        elif not info.get("frames"):
+            if frames := _get_frame_count():
+                info["frames"] = frames
 
-    elif obj.audio_tracks:  # Audio
+    elif obj.audio_tracks:
         title, artist = _audio_stuff(gtrack)
         info = {
             "type": "audio",

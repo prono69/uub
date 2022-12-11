@@ -13,8 +13,8 @@
     crf: -c=28
     codec: -x264
     speed: -s=superfast
-    audio_cmd*: -a="-c:a copy"
-    other_stuff: -r > fix resolution and fps
+    *audio_cmd: -a="-c:a copy"
+    others: -r > to fix resolution and fps
 """
 
 import asyncio
@@ -23,7 +23,6 @@ from os.path import getsize
 from pathlib import Path
 from re import findall
 from time import time
-from datetime import datetime as dt
 
 from telethon.errors.rpcerrorlist import MessageNotModifiedError, MessageIdInvalidError
 
@@ -46,6 +45,18 @@ from . import (
 
 
 FFMPEG_CMD = "ffmpeg -hide_banner -loglevel error -progress {progress_file} -i {input_file} -preset {speed} -vcodec {codec} -crf {crf} {other_cmds} {audio_cmd} -c:s copy {output_file} -y"
+def fix_resolution(width, height):
+    m4 = lambda n: n - (n % 4)
+    if width - height >= 0:  # landscape
+        _height = 720
+        if height > _height:
+            _div = height / _height
+            return m4(round(width / _div)), _height
+    # portrait
+    _height = 1280  # adjusted height
+    if height > _height:
+        _div = height / _height
+        return m4(round(width / _div)), _height
 
 
 @ultroid_cmd(pattern="compress ?(.*)")
@@ -100,8 +111,9 @@ async def og_compressor(e):
     if args.kwargs.pop("r", 0):
         if total_frame and (total_frame / minfo.get("duration")) > 31:
             _others += "-r 30"
-        if minfo.get("height") > 721:
-            _others += " -vf scale=-1:720"
+            total_frame = minfo.get("duration") * 30
+        if res := fix_resolution(minfo.get("width"), minfo.get("height")):
+            _others += f" -vf scale=w={res[0]}:h={res[1]}"
 
     proce = await asyncio.create_subprocess_shell(
         FFMPEG_CMD.format(
@@ -123,14 +135,15 @@ async def og_compressor(e):
         speed = 0
         await asyncio.sleep(slp_time)
         filetext = await asyncread(progress)
+        with open(progress, "a") as f:
+            f.truncate(0)
         frames = findall("frame=(\\d+)", filetext)
         size = findall("total_size=(\\d+)", filetext)
-        elapse = int(frames[-1]) if len(frames) else 0
-        del filetext
 
-        if len(size):
-            size = int(size[-1])
-            e_size = f"**Done ~**  `{humanbytes(size)}` \n"
+        size = int(size[-1]) if size else 0
+        elapse = int(frames[-1]) if frames else 0
+        e_size = f"**Done ~**  `{humanbytes(size)}` \n"
+        del filetext, size
 
         if total_frame and elapse:
             per = elapse * 100 / total_frame
@@ -149,8 +162,9 @@ async def og_compressor(e):
             edit_count += slp_time
             p_text = (
                 f"{text}\n` *Missing Frame Count..` \n\n"
-                f"{e_size}**Running ~**  `{time_formatter(edit_count * 1000)}`"
+                f"{e_size}**Elapsed ~**  `{time_formatter(edit_count * 1000)}`"
             )
+            slp_time = 15
 
         if int(speed) > 0 or edit_count > 0:
             try:
