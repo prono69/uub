@@ -54,18 +54,17 @@ LOG_HANDLERS = []
 log_level = logging.INFO if LOG_DATA.get("verbose") is True else logging.WARNING
 TelethonLogger.setLevel(log_level)
 logging.getLogger("pyrogram").setLevel(logging.WARNING)
-for p in ("pyrogram.parser.html", "pyrogram.session.session"):
-    logging.getLogger(p).setLevel(logging.ERROR)
+for i in ("pyrogram.parser.html", "pyrogram.session.session"):
+    logging.getLogger(i).setLevel(logging.ERROR)
 
 if int(python_version_tuple()[1]) < 10:
     _fix_logging(logging.FileHandler)
 if HOSTED_ON == "local":
     _ask_input()
 
-log_format1 = logging.Formatter(
-    "%(asctime)s | %(name)s [%(levelname)s] : %(message)s",
-    datefmt="%m/%d/%Y, %H:%M:%S",
-)
+og_format = "%(asctime)s | %(name)s [%(levelname)s] : %(message)s"
+log_format1 = logging.Formatter(og_format, datefmt="%m/%d/%Y, %H:%M:%S")
+
 _logger_name = LOG_DATA.get("name", "TGLogger")
 log_format2 = logging.Formatter(
     f"{_logger_name} [%(levelname)s] ~ %(asctime)s\n» Line %(lineno)s: %(filename)s\n» %(message)s",
@@ -95,6 +94,16 @@ if LOG_DATA.get("tglog") is True:
 # Initiate all Loggers!
 logging.basicConfig(handlers=LOG_HANDLERS)
 del LOG_DATA, LOG_HANDLERS
+
+# ----------------------------------------------------------------------------
+
+if getenv("HOST") == "local":
+    try:
+        import coloredlogs
+
+        coloredlogs.install(level=None, logger=LOGS, fmt=og_format)
+    except ImportError:
+        pass
 
 # ----------------------------------------------------------------------------
 

@@ -45,6 +45,8 @@ from . import (
 
 
 FFMPEG_CMD = "ffmpeg -hide_banner -loglevel error -progress {progress_file} -i {input_file} -preset {speed} -vcodec {codec} -crf {crf} {other_cmds} {audio_cmd} -c:s copy {output_file} -y"
+
+
 def fix_resolution(width, height):
     m4 = lambda n: n - (n % 4)
     if width - height >= 0:  # landscape
