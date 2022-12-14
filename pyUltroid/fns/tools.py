@@ -209,11 +209,12 @@ def media_info(file):
         return getattr(obj, var, _def)
 
     def _get_frame_count():
+        from shlex import quote, split
         from subprocess import run
 
-        cmd = f"ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets {shq(file)}"
+        cmd = f"ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets {quote(file)}"
         try:
-            res = run(cmd.split(" "), capture_output=True, text=True)
+            res = run(split(cmd), capture_output=True, text=True)
             if res.returncode == 0:
                 if frame := re.findall("\d+", res.stdout):
                     return int(frame[0])
