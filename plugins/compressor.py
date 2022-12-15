@@ -67,6 +67,7 @@ async def og_compressor(e):
     vido = await e.get_reply_message()
     xxx = await e.eor("Checking...")
 
+    _ext = "mkv"
     codec = "libx264" if "x264" in args.kwargs else "libx265"
     args.kwargs.pop("x264", 0)
     crf = args.kwargs.pop("c", 28 if codec == "libx265" else 36)
@@ -77,13 +78,17 @@ async def og_compressor(e):
         path = args.args[0]
         if not Path(path).is_file():
             return await xxx.edit("Path not found")
+        _isgif = Path(path).suffix.lower() == ".gif"
         to_delete, reply_to = False, e.id
         o_size = getsize(path)
         await xxx.edit(f"`Found Path {path}\n\nNow Compressing...`")
 
-    elif vido and vido.media and "video" in mediainfo(vido.media):
+    elif (
+        vido and vido.media and mediainfo(vido.media) in ("video as doc", "gif as doc")
+    ):
         await xxx.edit(get_string("audiotools_5"))
         dlx = pyroDL(event=xxx, source=vido)
+        _isgif = bool(vido.gif)
         path = await dlx.download(_log=False, auto_edit=False, **args.kwargs)
         if isinstance(path, Exception):
             return await xxx.edit("#Error in downloading file: {path}")
@@ -96,7 +101,11 @@ async def og_compressor(e):
         return await xxx.eor(get_string("audiotools_8"), time=8)
 
     _others = ""
-    out = check_filename(f"resources/downloads/{Path(path).stem}-compressed.mkv")
+    if _isgif:
+        _audio = ""
+        _ext = "mp4"
+        codec = "libx264"
+    out = check_filename(f"resources/downloads/{Path(path).stem}-compressed.{_ext}")
     slp_time = 10 if e.client._bot else 8
     minfo = media_info(path)
     total_frame = minfo.get("frames")
@@ -163,7 +172,7 @@ async def og_compressor(e):
         else:
             edit_count += slp_time
             p_text = (
-                f"{text}\n` *Missing Frame Count..` \n\n"
+                f"{text}\n` ~ Missing Frame Count..` \n\n"
                 f"{e_size}**Elapsed ~**  `{time_formatter(edit_count * 1000)}`"
             )
             slp_time = 15
@@ -190,7 +199,6 @@ async def og_compressor(e):
         f"`Compressed {humanbytes(o_size)} to {humanbytes(c_size)} in {difff}\nTrying to Upload...`"
     )
     differ = 100 - ((c_size / o_size) * 100)
-    await asyncio.sleep(1)
     minfo = media_info(out)
     edtext = f"{minfo.get('height')}p"
     if frames := minfo.get("frames"):
