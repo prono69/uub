@@ -392,7 +392,8 @@ class pyroUL:
     async def get_metadata(self):
         self.metadata = media_info(self.file)
         type = self.metadata.get("type").lower()
-        if self.type == "image" and getsize(self.file) > 3 * 1024 * 1024:
+        if type == "image" and getsize(self.file) > 3 * 1024 * 1024:
+            self.metadata["type"] = "document"
             type = "document"
         if not (self.force_document or hasattr(self, "thumb")):
             self.thumb = None

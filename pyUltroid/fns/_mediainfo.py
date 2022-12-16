@@ -5,13 +5,13 @@ from re import findall
 from shlex import quote, split
 from subprocess import run
 
-from pyUltroid.fns.helper import humanbytes
+from .helper import humanbytes
 
 
 def _parser(data, attr, to_int=True):
     def _conv_to_int(n):
         try:
-            return 0 if not n else round(float(n))
+            return round(float(n)) if n else 0
         except ValueError:
             return 0
 
@@ -42,7 +42,7 @@ class TGMediaInfo:
     def __call__(self):
         out = {}
         out["size"] = humanbytes(getsize(self.path))
-        _ext = _parser(self.general_track, "file_extension")
+        _ext = _parser(self.general_track, "file_extension", 0)
         if _ext and _ext.lower() in ("tgs", "webp"):
             out["type"] = "sticker"
             return out
@@ -61,10 +61,10 @@ class TGMediaInfo:
             out["type"] = "document"
         return out | minfo
 
-    # audio stream helper..
+    # audio stream helper.
     @staticmethod
     def _get_audio_metadata(data):
-        vars = {"title": "Unknown Track", "artist": "Unknown Artist"}
+        result = {"title": "Unknown Track", "artist": "Unknown Artist"}
         _items = {
             "title": ("title", "track_name", "file_name_extension"),
             "artist": ("performer", "album"),
@@ -72,9 +72,9 @@ class TGMediaInfo:
         for key, vars in _items.items():
             for attr in vars:
                 if value := _parser(data, attr, 0):
-                    vars.update({key: value})
+                    result.update({key: value})
                     break
-        return tuple(vars.values())
+        return tuple(result.values())
 
     # alternate method for getting frame count from video stream.
     @staticmethod
@@ -86,7 +86,7 @@ class TGMediaInfo:
                 if frame := findall("\d+", res.stdout):
                     return int(frame[0])
         except Exception:
-            LOGS.exception(f"error in getting frame count via ffprobe - {file}")
+            LOGS.exception(f"error in getting frame count via ffprobe: {file}")
 
     # alternate method for getting bitrate from video stream.
     @staticmethod
@@ -97,11 +97,10 @@ class TGMediaInfo:
             if res.returncode == 0:
                 if b_rate := findall("\d+", res.stdout):
                     return int(frame[0])
-            return 320  # default ...
         except Exception:
-            LOGS.exception(f"error in getting bitrate via ffprobe - {file}")
+            LOGS.exception(f"error in getting bitrate via ffprobe: {file}")
 
-    # video stream helper..
+    # video stream helper.
     def _video_stream_helper(self, data):
         # webm sticker
         if (
