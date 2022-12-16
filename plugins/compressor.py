@@ -49,13 +49,12 @@ FFMPEG_CMD = "ffmpeg -hide_banner -loglevel error -progress {progress_file} -i {
 
 def fix_resolution(width, height):
     m4 = lambda n: n - (n % 4)
-    if width - height >= 0:  # landscape
-        _height = 720
+    if width - height >= 0:
+        _height = 720  # adjusted for landscape
         if height > _height:
             _div = height / _height
             return m4(round(width / _div)), _height
-    # portrait
-    _height = 1280  # adjusted height
+    _height = 1280  # portrait
     if height > _height:
         _div = height / _height
         return m4(round(width / _div)), _height
@@ -88,7 +87,7 @@ async def og_compressor(e):
     ):
         await xxx.edit(get_string("audiotools_5"))
         dlx = pyroDL(event=xxx, source=vido)
-        _isgif = bool(vido.gif)
+        _isgif = "gif" in mediainfo(vido.media)
         path = await dlx.download(_log=False, auto_edit=False, **args.kwargs)
         if isinstance(path, Exception):
             return await xxx.edit("#Error in downloading file: {path}")

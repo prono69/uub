@@ -41,9 +41,9 @@ except ImportError:
     requests = None
 
 from telethon import Button
-from pymediainfo import MediaInfo
 from telethon.tl.types import DocumentAttributeAudio, DocumentAttributeVideo
 
+from ._mediainfo import media_info
 from ..dB.filestore_db import get_stored_msg, store_msg
 
 try:
@@ -159,6 +159,17 @@ def is_url_ok(url: str):
 
 
 async def metadata(file):
+    _ = media_info(file)
+    if type(_) == dict:
+        if _["type"] in ("video", "gif"):
+            if not _["bitrate"]:
+                _["bitrate"] = 320
+            if not _["width"]:
+                _["width"] = 1280
+            if not _["height"]:
+                _["height"] = 720
+        return _
+
     out, _ = await bash(f"mediainfo {shq(file)} --Output=JSON")
     if _ and _.endswith("NOT_FOUND"):
         raise Exception(_)
@@ -180,106 +191,6 @@ async def metadata(file):
         data["bitrate"] = int(_info[1].get("BitRate", 320))
     data["duration"] = int(float(info.get("Duration", 0)))
     return data
-
-
-# ~~~~~~~~~~~~~~~~ MediaInfo ~~~~~~~~~~~~~~~~
-
-
-# todo: create a seperate media_info class..
-def media_info(file):
-    try:
-        obj = MediaInfo.parse(file)
-        gtrack = obj.general_tracks[0]
-    except FileNotFoundError:
-        return "File doesn't exist on Server"
-    except (RuntimeError, IndexError):
-        return "Mediainfo failed to Parse the file"
-
-    def _conv(n):  # converts to integer
-        if not n:
-            return 0
-        elif type(n) in (int, float):
-            return int(n)
-        try:
-            return int(float(n))
-        except:
-            return 0
-
-    def _get(obj, var, _def=None):
-        return getattr(obj, var, _def)
-
-    def _get_frame_count():
-        from shlex import quote, split
-        from subprocess import run
-
-        cmd = f"ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets {quote(file)}"
-        try:
-            res = run(split(cmd), capture_output=True, text=True)
-            if res.returncode == 0:
-                if frame := re.findall("\d+", res.stdout):
-                    return int(frame[0])
-        except Exception:
-            LOGS.exception(f"mediainfo error in {file}")
-
-    def _audio_stuff(track):
-        dct = {"title": "Unknown Track", "artist": "Unknown Artist"}
-        _pre = {
-            "title": ("title", "track_name", "file_name_extension"),
-            "artist": ("performer", "album"),
-        }
-        for k, v in _pre.items():
-            for i in v:
-                if value := _get(track, i):
-                    dct[k] = value
-                    break
-        return tuple(dct.values())
-
-    if dct := obj.image_tracks:  # Image, Gifs
-        dct = dct[0]
-        info = {
-            "type": "image",
-            "width": _conv(_get(dct, "width")),
-            "height": _conv(_get(dct, "height")),
-        }
-        frmt = _get(dct, "format")
-        if frmt and frmt.lower() == "gif":
-            info["type"] = "gif"
-            info["duration"] = _conv(_get(gtrack, "duration")) // 1000
-        elif os.path.getsize(file) > 5 * 1024 * 1024:
-            info["type"] = "document"
-
-    elif dct := obj.video_tracks:  # Video, WebM
-        stream = dct[0]
-        info = {
-            "type": "video",
-            "duration": _conv(_get(stream, "duration")) // 1000,
-            "width": _conv(_get(stream, "width")),
-            "height": _conv(_get(stream, "height")),
-            "frames": _conv(_get(stream, "frame_count")),
-        }
-        if gtrack.format.lower() == "webm" and info["duration"] < 3:
-            info["type"] = "sticker"
-        elif not info.get("frames"):
-            if frames := _get_frame_count():
-                info["frames"] = frames
-
-    elif obj.audio_tracks:
-        title, artist = _audio_stuff(gtrack)
-        info = {
-            "type": "audio",
-            "duration": _conv(_get(gtrack, "duration")) // 1000,
-            "title": title,
-            "artist": artist,
-        }
-    else:
-        info = {"type": "document"}  # document
-
-    # filters: webp, tgs, size
-    info["size"] = humanbytes(os.path.getsize(file))
-    if ext := _get(gtrack, "file_extension"):
-        if ext.lower() in ("tgs", "webp"):
-            info["type"] = "sticker"
-    return info
 
 
 # ~~~~~~~~~~~~~~~~ Attributes ~~~~~~~~~~~~~~~~

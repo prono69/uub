@@ -16,7 +16,7 @@ from time import time
 from io import BytesIO
 from PIL import Image, ImageFilter
 from random import choice, random_string
-from os import remove
+from os.path import getsize
 from pathlib import Path
 
 # from mimetypes import guess_all_extensions
@@ -382,8 +382,8 @@ class pyroUL:
     # Helper functions
 
     @staticmethod
-    def size_checks(_path):
-        size = Path(_path).stat().st_size
+    def size_checks(path):
+        size = getsize(path)
         if size == 0:
             raise UploadError("File Size = 0 B ...")
         elif size > 2097152000:
@@ -392,6 +392,8 @@ class pyroUL:
     async def get_metadata(self):
         self.metadata = media_info(self.file)
         type = self.metadata.get("type").lower()
+        if self.type == "image" and getsize(self.file) > 3 * 1024 * 1024:
+            type = "document"
         if not (self.force_document or hasattr(self, "thumb")):
             self.thumb = None
             if type == "video":
@@ -432,10 +434,10 @@ class pyroUL:
 
     def cleanups(self):
         if self.delete_file:
-            remove(self.file)
+            Path(self.file).unlink()
         if x := getattr(self, "thumb", None):
             if self.delete_thumb and "ultroid.jpg" not in x:
-                remove(x)
+                Path(x).unlink()
         if hasattr(self, "thumb"):
             delattr(self, "thumb")
 
