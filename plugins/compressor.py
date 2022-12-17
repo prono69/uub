@@ -82,8 +82,8 @@ async def og_compressor(e):
         o_size = getsize(path)
         await xxx.edit(f"`Found Path {path}\n\nNow Compressing...`")
 
-    elif (
-        vido and vido.media and mediainfo(vido.media) in ("video as doc", "gif as doc")
+    elif (vido and vido.media) and any(
+        mediainfo(vido.media).startswith(i) for i in ("video", "gif")
     ):
         await xxx.edit(get_string("audiotools_5"))
         dlx = pyroDL(event=xxx, source=vido)
@@ -96,6 +96,7 @@ async def og_compressor(e):
         await xxx.edit(
             f"`Downloaded {path} of {humanbytes(o_size)} in {dlx.dl_time}... \n\nNow Compressing...`"
         )
+
     else:
         return await xxx.eor(get_string("audiotools_8"), time=8)
 

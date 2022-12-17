@@ -360,7 +360,7 @@ async def downloader(filename, file, event, taime, msg):
     return result
 
 
-# ~~~~~~~~~~~~~~~~~~~~DDL Downloader~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~ DDL Downloader ~~~~~~~~~~~~~~~~
 # @buddhhu @new-dev0
 
 
@@ -402,7 +402,7 @@ async def fast_download(download_url, filename=None, progress_callback=None):
             return filename, time.time() - start_time
 
 
-# --------------------------Media Funcs-------------------------------- #
+# ----------------- Media Funcs ------------------------- #
 
 
 def mediainfo(media):
