@@ -275,7 +275,7 @@ async def when_added_or_joined(event):
 
 # username db
 async def uname_stuff(id, uname, name):
-    if udB.get_key("USERNAME_LOG") == "True":
+    if udB.get_key("USERNAME_LOG"):
         old_ = udB.get_key("USERNAME_DB") or {}
         old = old_.get(id)
         # Ignore Name Logs
@@ -298,4 +298,4 @@ async def uname_stuff(id, uname, name):
             )
 
         old_[id] = uname
-        udB.set_key("USERNAME_DB", str(old_))
+        udB.set_key("USERNAME_DB", old_)
