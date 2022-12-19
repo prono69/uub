@@ -452,19 +452,6 @@ def check_filename(filroid):
 
 async def genss(file):
     dur = media_info(file).get("duration")
-    if dur not in (0, None):
-        return dur
-    LOGS.debug(f"ffprobing {file = }")
-    x, _ = await bash(
-        f"ffprobe -hide_banner -i {shq(file)} -v quiet -print_format json -show_format"
-    )
-    try:
-        x = json.loads(x)
-        if dur := x["format"].get("duration"):
-            return int(float(dur))
-    except BaseException:
-        LOGS.exception("genss: Json decode")
-        return 0
 
 
 async def duration_s(file, stime):
@@ -588,7 +575,7 @@ def make_html_telegraph(title, html=""):
 
 async def Carbon(
     code,
-    base_url="rayso-api-desvhu-33.koyeb.app/generate",
+    base_url="https://rayso-api-desvhu-33.koyeb.app/generate",
     file_name="ultroid",
     download=False,
     rayso=False,

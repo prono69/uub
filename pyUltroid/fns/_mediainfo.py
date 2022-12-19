@@ -79,11 +79,11 @@ class TGMediaInfo:
     # alternate method for getting frame count from video stream.
     @staticmethod
     def _get_frame_count(file):
-        cmd = f"ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of default=noprint_wrappers=1 {quote(file)}"
+        cmd = f"ffprobe -hide_banner -v error -select_streams v:0 -count_frames -show_entries stream=nb_read_packets -of default=noprint_wrappers=1 {quote(file)}"
         try:
             res = run(split(cmd), capture_output=True, text=True)
             if res.returncode == 0:
-                if frame := findall("\d+", res.stdout):
+                if frame := findall("[\d\.]+", res.stdout):
                     return int(frame[0])
         except Exception:
             LOGS.exception(f"error in getting frame count via ffprobe: {file}")
@@ -91,14 +91,26 @@ class TGMediaInfo:
     # alternate method for getting bitrate from video stream.
     @staticmethod
     def _get_bitrate(file):
-        cmd = f"ffprobe -v error -select_streams v:0 -show_entries stream=bit_rate -of default=noprint_wrappers=1 {quote(file)}"
+        cmd = f"ffprobe -hide_banner -v error -select_streams v:0 -count_frames -show_entries stream=bit_rate -of default=noprint_wrappers=1 {quote(file)}"
         try:
             res = run(split(cmd), capture_output=True, text=True)
             if res.returncode == 0:
-                if b_rate := findall("\d+", res.stdout):
+                if b_rate := findall("[\d\.]+", res.stdout):
                     return int(frame[0])
         except Exception:
             LOGS.exception(f"error in getting bitrate via ffprobe: {file}")
+
+    # alternate method for getting duration.
+    @staticmethod
+    def _get_duration(file):
+        cmd = f"ffprobe -hide_banner -v error -show_entries format=duration -of default=noprint_wrappers=1 {quote(file)}"
+        try:
+            res = run(split(cmd), capture_output=True, text=True)
+            _dur = findall("[\d\.]+", res.stdout) if res.returncode == 0 else None
+            return int(_dur[0]) if _dur else 0
+        except Exception:
+            LOGS.exception(f"error in getting duration via ffprobe: {file}")
+            return 0
 
     # video stream helper.
     def _video_stream_helper(self, data):
@@ -125,7 +137,8 @@ class TGMediaInfo:
 
     # video stream
     def video_info(self):
-        duration = _parser(self.track, "duration") / 1000
+        _dur = _parser(self.track, "duration") / 1000
+        duration = _dur or self._get_duration(self.path)
         out = {
             "type": "video",
             "duration": round(duration),
@@ -150,7 +163,8 @@ class TGMediaInfo:
 
     # audio stream
     def audio_info(self):
-        duration = _parser(self.general_track, "duration") / 1000
+        _dur = _parser(self.general_track, "duration") / 1000
+        duration = _dur or self._get_duration(self.path)
         title, artist = self._get_audio_metadata(self.general_track)
         return {
             "type": "audio",
