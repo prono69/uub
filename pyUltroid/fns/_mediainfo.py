@@ -107,7 +107,7 @@ class TGMediaInfo:
         try:
             res = run(split(cmd), capture_output=True, text=True)
             _dur = findall("[\d\.]+", res.stdout) if res.returncode == 0 else None
-            return int(_dur[0]) if _dur else 0
+            return round(float(_dur[0])) if _dur else 0
         except Exception:
             LOGS.exception(f"error in getting duration via ffprobe: {file}")
             return 0
@@ -137,11 +137,11 @@ class TGMediaInfo:
 
     # video stream
     def video_info(self):
-        _dur = _parser(self.track, "duration") / 1000
+        _dur = round(_parser(self.track, "duration") / 1000)
         duration = _dur or self._get_duration(self.path)
         out = {
             "type": "video",
-            "duration": round(duration),
+            "duration": duration,
             "width": _parser(self.track, "width"),
             "height": _parser(self.track, "height"),
             "bitrate": _parser(self.track, "bit_rate"),
@@ -163,12 +163,12 @@ class TGMediaInfo:
 
     # audio stream
     def audio_info(self):
-        _dur = _parser(self.general_track, "duration") / 1000
+        _dur = round(_parser(self.general_track, "duration") / 1000)
         duration = _dur or self._get_duration(self.path)
         title, artist = self._get_audio_metadata(self.general_track)
         return {
             "type": "audio",
-            "duration": round(duration),
+            "duration": duration,
             "title": title,
             "artist": artist,
             "performer": artist,

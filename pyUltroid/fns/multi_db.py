@@ -10,6 +10,7 @@ def _connect_single_db(data, type, petname, cache):
     if type == "mongo":
         name = "Mongo: " + petname
         try:
+            LOGS.debug(f"Connecting to {petname}")
             return MongoDB(key=data, _name=name, to_cache=cache)
         except Exception:
             return LOGS.exception(f"MultiDB - Error in Connecting Mongo: {petname}")
@@ -17,6 +18,7 @@ def _connect_single_db(data, type, petname, cache):
     elif type == "sql":
         name = "Sql: " + petname
         try:
+            LOGS.debug(f"Connecting to {petname}")
             return SqlDB(url=data, _name=name, to_cache=cache)
         except Exception:
             return LOGS.exception(f"MultiDB - Error in Connecting {petname}")
@@ -24,6 +26,7 @@ def _connect_single_db(data, type, petname, cache):
     else:
         name = "Redis: " + petname
         stuff = data.split()
+        LOGS.debug(f"Connecting to {petname}")
         try:
             return RedisDB(
                 host=stuff[1],

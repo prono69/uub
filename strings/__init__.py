@@ -1,33 +1,40 @@
-import sys
-import os
-from typing import Any, Dict, List, Union
+from os import getenv
 from glob import glob
-from pyUltroid import *
-from pyUltroid.fns.tools import translate
+from typing import Any, Dict, List, Union
 
 try:
     from yaml import safe_load
 except ModuleNotFoundError:
     from pyUltroid.fns.tools import safe_load
 
-ULTConfig.lang = udB.get_key("language") or os.getenv("LANGUAGE", "en")
+from pyUltroid.fns.tools import translate
+from pyUltroid import udB, LOGS, ULTConfig
+
 
 languages = {}
+ULTConfig.lang = udB.get_key("language") or getenv("LANGUAGE", "en")
+
 
 for file in glob("strings/strings/*yml"):
     if file.endswith(".yml"):
         code = file.split("/")[-1].split("\\")[-1][:-4]
-        try:
-            languages[code] = safe_load(
-                open(file, encoding="UTF-8"),
-            )
-        except Exception as er:
-            LOGS.info(f"Error in {file[:-4]} language file")
-            LOGS.exception(er)
+        languages[code] = 0
+
+
+def _load_string(lang):
+    path = f"strings/strings/{lang}.yml"
+    try:
+        with open(path, encoding="UTF-8") as f:
+            return safe_load(f)
+    except Exception:
+        LOGS.exception(f"Error in {lang} language file..")
 
 
 def get_string(key: str, _res: bool = True) -> Any:
+    global languages
     lang = ULTConfig.lang or "en"
+    if languages.get(lang) == 0:
+        languages[lang] = _load_string(lang)
     try:
         return languages[lang][key]
     except KeyError:
@@ -61,11 +68,16 @@ def get_help(key):
 
 
 def get_languages() -> Dict[str, Union[str, List[str]]]:
-    return {
-        code: {
-            "name": languages[code]["name"],
-            "natively": languages[code]["natively"],
-            "authors": languages[code]["authors"],
+    out = {}
+    for lang in languages.keys():
+        data = _load_string(lang)
+        lang_info = {
+            "name": data["name"],
+            "natively": data["natively"],
+            "authors": data["authors"],
         }
-        for code in languages
-    }
+        out.update({lang: lang_info})
+    return out
+
+
+languages["en"] = _load_string("en")
