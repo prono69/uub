@@ -79,7 +79,8 @@ class TGMediaInfo:
     # alternate method for getting frame count from video stream.
     @staticmethod
     def _get_frame_count(file):
-        cmd = f"ffprobe -hide_banner -v error -select_streams v:0 -count_frames -show_entries stream=nb_read_packets -of default=noprint_wrappers=1 {quote(file)}"
+        cmd = f"ffprobe -hide_banner -v error -select_streams v:0 -show_entries stream=nb_read_packets -of default=noprint_wrappers=1 {quote(file)}"
+        # // -count_frames is sus. //
         try:
             res = run(split(cmd), capture_output=True, text=True)
             if res.returncode == 0:
@@ -91,7 +92,7 @@ class TGMediaInfo:
     # alternate method for getting bitrate from video stream.
     @staticmethod
     def _get_bitrate(file):
-        cmd = f"ffprobe -hide_banner -v error -select_streams v:0 -count_frames -show_entries stream=bit_rate -of default=noprint_wrappers=1 {quote(file)}"
+        cmd = f"ffprobe -hide_banner -v error -select_streams v:0 -show_entries stream=bit_rate -of default=noprint_wrappers=1 {quote(file)}"
         try:
             res = run(split(cmd), capture_output=True, text=True)
             if res.returncode == 0:

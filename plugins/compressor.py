@@ -66,7 +66,7 @@ async def og_compressor(e):
     vido = await e.get_reply_message()
     xxx = await e.eor("Checking...")
 
-    _ext = "mkv"
+    # _ext = "mkv"
     codec = "libx264" if "x264" in args.kwargs else "libx265"
     args.kwargs.pop("x264", 0)
     crf = args.kwargs.pop("c", 28 if codec == "libx265" else 36)
@@ -103,9 +103,8 @@ async def og_compressor(e):
     _others = ""
     if _isgif:
         _audio = ""
-        _ext = "mp4"
         codec = "libx264"
-    out = check_filename(f"resources/downloads/{Path(path).stem}-compressed.{_ext}")
+    out = check_filename(f"resources/downloads/{Path(path).stem}-compressed.mp4")
     slp_time = 10 if e.client._bot else 8
     minfo = media_info(path)
     total_frame = minfo.get("frames")
