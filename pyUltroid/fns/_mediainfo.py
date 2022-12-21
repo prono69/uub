@@ -35,7 +35,8 @@ class TGMediaInfo:
             return err
         except FileNotFoundError:
             return "File doesn't exist on Server.."
-        except (RuntimeError, IndexError, Exception):
+        except (RuntimeError, IndexError, Exception) as exc:
+            LOGS.exception(exc)
             return "Mediainfo failed to Parse the File."
 
     # de facto init

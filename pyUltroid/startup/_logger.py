@@ -12,12 +12,6 @@ from .. import ultroid_version, __version__ as __pyUltroid__
 
 # ----------------------------------------------------------------------------
 
-LOGS = logging.getLogger("pyUltLogs")
-LOGS.setLevel(logging.DEBUG)
-TelethonLogger = logging.getLogger("Telethon")
-
-# ----------------------------------------------------------------------------
-
 
 def where_hosted():
     if getenv("DYNO"):
@@ -37,30 +31,46 @@ def where_hosted():
     return "local"
 
 
-HOSTED_ON = where_hosted()
+# ----------------------------------------------------------------------------
+
+LOGS = logging.getLogger("pyUltLogs")
+LOGS.setLevel(logging.DEBUG)
+TelethonLogger = logging.getLogger("Telethon")
 
 # ----------------------------------------------------------------------------
 
+HOSTED_ON = where_hosted()
+LOG_HANDLERS = []
 log_file = "ultroid.log"
+
+# ----------------------------------------------------------------------------
+
+if int(python_version_tuple()[1]) < 10:
+    _fix_logging(logging.FileHandler)
+if HOSTED_ON == "local" or getenv("HOST") == "local":
+    _ask_input()
+
+# ----------------------------------------------------------------------------
+
 if path.isfile(log_file):
     remove(log_file)
 if data := getenv("LOGGER_DATA"):
     LOG_DATA = eval(data)
-    environ.pop("LOGGER_DATA")
+    environ.pop("LOGGER_DATA", 0)
 else:
     LOG_DATA = {}
 
-LOG_HANDLERS = []
+# ----------------------------------------------------------------------------
+
 log_level = logging.INFO if LOG_DATA.get("verbose") is True else logging.WARNING
 TelethonLogger.setLevel(log_level)
-logging.getLogger("pyrogram").setLevel(logging.WARNING)
+
+for i in ("pyrogram", "apscheduler"):
+    logging.getLogger(i).setLevel(logging.WARNING)
 for i in ("pyrogram.parser.html", "pyrogram.session.session"):
     logging.getLogger(i).setLevel(logging.ERROR)
 
-if int(python_version_tuple()[1]) < 10:
-    _fix_logging(logging.FileHandler)
-if HOSTED_ON == "local":
-    _ask_input()
+# ----------------------------------------------------------------------------
 
 og_format = "%(asctime)s | %(name)s [%(levelname)s] : %(message)s"
 log_format1 = logging.Formatter(og_format, datefmt="%m/%d/%Y, %H:%M:%S")
@@ -71,13 +81,16 @@ log_format2 = logging.Formatter(
     datefmt="%H:%M:%S",
 )
 
+# ----------------------------------------------------------------------------
+
 file_handler = logging.FileHandler(log_file)
 stream_handler = logging.StreamHandler()
 for hndlr in (file_handler, stream_handler):
     hndlr.setLevel(logging.INFO)
     hndlr.setFormatter(log_format1)
-
 LOG_HANDLERS.extend([file_handler, stream_handler])
+
+# ----------------------------------------------------------------------------
 
 if LOG_DATA.get("tglog") is True:
     tglogger = TGLogHandler(
@@ -87,7 +100,6 @@ if LOG_DATA.get("tglog") is True:
     tglogger.setLevel(logging.DEBUG)
     tglogger.setFormatter(log_format2)
     LOG_HANDLERS.append(tglogger)
-
 
 # ----------------------------------------------------------------------------
 

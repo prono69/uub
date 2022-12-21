@@ -137,27 +137,28 @@ async def terminal_(client, m):
         LOGS.exception(t_e)
         return await msg.edit("**Error:** " + str(t_e))
 
-    output = f"**{getuser()}:~#** ```{parsed_cmd}``` \n"
+    output = f"**{getuser()}:~#** ```{parsed_cmd}```"
     await t_obj.init()
     while not t_obj.finished:
         try:
-            await msg.edit(f"{output}```{t_obj.line}```")
+            await msg.edit(f"{output} \n```{t_obj.line}```")
             await t_obj.wait(5)
         except MessageNotModified:
             pass
-        except BaseException:
+        except Exception as exc:
             t_obj.cancel()
-            return LOGS.exception(BaseException)
+            LOGS.exception(exc)
 
     if t_obj.cancelled:
-        return await msg.edit("__Terminal process Cancelled!__")
+        await msg.edit("__Terminal process Cancelled!__")
+        return
 
-    out_data = f"{output}```{t_obj.output}```"
-    if len(out_data) > 4096:
-        fn = "terminal_.txt"
+    out_data = f"{output} \n```{t_obj.output}```"
+    if len(out_data) > 4095:
+        fn = "_terminal.txt"
         with open(fn, "w+") as f:
             f.write(out_data)
-        await msg.reply_document(fn, caption=f"`{parsed_cmd[:1024]}`")
+        await msg.reply_document(fn, caption=f"`{parsed_cmd[:1023]}`")
         os.remove(fn)
     else:
         await msg.edit(out_data)
@@ -237,7 +238,7 @@ class Term:
     async def _worker(self) -> None:
         if self._cancelled or self._finished:
             return
-        await asyncio.wait([self._read_stdout(), self._read_stderr()])
+        await asyncio.gather(self._read_stdout(), self._read_stderr())
         await self._process.wait()
         self._finish()
 
