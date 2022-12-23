@@ -16,7 +16,7 @@ from telethon.tl.functions.photos import UploadProfilePhotoRequest
 
 from pyUltroid.fns.google_image import googleimagesdownload
 
-from . import LOGS, get_help, get_string, udB, ultroid_bot, ultroid_cmd
+from . import LOGS, get_help, get_string, scheduler, udB, ultroid_bot, ultroid_cmd
 
 __doc__ = get_help("help_autopic")
 
@@ -89,11 +89,7 @@ if search := udB.get_key("AUTOPIC"):
         await ultroid_bot(UploadProfilePhotoRequest(file))
         shuffle(ok)
 
-    try:
-        from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
-        schedule = AsyncIOScheduler()
-        schedule.add_job(autopic_func, "interval", seconds=sleep)
-        schedule.start()
-    except ModuleNotFoundError as er:
-        LOGS.error(f"autopic: '{er.name}' not installed.")
+    if scheduler:
+        scheduler.add_job(autopic_func, "interval", seconds=sleep, id="autopic")
+    else:
+        LOGS.error(f"autopic: 'Apscheduler' not installed.")

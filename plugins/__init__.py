@@ -13,6 +13,7 @@ from random import choice
 import requests
 from telethon import Button, events
 from telethon.tl import functions, types  # pylint:ignore
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from pyUltroid import *
 from pyUltroid._misc._assistant import asst_cmd, callback, in_pattern
@@ -26,14 +27,18 @@ from pyUltroid.fns.tools import *
 from pyUltroid.version import __version__, ultroid_version
 from strings import get_help, get_string
 
+
+quotly = Quotly()
+Telegraph = telegraph_client()
+
 Redis = udB.get_key
 con = TgConverter
-quotly = Quotly()
-OWNER_NAME = ultroid_bot.full_name
-OWNER_ID = ultroid_bot.uid
 
 LOG_CHANNEL = udB.get_key("LOG_CHANNEL")
 TAG_LOG = udB.get_key("TAG_LOG")
+
+OWNER_NAME = ultroid_bot.full_name
+OWNER_ID = ultroid_bot.uid
 
 
 def inline_pic():
@@ -45,7 +50,14 @@ def inline_pic():
     return INLINE_PIC
 
 
-Telegraph = telegraph_client()
+try:
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+    scheduler = AsyncIOScheduler()
+    scheduler.start()
+except ModuleNotFoundError as er:
+    LOGS.error(f"'{er.name}' is not installed. Some Plugins might not Work.")
+
 
 List = []
 Dict = {}
@@ -57,7 +69,6 @@ STUFF = {}
 # Chats, which needs to be ignore for some cases
 # Considerably, there can be many
 # Feel Free to Add Any other...
-
 NOSPAM_CHAT = [
     -1001361294038,  # UltroidSupportChat
     -1001387666944,  # PyrogramChat
@@ -95,7 +106,7 @@ ATRA_COL = [
     "PowderBlue",
 ]
 
-# might need
+# incase we need it..
 STUFF_1 = []
 STUFF_2 = {}
 STUFF_3 = []

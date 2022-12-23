@@ -4,6 +4,7 @@
 # This file is a part of < https://github.com/TeamUltroid/Ultroid/ >
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
+
 """
 ✘ Commands Available -
 
@@ -29,20 +30,12 @@ And Turn On auto at morning
    Ex- `nmtime 01 00 06 30`
 """
 
-from . import LOGS
-
-try:
-    from apscheduler.schedulers.asyncio import AsyncIOScheduler
-except ImportError:
-    LOGS.error("nightmode: 'apscheduler' not Installed!")
-    AsyncIOScheduler = None
-
 from telethon.tl.functions.messages import EditChatDefaultBannedRightsRequest
 from telethon.tl.types import ChatBannedRights
 
 from pyUltroid.dB.night_db import *
 
-from . import get_string, udB, ultroid_bot, ultroid_cmd
+from . import LOGS, get_string, scheduler, udB, ultroid_bot, ultroid_cmd
 
 
 @ultroid_cmd(pattern="nmtime( (.*)|$)")
@@ -144,14 +137,12 @@ async def close_grp():
             LOGS.info(er)
 
 
-if AsyncIOScheduler and night_grps():
+if scheduler and night_grps():
     try:
         h1, m1, h2, m2 = 0, 0, 7, 0
         if udB.get_key("NIGHT_TIME"):
             h1, m1, h2, m2 = eval(udB.get_key("NIGHT_TIME"))
-        sch = AsyncIOScheduler()
-        sch.add_job(close_grp, trigger="cron", hour=h1, minute=m1)
-        sch.add_job(open_grp, trigger="cron", hour=h2, minute=m2)
-        sch.start()
+        scheduler.add_job(close_grp, trigger="cron", hour=h1, minute=m1, id="close_gc")
+        scheduler.add_job(open_grp, trigger="cron", hour=h2, minute=m2, id="open_gc")
     except Exception as er:
         LOGS.info(er)
