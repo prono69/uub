@@ -423,12 +423,11 @@ def mediainfo(media):
             if "DocumentAttributeAnimated" in str(media):
                 m = "gif"
             elif "DocumentAttributeVideo" in str(media):
-                i = str(media.document.attributes[0])
+                i = str(media.document.attributes)
                 if "supports_streaming=True" in i:
                     m = "video"
-                m = "video as doc"
             else:
-                m = "video"
+                m = "video as doc"
         elif "audio" in mim:
             m = "audio"
         else:
@@ -446,11 +445,11 @@ def mediainfo(media):
 async def asyncread(file):
     if not aiofiles:
         with open(file, "r+") as f:
-            lx = f.read()
+            r = f.read()
     else:
         async with aiofiles.open(file, "r+") as f:
-            lx = await f.read()
-    return lx
+            r = await f.read()
+    return r
 
 
 def time_formatter(milliseconds):
@@ -568,7 +567,7 @@ async def restart(ult=None, EDIT=False):
                 os.kill(handler.fd)
         except Exception as exc:
             LOGS.exception(exc)
-        await asyncio.sleep(6)
+        await asyncio.sleep(8)
         run(
             [
                 "/bin/bash",
