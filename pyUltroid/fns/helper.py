@@ -423,7 +423,7 @@ def mediainfo(media):
             if "DocumentAttributeAnimated" in str(media):
                 m = "gif"
             elif "DocumentAttributeVideo" in str(media):
-                i = str(media.document.attributes)
+                i = str(media.document.attributes[0])
                 if "supports_streaming=True" in i:
                     m = "video"
             else:

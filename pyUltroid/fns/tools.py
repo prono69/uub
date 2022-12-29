@@ -447,11 +447,10 @@ def check_filename(filroid):
 
 
 # https://github.com/1Danish-00/CompressorBot/blob/main/helper/funcn.py#L104
-# changes / edits by @spemgod
-
 
 async def genss(file):
-    dur = media_info(file).get("duration")
+    n = await metadata(file)
+    return n.get("duration")
 
 
 async def duration_s(file, stime):
