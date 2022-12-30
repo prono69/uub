@@ -57,6 +57,8 @@ async def get_chat_info(chat, event):
         return await event.eor("`Use this for Group/Channel.`")
     full = chat_info.full_chat
     chat_photo = full.chat_photo
+    if isinstance(chat_photo, types.PhotoEmpty):
+        chat_photo = None
     broadcast = getattr(chat, "broadcast", False)
     chat_type = "Channel" if broadcast else "Group"
     chat_title = chat.title
