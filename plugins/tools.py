@@ -373,7 +373,6 @@ async def lastname(steal):
                 or (responds and responds.text == "No records found")
             ):
                 await lol.edit("No records found for this user")
-                await steal.client.delete_messages(conv.chat_id, [msg.id, response.id])
             elif response.text.startswith("🔗"):
                 await lol.edit(respond.message)
                 await lol.reply(responds.message)
@@ -383,10 +382,6 @@ async def lastname(steal):
             else:
                 await lol.edit(respond.message)
                 await lol.reply(response.message)
-            await steal.client.delete_messages(
-                conv.chat_id,
-                [msg.id, responds.id, respond.id, response.id],
-            )
     except AsyncTimeout:
         await lol.edit("Error: @SangMataInfo_bot is not responding!.")
 
