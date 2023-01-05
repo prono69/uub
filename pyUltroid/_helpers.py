@@ -1,10 +1,14 @@
 # some custom helper functions
 
 from asyncio import iscoroutinefunction as awaitable
-from dotenv import load_dotenv
 from functools import wraps
 from os import environ, path, remove, system
 from time import time, tzset, perf_counter
+
+try:
+    from dotenv import load_dotenv as load_env
+except ImportError:
+    load_env = None
 
 
 def osremove(*args, folders=False, verbose=False):
@@ -80,16 +84,15 @@ def setTZ(TZ=None):
         return
 
     if not TZ:
-        # TZ = udB.get_key("TIMEZONE")
-        TZ = "Asia/Kolkata"
+        TZ = "Asia/Kolkata"  # udB.get_key("TIMEZONE")
     try:
         timezone(TZ)
         environ["TZ"] = TZ
-        tzset()
     except AttributeError as er:
         print(er)
     except BaseException:
         environ["TZ"] = "UTC"
+    finally:
         tzset()
 
 
@@ -104,16 +107,20 @@ def _host_specifics(Var, LOGS):
 
 
 def on_startup():
-    import nest_asyncio
+    def runner():
+        import nest_asyncio
+        from .configs import Var
+
+        nest_asyncio.apply()
+        if path.isfile(".env") and Var.HOST.lower() not in ("local", "railway", "wfs"):
+            remove(".env")
+        return Var
 
     setTZ()
-    nest_asyncio.apply()
-    load_dotenv(override=True)
-    from .configs import Var
-
-    if Var.HOST.lower() not in ("local", "railway", "wfs"):
-        remove(".env")
-    return time(), Var
+    t = time()
+    if load_env:
+        load_env(override=True)
+    return t, runner()
 
 
 def post_startup():

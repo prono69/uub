@@ -448,6 +448,7 @@ def check_filename(filroid):
 
 # https://github.com/1Danish-00/CompressorBot/blob/main/helper/funcn.py#L104
 
+
 async def genss(file):
     n = await metadata(file)
     return n.get("duration")
