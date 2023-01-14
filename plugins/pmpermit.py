@@ -42,7 +42,7 @@
 import asyncio
 import re
 from os import remove
-from random import randint
+from random import choice, randint
 
 from pyUltroid.dB import DEVLIST
 from pyUltroid.dB.logusers_db import *
@@ -83,6 +83,7 @@ if udB.get_key("PM_TEXT"):
         + udB.get_key("PM_TEXT")
         + "\n\nYou have {warn}/{twarn} warnings!"
     )
+
 # 1
 WARNS = udB.get_key("PMWARNS") or 4
 PMCMDS = [
@@ -126,16 +127,21 @@ if udB.get_key("PMLOG"):
     _alock = asyncio.Lock()
     _chat = udB.get_key("PMLOGGROUP") or LOG_CHANNEL
 
-    async def _msglogger(msg):
-        try:
-            await msg.forward_to(_chat)
-        except MessageIdInvalidError:
-            cpy = await msg.copy(_chat)
-            sender = msg.sender or await msg.get_sender()
-            msg = f"From: {inline_mention(sender)} – [`{sender.id}`]"
-            await asst.send_message(_chat, msg[:4096], reply_to=cpy.id)
-        finally:
-            await asyncio.sleep(randint(9, 18))
+    async def _msglogger(msg, sender):
+        async with _alock:
+            try:
+                await msg.forward_to(_chat)
+            except MessageIdInvalidError:
+                try:
+                    cpy = await msg.copy(_chat)
+                    msg = f"Incoming message from: {inline_mention(sender)} - [`{sender.id}`]"
+                    await asst.send_message(_chat, msg[:4095], reply_to=cpy.id)
+                except Exception as exc:
+                    LOGS.error(exc)
+            except Exception:
+                LOGS.exception("PMLogger forwarder Error..")
+            finally:
+                await asyncio.sleep(randint(8, 20))
 
     @ultroid_cmd(
         pattern="logpm$",
@@ -168,14 +174,10 @@ if udB.get_key("PMLOG"):
         ),
     )
     async def permitpm(event):
-        user = await event.get_sender()
+        user = event.sender or await event.get_sender()
         if user.bot or user.is_self or user.verified or is_logger(user.id):
             return
-        async with _alock:
-            try:
-                await _msglogger(event)
-            except Exception as exc:
-                LOGS.exception("PMLogger forwarder Error..")
+        asyncio.create_task(_msglogger(event, user))
 
 
 if udB.get_key("PMSETTING"):
@@ -791,6 +793,7 @@ async def ytfuxist(e):
 
 @in_pattern(re.compile("ip_(.*)"), owner=True)
 async def in_pm_ans(event):
+    global PMPIC
     from_user = int(event.pattern_match.group(1).strip())
     try:
         warns = U_WARNS[from_user]
@@ -812,18 +815,22 @@ async def in_pm_ans(event):
     mime_type, res = None, None
     cont = None
     try:
-        ext = PMPIC.split(".")[-1].lower()
+        if not PMPIC and (rnd_pics := udB.get_key("RANDOM_PIC")):
+            _pmpic = choice(rnd_pics)
+        else:
+            _pmpic = PMPIC
+        ext = _pmpic.split(".")[-1].lower()
     except (AttributeError, IndexError):
         ext = None
-    if ext in ["img", "jpg", "png"]:
+    if ext in ("img", "jpg", "png", "jpeg"):
         _type = "photo"
         mime_type = "image/jpg"
-    elif ext in ["mp4", "mkv", "gif"]:
+    elif ext in ("mp4", "mkv", "gif"):
         mime_type = "video/mp4"
         _type = "gif"
     else:
         try:
-            res = resolve_bot_file_id(PMPIC)
+            res = resolve_bot_file_id(_pmpic)
         except ValueError:
             pass
         if res:
@@ -842,7 +849,7 @@ async def in_pm_ans(event):
             include_media = False
     if not res:
         if include_media:
-            cont = types.InputWebDocument(PMPIC, 0, mime_type, [])
+            cont = types.InputWebDocument(_pmpic, 0, mime_type, [])
         res = [
             event.builder.article(
                 title="Inline PMPermit.",

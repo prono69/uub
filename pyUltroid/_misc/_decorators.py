@@ -10,6 +10,7 @@ import inspect
 import re
 import sys
 from io import BytesIO
+from functools import wraps
 from pathlib import Path
 from time import gmtime, strftime
 from traceback import format_exc
@@ -78,6 +79,7 @@ def ultroid_cmd(
     func = kwargs.get("func", lambda e: not e.via_bot_id)
 
     def decor(dec):
+        @wraps(dec)
         async def wrapp(ult):
             if not ult.out:
                 if owner_only:
