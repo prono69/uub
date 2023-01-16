@@ -50,6 +50,7 @@ from telethon.helpers import _maybe_await
 from telethon.tl import types
 from telethon.tl.functions.messages import SaveGifRequest
 from telethon.utils import get_display_name, get_input_document
+from telethon.errors import MessageNotModifiedError
 
 from .._misc import CMD_HELP
 from .._misc._wrappers import eod, eor
@@ -558,7 +559,7 @@ async def restart(ult=None, EDIT=False):
             await ult.eor("Something Wrong Occured!")
     else:
         from psutil import Process
-        from subprocess import run
+        from subprocess import Popen
         from pathlib import Path
 
         try:
@@ -567,15 +568,16 @@ async def restart(ult=None, EDIT=False):
                 os.kill(handler.fd)
         except Exception as exc:
             LOGS.exception(exc)
-        await asyncio.sleep(8)
-        run(
+        await asyncio.sleep(6)
+        Popen(
             [
                 "/bin/bash",
                 str(Path("reboot.sh").absolute()),
                 os.getpid(),
             ]
         )
-        sys.exit()
+        quit("restarting bot..")
+
         """
         if len(sys.argv) == 1:
             os.execl(sys.executable, sys.executable, "-m", "pyUltroid")
