@@ -135,13 +135,13 @@ if udB.get_key("PMLOG"):
                 try:
                     cpy = await msg.copy(_chat)
                     msg = f"Incoming message from: {inline_mention(sender)} - [`{sender.id}`]"
-                    await asst.send_message(_chat, msg[:4095], reply_to=cpy.id)
+                    await asst.send_message(_chat, msg, reply_to=cpy.id)
                 except Exception as exc:
                     LOGS.error(exc)
             except Exception:
                 LOGS.exception("PMLogger forwarder Error..")
             finally:
-                await asyncio.sleep(randint(8, 20))
+                await asyncio.sleep(6)
 
     @ultroid_cmd(
         pattern="logpm$",
