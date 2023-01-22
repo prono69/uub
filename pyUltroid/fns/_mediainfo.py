@@ -5,6 +5,8 @@ from re import findall
 from shlex import quote, split
 from subprocess import run
 
+from pymediainfo import MediaInfo
+
 from .helper import humanbytes
 
 
@@ -24,20 +26,14 @@ def _parser(data, attr, to_int=True):
 class TGMediaInfo:
     def __init__(self, path):
         try:
-            from pymediainfo import MediaInfo
-
             self.path = path
             self.obj = MediaInfo.parse(self.path)
             self.general_track = self.obj.general_tracks[0]
-        except ImportError:
-            err = "'pymediainfo' is not Installed.."
-            LOGS.warning(err)
-            return err
         except FileNotFoundError:
             return "File doesn't exist on Server.."
         except (RuntimeError, IndexError, Exception) as exc:
             LOGS.exception(exc)
-            return "Mediainfo failed to Parse the File."
+            return "MediaInfo failed to Parse the File."
 
     # de facto init
     def __call__(self):
@@ -102,7 +98,7 @@ class TGMediaInfo:
         except Exception:
             LOGS.exception(f"error in getting bitrate via ffprobe: {file}")
 
-    # alternate method for getting duration.
+    # alternate method for getting duration from video or audio stream.
     @staticmethod
     def _get_duration(file):
         cmd = f"ffprobe -hide_banner -v error -show_entries format=duration -of default=noprint_wrappers=1 {quote(file)}"
