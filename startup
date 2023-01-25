@@ -5,6 +5,7 @@
 # This file is a part of < https://github.com/TeamUltroid/Ultroid/ >
 # PLease read the GNU Affero General Public License in <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
 
+[ ! -z "$1" ] && echo '...' && sleep 8
 
 echo "
             ┏┳┓╋┏┓╋╋╋╋┏┓┏┓
@@ -15,5 +16,22 @@ echo "
       Visit @TheUltroid for updates!!
 
 "
-if [ -f .env ] ; then  set -o allexport; source .env; set +o allexport ; fi
-if [ $SESSION1 ] ; then wget https://gist.github.com/1Danish-00/6554f034549197e5824972b01f631e0c/raw/main.py && python3 main.py ; else python3 -m pyUltroid ; fi
+
+# if [ -f .env ] ; then  set -o allexport; source .env; set +o allexport ; fi
+# if [ $SESSION1 ] ; then wget https://gist.github.com/1Danish-00/6554f034549197e5824972b01f631e0c/raw/main.py && python3 main.py ; else python3 -m pyUltroid ; fi
+
+function int() {
+    echo "$1" | grep -E "^[0-9]+$"
+}
+
+# if [ "$1" == "shutdown" ] ; then
+#    pid=$(int "$2")
+#    [ ! -z $pid ] && kill -9 "$pid"
+#    exit
+
+if [ "$1" == "update" ] ; then
+    [ -d .git ] && git pull --rebase
+fi
+
+[ ! -d plugins ] && echo 'plugins folder is missing..' && exit
+sleep 4 && python3 -m pyUltroid

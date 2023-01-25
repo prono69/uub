@@ -78,6 +78,3 @@ def get_languages() -> Dict[str, Union[str, List[str]]]:
         }
         out.update({lang: lang_info})
     return out
-
-
-languages["en"] = _load_string("en")

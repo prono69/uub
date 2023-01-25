@@ -24,7 +24,7 @@ from pyUltroid.fns.helper import *
 from pyUltroid.fns.info import *
 from pyUltroid.fns.misc import *
 from pyUltroid.fns.tools import *
-from pyUltroid.version import __version__, ultroid_version
+from pyUltroid.custom.functions import *
 from strings import get_help, get_string
 
 
@@ -56,6 +56,7 @@ try:
     scheduler = AsyncIOScheduler()
     scheduler.start()
 except ModuleNotFoundError as er:
+    scheduler = None
     LOGS.error(f"'{er.name}' is not installed. Some Plugins might not Work.")
 
 
@@ -63,8 +64,8 @@ List = []
 Dict = {}
 InlinePlugin = {}
 N = 0
-cmd = ultroid_cmd
 STUFF = {}
+
 
 # Chats, which needs to be ignore for some cases
 # Considerably, there can be many

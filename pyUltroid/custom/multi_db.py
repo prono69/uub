@@ -2,15 +2,15 @@ import os
 
 from redis.exceptions import ConnectionError
 
-from .. import HOSTED_ON, LOGS, udB
-from ..startup._database import MongoDB, RedisDB, SqlDB
+from pyUltroid import udB
+from pyUltroid.startup import HOSTED_ON, LOGS
+from pyUltroid.startup._database import MongoDB, RedisDB, SqlDB
 
 
 def _connect_single_db(data, type, petname, cache):
     if type == "mongo":
         name = "Mongo: " + petname
         try:
-            LOGS.debug(f"Connecting to {petname}")
             return MongoDB(key=data, _name=name, to_cache=cache)
         except Exception:
             return LOGS.exception(f"MultiDB - Error in Connecting Mongo: {petname}")
@@ -18,7 +18,6 @@ def _connect_single_db(data, type, petname, cache):
     elif type == "sql":
         name = "Sql: " + petname
         try:
-            LOGS.debug(f"Connecting to {petname}")
             return SqlDB(url=data, _name=name, to_cache=cache)
         except Exception:
             return LOGS.exception(f"MultiDB - Error in Connecting {petname}")
@@ -26,7 +25,6 @@ def _connect_single_db(data, type, petname, cache):
     else:
         name = "Redis: " + petname
         stuff = data.split()
-        LOGS.debug(f"Connecting to {petname}")
         try:
             return RedisDB(
                 host=stuff[1],
@@ -49,7 +47,8 @@ def _init_multi_dbs(var):
     co = 0
     stuff = os.getenv(var)
     if not stuff:
-        return LOGS.error(f"Var {var} is not filled.")
+        return LOGS.warning(f"Var {var} is not filled.!")
+    LOGS.info("Loading Multi DB's..")
     del os.environ[var]
     data = literal_eval(str(stuff))
     dct = {}
@@ -78,6 +77,7 @@ def _init_multi_dbs(var):
                 globals()[key] = cx
 
     if dct:
-        from .tools import json_parser
+        from pyUltroid.fns.tools import json_parser
 
         LOGS.debug(json_parser(dct, indent=2))
+        LOGS.info("Loaded all DB's!")

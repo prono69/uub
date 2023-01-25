@@ -15,18 +15,25 @@ from math import floor
 from time import time
 from io import BytesIO
 from PIL import Image, ImageFilter
-from random import choice, random_string
+from random import choice
 from os.path import getsize
 from pathlib import Path
 
 # from mimetypes import guess_all_extensions
 from music_tag import load_file
+from pyrogram.errors import ChannelInvalid
 from telethon.utils import get_display_name
 from telethon.errors import MessageNotModifiedError, MessageIdInvalidError
 
-from .helper import bash, time_formatter, inline_mention, cleargif, msg_link
-from .tools import media_info, check_filename, humanbytes, shq
-from .. import LOGS, udB, ultroid_bot, asst
+from pyrog import app
+from .mediainfo import media_info
+from .functions import cleargif, msg_link
+from pyUltroid.fns.helper import bash, time_formatter, inline_mention
+from pyUltroid.fns.tools import check_filename, humanbytes, shq
+from pyUltroid.exceptions import UploadError, DownloadError
+from pyUltroid.fns.misc import random_string
+from pyUltroid.startup import LOGS
+from pyUltroid import asst, udB, ultroid_bot
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -35,17 +42,7 @@ DUMP_CHANNEL = udB.get_key("TAG_LOG")
 PROGRESS_LOG = {}
 LOGGER_MSG = "Uploading {} | Path: {} | DC: {} | Size: {}"
 DEFAULT_THUMB = str(Path.cwd().joinpath("resources/extras/ultroid.jpg"))
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-class UploadError(Exception):
-    pass
-
-
-class ProcessCancelled(Exception):
-    pass
-
+async_tasks = set()
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -61,6 +58,7 @@ async def pyro_progress(
     is_cancelled=False,
 ):
     if is_cancelled and client:
+        LOGS.debug(f"Cancelling Transfer..")
         client.stop_transmission()
         return
     jost = str(message.chat_id) + "_" + str(message.id)
@@ -95,6 +93,15 @@ async def pyro_progress(
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
+def run_async_task(func, *args):
+    task = asyncio.create_task(func(*args))
+    async_tasks.add(task)
+    task.add_done_callback(async_tasks.discard)
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
 class pyroDL:
     def __init__(self, event, source, show_progress=True):
         self._cancelled = False
@@ -108,10 +115,11 @@ class pyroDL:
         self.auto_edit = True
         self.delay = 8
         self._log = True
+        self._cancelled = False
         if self.show_progress:
             self.progress = pyro_progress
             self.progress_text = f"`Downloading {self.filename}...`"
-        if list(filter(bool, [kwargs.pop(i, None) for i in ("schd_delete", "df")])):
+        if any(kwargs.pop(i, None) for i in ("schd_delete", "df")):
             self.schd_delete = True
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -122,37 +130,57 @@ class pyroDL:
                 DUMP_CHANNEL,
                 caption=f"#pyroDL\n\n{self.source.text}",
             )
-        except BaseException as exc:
-            LOGS.exception("pyroDL: err copying file: ")
-            return f"Error copying file: `{exc}`"
+        except Exception:
+            er = "pyroDL: error while copying message to DUMP"
+            LOGS.exception(er)
+            raise DownloadError(er)
 
-    def getDC(self, file):
-        if _dc := file.document:
-            return _dc.dc_id
+    def get_file_dc(self, file):
+        if doc := getattr(file, "document", None):
+            return doc.dc_id
         return 1
 
+    async def handle_errors(self, error):
+        if self.event and self.auto_edit and self.show_progress:
+            try:
+                msg = f"__**Error While Uploading:**__ \n>  ```{self.file}``` \n>  `{error}`"
+                await self.event.edit(msg)
+            except MessageIdInvalidError:
+                return True  # msg deleted
+            except Exception as exc:
+                LOGS.exception("Error in editing Message..")
+
+    async def get_message(self):
+        try:
+            chat = self.source.chat.username or self.source.chat_id
+            self.msg = await self.client.get_messages(chat, self.source.id)
+            self.is_copy = False
+            if self.msg.empty:
+                raise ChannelInvalid
+        except ChannelInvalid:
+            dump_msg = await self.copy_msg()
+            self.is_copy = True
+            await asyncio.sleep(0.6)
+            self.msg = await self.client.get_messages(dump_msg.chat_id, dump_msg.id)
+
     async def download(self, **kwargs):
-        from pyrog import app
-
-        _msg = await self.copy_msg()
-        if type(_msg) == str:
-            return await self.event.edit(_msg)
-        await asyncio.sleep(0.75)
-        self.dc = kwargs.pop("dc", self.getDC(_msg))
-        self.client = app(self.dc)
-        self.msg = await self.client.get_messages(DUMP_CHANNEL, _msg.id)
-        self.updateAttrs(kwargs)
-        dlx = await self.dls()
-        if not self.auto_edit:
+        try:
+            self.dc = kwargs.pop("dc", self.get_file_dc(self.source))
+            self.client = app(self.dc)
+            await self.get_message()
+            self.updateAttrs(kwargs)
+            dlx = await self.tg_downloader()
+            if self.auto_edit and self.show_progress:
+                return await self.event.edit(
+                    f"Successfully Downloaded \n`{dlx}` \nin {self.dl_time}",
+                )
             return dlx
-        if isinstance(dlx, Exception):
-            await self.event.edit(f"Err in pyroDL: `{dlx}`")
-        else:
-            await self.event.edit(
-                f"Successfully Downloaded \n`{dlx}` \nin {self.dl_time}",
-            )
+        except DownloadError as exc:
+            if _deleted := await handle_errors(exc):
+                self._cancelled = True  # stop transmission
+            return
 
-    async def dls(self):
+    async def tg_downloader(self):
         args = {"message": self.msg, "file_name": self.filename}
         if self._log:
             LOGS.debug(f"Downloading | [DC {self.dc}] | {self.filename}")
@@ -166,21 +194,20 @@ class pyroDL:
                 self._cancelled,
             )
             args.update({"progress": self.progress, "progress_args": prog_args})
+        if self.schd_delete and self.is_copy:
+            run_async_task(self.delTask, self.msg)
         try:
             stime = time()
             dlx = await self.client.download_media(**args)
             self.dl_time = time_formatter((time() - stime) * 1000)
             return dlx
-        except BaseException as exc:
+        except Exception as exc:
             LOGS.exception("PyroDL err: ")
-            return exc
-        finally:
-            if self.schd_delete:
-                asst.loop.create_task(self.delTask(self.msg))
+            raise DownloadError(exc)
 
     @staticmethod
     async def delTask(task):
-        await asyncio.sleep(8)
+        await asyncio.sleep(10)
         await task.delete()
 
     @staticmethod
@@ -229,9 +256,9 @@ class pyroUL:
             if not _path.exists():
                 return f"Path doesn't exists: `{path}`"
             elif _path.is_file():
-                files = (str(i.absolute()) for i in (_path,))
+                files = (str(i.resolve()) for i in (_path,))
             elif _path.is_dir():
-                files = (str(i.absolute()) for i in _path.rglob("*") if i.is_file())
+                files = (str(i.resolve()) for i in _path.rglob("*") if i.is_file())
             else:
                 return "Unrecognised Path"
         if not (files := tuple(files)):
@@ -240,7 +267,6 @@ class pyroUL:
         return (i for i in files)
 
     def set_default_attributes(self):
-        self._cancelled = False
         self.chat_id = DUMP_CHANNEL
         self.delete_file = False
         self.delete_thumb = True
@@ -274,15 +300,15 @@ class pyroUL:
                 await self.handle_edits()
                 await asyncio.sleep(self.sleeptime)
             except UploadError as exc:
-                if _deleted := await self.handle_errors(exc):
+                _deleted = await self.handle_errors(exc)
+                if _deleted:
+                    self._cancelled = True
                     return
                 await asyncio.sleep(self.sleeptime)
                 continue
         await self.do_final_edit()
 
     def perma_attributes(self, kwargs):
-        from pyrog import app
-
         self.pre_time = time()
         if self.show_progress:
             self.progress = pyro_progress
@@ -292,10 +318,11 @@ class pyroUL:
         for k, v in kwargs.items():
             setattr(self, k, v)
         self.client = app(self.dc)
-        if list(filter(bool, [kwargs.pop(i, None) for i in ("schd_delete", "df")])):
+        if any(kwargs.pop(i, None) for i in ("schd_delete", "df")):
             self.schd_delete = True
 
     def update_attributes(self, kwargs, file, count):
+        self._cancelled = False
         self.file = file
         self.count = count
         for k, v in kwargs.items():
@@ -348,7 +375,7 @@ class pyroUL:
                 reply_to=self.reply_to,
             )
             delattr(self, "caption")
-            asyncio.gather(self.dump_stuff(out, copy))
+            run_async_task(self.dump_stuff, out, copy)
         except Exception as exc:
             er = "Error while copying file from DUMP: "
             LOGS.exception(er)
@@ -368,7 +395,8 @@ class pyroUL:
                 msg = f"__**Error While Uploading:**__ \n>  ```{self.file}``` \n>  `{error}`"
                 await self.event.edit(msg)
             except MessageIdInvalidError:
-                return True  # stop process..
+                # msg deleted, stop transmission
+                return True
             except Exception as exc:
                 LOGS.exception("Error in editing Message..")
 
@@ -379,7 +407,7 @@ class pyroUL:
                 msg += f"\n\n**Got Error in {self.failed} files.**"
             await self.event.edit(msg)
 
-    # Helper functions
+    # Helper methods
 
     @staticmethod
     def size_checks(path):
@@ -443,11 +471,11 @@ class pyroUL:
             delattr(self, "thumb")
 
     async def dump_stuff(self, upl, copy):
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(1)
         await cleargif(copy)
         if self.schd_delete:
             await upl.delete()
-        else:
+        elif not copy.sticker:
             dumpCaption = "#PyroUL ~ {0} \n\n•  Chat:  [{1}]({2}) \n•  User:  {3} - {4} \n•  Path:  ```{5}```"
             sndr = copy.sender or await copy.get_sender()
             text = dumpCaption.format(
@@ -456,16 +484,15 @@ class pyroUL:
                 await msg_link(copy),
                 get_display_name(sndr),
                 inline_mention(sndr, custom=sndr.id),
-                self.file,
+                str(self.file),
             )
             try:
-                if not copy.sticker:
-                    await asyncio.sleep(5)
-                    await upl.edit_caption(text)
+                await asyncio.sleep(5)
+                await upl.edit_caption(text)
             except Exception:
                 LOGS.exception("Editing Dump Media. <(ignore)>")
 
-    # Uploader functions
+    # Uploader methods
 
     async def video_uploader(self):
         args = {
@@ -561,7 +588,7 @@ class pyroUL:
         except Exception as exc:
             self._handle_upload_error("Sticker", exc)
 
-    # Uploader helper functions.
+    # Uploader helper methods.
 
     def _log_info(self, format):
         if self._log:

@@ -5,58 +5,37 @@
 # PLease read the GNU Affero General Public License in
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
-import os
-import sys
+from os import environ, system
 from copy import deepcopy
-from random import randrange
 
 from redis.exceptions import ResponseError
 
 from ..configs import Var
-from . import *
+from .. import LOGS, HOSTED_ON
 
 
-# --------------------------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------------------------
 
 # DB Imports!
-Redis = MongoClient = psycopg2 = Database = None
+try:
+    from redis import Redis
+    from pymongo import MongoClient
+except ModuleNotFoundError:
+    LOGS.info("Installing redis and pymongo for database.")
+    system("pip3 install -q redis[hiredis] pymongo[srv]")
+    from redis import Redis
+    from pymongo import MongoClient
 
-from pymongo import MongoClient
-from redis import Redis
 
-if Var.REDIS_URI or Var.REDISHOST:
-    try:
-        from redis import Redis
-    except ImportError:
-        LOGS.info("Installing 'redis' for database.")
-        os.system("pip3 install -q redis hiredis")
-        from redis import Redis
-
-elif Var.MONGO_URI:
-    try:
-        from pymongo import MongoClient
-    except ImportError:
-        LOGS.info("Installing 'pymongo' for database.")
-        os.system("pip3 install -q pymongo[srv]")
-        from pymongo import MongoClient
-
-elif Var.DATABASE_URL:
+if Var.DATABASE_URL:
     try:
         import psycopg2
     except ImportError:
         LOGS.info("Installing 'pyscopg2' for database.")
-        os.system("pip3 install -q psycopg2-binary")
+        system("pip3 install -q psycopg2-binary")
         import psycopg2
 
-else:
-    try:
-        from localdb import Database
-    except ImportError:
-        LOGS.info("Using local file as database.")
-        os.system("pip3 install -q localdb.json")
-        from localdb import Database
-
-# --------------------------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------------------------
 
 
 class _BaseDatabase:
@@ -65,7 +44,7 @@ class _BaseDatabase:
         if self.to_cache:
             self.re_cache()
         else:
-            self.__nocache__()
+            self.ping()
 
     def ping(self):
         return 1
@@ -152,11 +131,10 @@ class _BaseDatabase:
         return self.set_key(key, data)
 
     def __nocache__(self):
-        if randrange(101) > 75:
-            self.del_key("__nocache__")
+        self.del_key("__nocache__")
 
 
-# --------------------------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------------------------
 
 
 class MongoDB(_BaseDatabase):
@@ -214,8 +192,7 @@ def flushall(self):
         return True
 """
 
-# --------------------------------------------------------------------------------------------- #
-
+# ---------------------------------------------------------------------------------------------
 
 # Thanks to "Akash Pattnaik" / @BLUE-DEVIL1134
 # for SQL Implementation in Ultroid.
@@ -242,7 +219,7 @@ class SqlDB(_BaseDatabase):
             LOGS.info("Invaid SQL Database")
             if self._connection:
                 self._connection.close()
-            sys.exit()
+            quit("SQL Error..")
         super().__init__()
 
     @property
@@ -307,7 +284,7 @@ def flushall(self):
     return True
 """
 
-# --------------------------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------------------------
 
 
 class RedisDB(_BaseDatabase):
@@ -328,15 +305,11 @@ class RedisDB(_BaseDatabase):
             host = spli_[0]
             port = int(spli_[-1])
             if host.startswith("http"):
-                logger.error("Your REDIS_URI should not start with http !")
-                import sys
-
-                sys.exit()
+                logger.critical("Your REDIS_URI should not start with http !")
+                quit("Redis Error..")
         elif not host or not port:
-            logger.error("Port Number not found")
-            import sys
-
-            sys.exit()
+            logger.critical("Redis error: Host or Port missing..")
+            quit("Redis Error..")
 
         kwargs["host"] = host
         kwargs["password"] = password
@@ -344,15 +317,15 @@ class RedisDB(_BaseDatabase):
 
         if platform.lower() == "qovery" and not host:
             var, hash_, host, password = "", "", "", ""
-            for vars_ in os.environ:
+            for vars_ in environ:
                 if vars_.startswith("QOVERY_REDIS_") and vars.endswith("_HOST"):
                     var = vars_
             if var:
                 hash_ = var.split("_", maxsplit=2)[1].split("_")[0]
             if hash:
-                kwargs["host"] = os.environ(f"QOVERY_REDIS_{hash_}_HOST")
-                kwargs["port"] = os.environ(f"QOVERY_REDIS_{hash_}_PORT")
-                kwargs["password"] = os.environ(f"QOVERY_REDIS_{hash_}_PASSWORD")
+                kwargs["host"] = environ.get(f"QOVERY_REDIS_{hash_}_HOST")
+                kwargs["port"] = environ.get(f"QOVERY_REDIS_{hash_}_PORT")
+                kwargs["password"] = environ.get(f"QOVERY_REDIS_{hash_}_PASSWORD")
 
         self.db = Redis(**kwargs)
         self.set = self.db.set
@@ -389,6 +362,13 @@ class RedisDB(_BaseDatabase):
 
 class LocalDB(_BaseDatabase):
     def __init__(self):
+        try:
+            from localdb import Database
+        except ModuleNotFoundError:
+            LOGS.info("Using local file as database.")
+            system("pip3 install -q localdb.json")
+            from localdb import Database
+
         self.db = Database("ultroid")
         self._name = "LocalDB"
         self.to_cache = True
@@ -405,13 +385,11 @@ class LocalDB(_BaseDatabase):
         return f"<Ultroid.LocalDB\n -total_keys: {len(self.keys())}\n>"
 
 
-# --------------------------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------------------------
 
 
 def UltroidDB():
     _er = False
-    from .. import HOSTED_ON
-
     try:
         if Var.REDIS_URI or Var.REDISHOST:
             return RedisDB(
@@ -434,8 +412,14 @@ def UltroidDB():
         _er = True
     if not _er:
         LOGS.critical(
-            "No DB requirement fullfilled!\nPlease install redis, mongo or sql dependencies...\nTill then using local file as database."
+            "No DB requirement fullfilled!\nPlease install redis, mongo or sql dependencies..."
         )
     if HOSTED_ON == "termux":
+        LOGS.info("Using Local DB for now..")
         return LocalDB()
-    exit()
+    quit()
+
+
+LOGS.info("Connecting to Database..")
+udB = UltroidDB()
+LOGS.info(f"Connected to {udB.name} Successfully!")

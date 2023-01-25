@@ -38,7 +38,7 @@ from . import (
 
 HEROKU_API, HEROKU_APP_NAME = None, None
 if HOSTED_ON == "heroku":
-    from pyUltroid.heroku import Heroku as _Heroku
+    from pyUltroid.custom.heroku import Heroku as _Heroku
 
     if err := _Heroku.get("err"):
         LOGS.exception(err)

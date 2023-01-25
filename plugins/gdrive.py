@@ -4,6 +4,7 @@
 # This file is a part of < https://github.com/TeamUltroid/Ultroid/ >
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
+
 """
 ✘ Commands Available
 
@@ -32,6 +33,7 @@ from telethon.tl.types import Message
 
 from pyUltroid.fns.gDrive import GDriveManager
 from pyUltroid.fns.helper import time_formatter
+from pyUltroid.custom._transfer import pyroDL
 
 from . import ULTConfig, asst, eod, eor, get_string, ultroid_cmd
 
@@ -107,8 +109,6 @@ async def _(event):
         return await eod(event, "`Reply to file or give its location.`")
     mone = await event.eor(get_string("com_1"))
     if isinstance(input_file, Message):
-        from pyUltroid.fns._transfer import pyroDL
-
         dl = pyroDL(event=mone, source=input_file)
         filename = await dl.download(auto_edit=False)
         if isinstance(filename, Exception):

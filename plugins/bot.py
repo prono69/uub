@@ -16,6 +16,7 @@ from platform import python_version as pyver
 from random import choice
 
 from telethon import __version__
+from telethon.tl.functions import PingRequest
 from telethon.errors.rpcerrorlist import (
     BotMethodInvalidError,
     ChatSendMediaForbiddenError,
@@ -193,9 +194,10 @@ async def lol(ult):
 
 @ultroid_cmd(pattern="ping$", chats=[], type=["official", "assistant"])
 async def _(event):
-    start = time.time()
     x = await event.eor("Pong !")
-    end = round((time.time() - start) * 1000)
+    start = time.time()
+    await event.client(PingRequest(ping_id=0))
+    end = round((time.time() - start) * 1000, 3)
     uptime = time_formatter((time.time() - start_time) * 1000)
     await x.edit(get_string("ping").format(end, uptime))
 
@@ -207,9 +209,6 @@ async def cmds(event):
     await allcmds(event, Telegraph)
 
 
-heroku_api = Var.HEROKU_API
-
-
 @ultroid_cmd(
     pattern="restart$",
     fullsudo=True,
@@ -219,17 +218,15 @@ async def restartbt(ult):
     call_back()
     who = "bot" if ult.client._bot else "user"
     udB.set_key("_RESTART", f"{who}_{ult.chat_id}_{ok.id}")
-    if heroku_api:
-        return await restart(ok)
-    # elif Var.HOST.lower() == "wfs":
-    # await ultroid_bot.send_message(LOG_CHANNEL, "/wfs restart")
-    # return
+    return await restart(ult=ok, edit=True)
 
-    # await bash("git pull && pip3 install -r requirements.txt")
+    """
+    await bash("git pull && pip3 install -r requirements.txt")
     if len(sys.argv) > 1:
         os.execl(sys.executable, sys.executable, "main.py")
     else:
         os.execl(sys.executable, sys.executable, "-m", "pyUltroid")
+    """
 
 
 @ultroid_cmd(
@@ -246,7 +243,8 @@ async def shutdownbot(ult):
 )
 async def _(event):
     opt = event.pattern_match.group(1).strip()
-    file = f"ultroid{sys.argv[-1]}.log" if len(sys.argv) > 1 else "ultroid.log"
+    # file = f"ultroid{sys.argv[-1]}.log" if len(sys.argv) > 1 else "ultroid.log"
+    file = "ultlogs.txt"
     if opt == "heroku":
         await heroku_logs(event)
     elif opt == "carbon" and Carbon:
@@ -332,12 +330,16 @@ async def _(e):
         await asyncio.sleep(3)
         await xx.edit(get_string("upd_7"))
         call_back()
+        return await restart(ult=xx, edit=False, update=True)
+
+        """
         if HOSTED_ON != "heroku":
             await bash("git pull -f && pip3 install --no-cache-dir -r requirements.txt")
             os.execl(sys.executable, "python3", "-m", "pyUltroid")
             return
         else:
             return await restart(xx, EDIT=False)
+        """
 
     m = await updater()
     branch = os.getenv("BRANCH")

@@ -43,7 +43,7 @@ except ImportError:
 from telethon import Button
 from telethon.tl.types import DocumentAttributeAudio, DocumentAttributeVideo
 
-from ._mediainfo import media_info
+from pyUltroid.custom.mediainfo import media_info
 from ..dB.filestore_db import get_stored_msg, store_msg
 
 try:

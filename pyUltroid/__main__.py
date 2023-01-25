@@ -5,14 +5,14 @@
 # PLease read the GNU Affero General Public License in
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
+import asyncio
 import sys
+import time
 
 from . import *
 
 
 def main():
-    import time
-
     from pyrog import _init_pyrog
     from .fns.helper import time_formatter, updater, bash
     from .startup.funcs import (
@@ -30,10 +30,9 @@ def main():
     if (
         udB.get_key("UPDATE_ON_RESTART")
         and os.path.exists(".git")
-        and ultroid_bot.run_in_loop(updater())
+        and asst.run_in_loop(updater())
     ):
-        ultroid_bot.run_in_loop(bash("bash installer.sh"))
-
+        asst.run_in_loop(bash("bash installer.sh"))
         os.execl(sys.executable, "python3", "-m", "pyUltroid")
     """
 
@@ -78,12 +77,6 @@ def main():
     # Customize Ultroid Assistant...
     # ultroid_bot.run_in_loop(customize())
 
-    # Auto Forward on Restart..
-    if udB.get_key("AUTOFWD_RESTART") is True:
-        from pyUltroid.fns.forwarder import fwdx
-
-        ultroid_bot.run_in_loop(fwdx(True))
-
     # Load Addons from Plugin Channels.
     if plugin_channels:
         ultroid_bot.run_in_loop(plug(plugin_channels))
@@ -107,7 +100,30 @@ def main():
     )
 
 
-if __name__ == "__main__":
-    main()
+async def init_shutdown():
+    tasks = []
+    if ultroid_bot.is_connected():
+        tasks.append(ultroid_bot.disconnect())
+    if not BOT_MODE:
+        await asst.send_message(
+            udB.get_key("TAG_LOG"),
+            "#offline\n**Shutting own Ultroid!**\n  - @{asst.me.username}\n\n🚫⭐",
+        )
+        tasks.append(asst.disconnect())
+    await asyncio.gather(*tasks, return_exceptions=True)
+    await loop.shutdown_asyncgens()
 
-    asst.run()
+
+if __name__ == "__main__":
+    try:
+        main()
+        # asst.run()
+        loop.run_until_complete(ultroid_bot.disconnected)
+    except BaseException as exc:
+        LOGS.exception(exc)
+    finally:
+        LOGS.info("Stopping Ultroid..")
+        loop.run_until_complete(init_shutdown())
+        loop.stop()
+        print("!! Bot Stopped !!")
+        time.sleep(20)

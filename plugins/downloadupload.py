@@ -20,6 +20,7 @@ from telethon.errors.rpcerrorlist import MessageNotModifiedError
 
 from pyUltroid.fns.helper import time_formatter
 from pyUltroid.fns.tools import get_chat_and_msgid, set_attributes
+from pyUltroid.custom._transfer import pyroDL, pyroUL
 
 from . import (
     LOGS,
@@ -140,8 +141,6 @@ async def pyro_dl(event):
         return await event.eor("`Reply to a file to download.`", time=8)
 
     xx = await event.eor(get_string("com_1"))
-    from pyUltroid.fns._transfer import pyroDL
-
     dlx = pyroDL(event=xx, source=ok)
     await dlx.download(**args.kwargs)
 
@@ -245,7 +244,6 @@ async def pyro_ul(e):
     match = args.args
     if not match or match[0] == ".env":
         return await msg.edit("Give some path.")
-    from pyUltroid.fns._transfer import pyroUL
 
     dlx = pyroUL(event=msg, _path=match[0])
     await dlx.upload(**args.kwargs)

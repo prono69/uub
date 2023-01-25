@@ -22,6 +22,7 @@ from yt_dlp import YoutubeDL
 from .. import LOGS, udB
 from .helper import download_file, humanbytes, run_async, time_formatter
 from .tools import set_attributes
+from pyUltroid.custom._transfer import pyroUL, pyroDL
 
 
 async def ytdl_progress(k, start_time, event):
@@ -96,8 +97,6 @@ async def download_yt(event, link, ytd):
                 return
             from_ = info["extractor"].split(":")[0]
             caption = f"`[{num}/{total}]` `{title}`\n\n`from {from_}`"
-            from pyUltroid.fns._transfer import pyroUL
-
             ulx = pyroUL(event=event, _path=file)
             await ulx.upload(
                 delay=6,
@@ -137,11 +136,9 @@ async def download_yt(event, link, ytd):
         os.rename(id, file)
     except FileNotFoundError:
         os.rename(id + ext, file)
-    from pyUltroid.fns._transfer import pyroUL
-
     ulx = pyroUL(event=event, _path=file)
     await ulx.upload(
-        delay=6.5,
+        delay=6,
         thumb=thumb,
         to_delete=True,
         auto_edit=False,

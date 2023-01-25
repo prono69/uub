@@ -12,11 +12,6 @@ import shutil
 import time
 from random import randint
 
-try:
-    from pytz import timezone
-except ImportError:
-    timezone = None
-
 from telethon.errors import (
     ChannelsTooMuchError,
     ChatAdminRequiredError,
@@ -97,9 +92,8 @@ def update_envs():
 async def startup_stuff():
     from .. import udB
 
-    x = ["resources/auth", "resources/downloads", "resources/temp"]
-    for x in x:
-        os.makedirs(x, exist_ok=True)
+    for x in ("auth", "downloads", "temp"):
+        os.makedirs(f"resources/{x}", exist_ok=True)
 
     CT = udB.get_key("CUSTOM_THUMBNAIL")
     if CT:
@@ -111,6 +105,7 @@ async def startup_stuff():
             LOGS.exception(er)
     elif CT is False:
         ULTConfig.thumb = None
+
     GT = udB.get_key("GDRIVE_AUTH_TOKEN")
     if GT:
         with open("resources/auth/gdrive_creds.json", "w") as t_file:
@@ -150,9 +145,8 @@ async def autobot():
         LOGS.critical(
             "Please make a Bot from @BotFather and add it's token in BOT_TOKEN, as an env var and restart me."
         )
-        import sys
+        quit()
 
-        sys.exit(1)
     await ultroid_bot.send_message(bf, name)
     await asyncio.sleep(1)
     isdone = (await ultroid_bot.get_messages(bf, limit=1))[0].text
@@ -164,9 +158,8 @@ async def autobot():
             LOGS.critical(
                 "Please make a Bot from @BotFather and add it's token in BOT_TOKEN, as an env var and restart me."
             )
-            import sys
+            quit()
 
-            sys.exit(1)
     await ultroid_bot.send_message(bf, username)
     await asyncio.sleep(1)
     isdone = (await ultroid_bot.get_messages(bf, limit=1))[0].text
@@ -188,10 +181,7 @@ async def autobot():
         LOGS.info(
             "Please Delete Some Of your Telegram bots at @Botfather or Set Var BOT_TOKEN with token of a bot"
         )
-
-        import sys
-
-        sys.exit(1)
+        quit()
 
 
 async def autopilot():
@@ -302,8 +292,6 @@ async def autopilot():
 
 
 # customize assistant
-
-
 async def customize():
     from .. import asst, udB, ultroid_bot
 
@@ -369,6 +357,7 @@ async def customize():
         LOGS.exception(e)
 
 
+"""
 async def plug_unzipper(ult, chat):
     from shutil import rmtree
     from .utils import load_addons
@@ -405,6 +394,7 @@ async def plug_unzipper(ult, chat):
             LOGS.info(f"Ultroid - PLUGIN_CHANNEL - ERROR - {plugin}")
             LOGS.exception(exc)
     rmtree("tplugs")
+"""
 
 
 async def plug(plugin_channels):
@@ -424,8 +414,7 @@ async def plug(plugin_channels):
     LOGS.info("• Loading Plugins from Plugin Channel(s) •")
     for chat in plugin_channels:
         # plugUnzippr = await plug_unzipper(ultroid_bot, chat)
-        # if not plugUnzippr:
-        # continue
+        # if not plugUnzippr: continue
         try:
             LOGS.info(f"{'•'*4} {chat}")
             async for x in ultroid_bot.iter_messages(
@@ -449,7 +438,7 @@ async def plug(plugin_channels):
 
 # some stuffs
 async def ready():
-    from .. import asst, udB, ultroid_bot
+    from .. import asst, udB, ultroid_bot, _ult_cache
     from ..fns.tools import async_searcher
 
     chat_id = udB.get_key("LOG_CHANNEL")
@@ -472,31 +461,32 @@ async def ready():
             except Exception as E:
                 LOGS.info("Error while Deleting Previous Update Message :" + str(E))
 
-        if await updater():  # Bot is updated at restart anyways
+        if await updater():
             BTTS = Button.inline("Update Available", "updtavail")
         """
 
     try:
-        await asst.send_message(chat_id, MSG, file=PHOTO, buttons=BTTS)
+        spam_sent = await asst.send_message(chat_id, MSG, file=PHOTO, buttons=BTTS)
     except ValueError as e:
         try:
             await (await ultroid_bot.send_message(chat_id, str(e))).delete()
-            await asst.send_message(chat_id, MSG, file=PHOTO, buttons=BTTS)
+            spam_sent = await asst.send_message(chat_id, MSG, file=PHOTO, buttons=BTTS)
         except Exception as g:
-            LOGS.info(g)
+            spam_sent = None
+            LOGS.error(g)
     except Exception as el:
         LOGS.info(el)
         try:
-            await ultroid_bot.send_message(chat_id, MSG)
+            spam_sent = await ultroid_bot.send_message(chat_id, MSG)
         except Exception as ef:
-            LOGS.info(ef)
+            spam_sent = None
+            LOGS.error(ef)
 
     # if spam_sent and not spam_sent.media:
     # udB.set_key("LAST_UPDATE_LOG_SPAM", spam_sent.id)
 
     get_ = udB.get_key("OLDANN") or []
     try:
-        os.system("updatedb &")
         updts = await async_searcher(
             "https://ultroid-api.vercel.app/announcements", post=True, re_json=True
         )

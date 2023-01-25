@@ -11,7 +11,7 @@ import os
 import re
 import sys
 import time
-from ast import literal_eval
+from pathlib import Path
 from traceback import format_exc
 from urllib.parse import unquote
 from urllib.request import urlretrieve
@@ -48,8 +48,7 @@ from functools import partial, wraps
 
 from telethon.helpers import _maybe_await
 from telethon.tl import types
-from telethon.tl.functions.messages import SaveGifRequest
-from telethon.utils import get_display_name, get_input_document
+from telethon.utils import get_display_name
 from telethon.errors import MessageNotModifiedError
 
 from .._misc import CMD_HELP
@@ -60,7 +59,6 @@ from . import *
 from ..dB._core import ADDONS, HELP, LIST, LOADED
 
 from ..version import ultroid_version
-from .._helpers import osremove
 from .FastTelethon import download_file as downloadable
 from .FastTelethon import upload_file as uploadable
 
@@ -85,15 +83,6 @@ def make_mention(user, custom=None):
     return inline_mention(user, custom=custom)
 
 
-async def msg_link(message):
-    chat = await message.get_chat()
-    if isinstance(chat, types.User):
-        user = "tg://openmessage?user_id={user_id}&message_id={msg_id}"
-        return user.format(user_id=chat.id, msg_id=message.id)
-    # will add others types later..
-    return message.message_link
-
-
 def inline_mention(user, custom=None, html=False):
     mention_text = get_display_name(user) or "Deleted Account" if not custom else custom
     if isinstance(user, types.User):
@@ -105,6 +94,22 @@ def inline_mention(user, custom=None, html=False):
             return f"<a href=https://t.me/{user.username}>{mention_text}</a>"
         return f"[{mention_text}](https://t.me/{user.username})"
     return mention_text
+
+
+def osremove(*paths, folders=False):
+    from shutil import rmtree
+
+    tmp = []
+    for path in paths:
+        if type(path) in (list, tuple, set):
+            tmp.extend(path)
+        else:
+            tmp.append(path)
+    for path in map(lambda i: Path(i), tmp):
+        if path.is_file():
+            path.unlink()
+        elif path.is_dir() and folders:
+            rmtree(str(path))
 
 
 # ----------------- Load \\ Unloader ---------------- #
@@ -167,7 +172,7 @@ async def safeinstall(event):
                     f"**Installation Aborted.**\n**Reason:** Occurance of `{dan}` in `{reply.file.name}`.\n\nIf you trust the provider and/or know what you're doing, use `{HNDLR}install f` to force install.",
                 )
     try:
-        load_addons(dl)  # dl.split("/")[-1].replace(".py", ""))
+        load_addons(dl)
     except BaseException:
         os.remove(dl)
         return await eor(ok, f"**ERROR**\n\n`{format_exc()}`", time=30)
@@ -275,17 +280,7 @@ async def bash(cmd, run_code=0):
     return out, err
 
 
-async def cleargif(gif):
-    if not gif.client._bot and gif.gif:
-        try:
-            await gif.client(SaveGifRequest(id=get_input_document(gif), unsave=True))
-        except Exception as ex:
-            return LOGS.exception("'cleargif' exception")
-
-
 # ---------------------------UPDATER-------------------------------- #
-
-# Will add in class
 
 
 async def updater():
@@ -299,6 +294,7 @@ async def updater():
     # Git Hacks!
     ac_br = os.getenv("BRANCH")  # repo.active_branch.name
     ups_rem = repo.remote("upstream")
+    ups_rem.fetch()
     ups_rem.fetch(ac_br)
     changelog, tl_chnglog = await gen_chlog(repo, f"HEAD..upstream/{ac_br}")
     return bool(changelog)
@@ -443,16 +439,6 @@ def mediainfo(media):
 # ------------------Some Small Funcs----------------
 
 
-async def asyncread(file):
-    if not aiofiles:
-        with open(file, "r+") as f:
-            r = f.read()
-    else:
-        async with aiofiles.open(file, "r+") as f:
-            r = await f.read()
-    return r
-
-
 def time_formatter(milliseconds):
     minutes, seconds = divmod(int(milliseconds / 1000), 60)
     hours, minutes = divmod(minutes, 60)
@@ -542,41 +528,32 @@ async def progress(current, total, event, start, type_of_ps, file_name=None):
 # @xditya @sppidy @techierror
 
 
-async def restart(ult=None, EDIT=False):
-    from .. import HOSTED_ON
+async def restart(ult=None, edit=False, update=False):
+    from .. import HOSTED_ON, ultroid_bot
+
+    if edit and ult:
+        ult = await ult.eor("`Restarting your app, please wait for a minute!`")
 
     if HOSTED_ON == "heroku":
-        from ..heroku import Heroku
+        from pyUltroid.custom.heroku import Heroku
 
         if err := Heroku.get("err"):
-            return await eor(ult, err)
-        if EDIT:
-            ult = await ult.edit("`Restarting your app, please wait for a minute!`")
+            if ult and edit:
+                await ult.edit(err)
+            return
         try:
             Heroku.get("app").restart()
-        except BaseException as er:
+        except Exception as er:
             LOGS.exception(er)
-            await ult.eor("Something Wrong Occured!")
+            if ult and edit:
+                await ult.edit(
+                    "Something Wrong happened while restarting your heroku app"
+                )
     else:
-        from psutil import Process
-        from subprocess import Popen
-        from pathlib import Path
+        from subprocess import run
 
-        try:
-            pid = Process(os.getpid())
-            for handler in pid.open_files() + pid.connections():
-                os.kill(handler.fd)
-        except Exception as exc:
-            LOGS.exception(exc)
-        await asyncio.sleep(6)
-        Popen(
-            [
-                "/bin/bash",
-                str(Path("reboot.sh").absolute()),
-                os.getpid(),
-            ]
-        )
-        quit("restarting bot..")
+        run("bash startup restart", shell=True)
+        await ultroid_bot.disconnect()
 
         """
         if len(sys.argv) == 1:
@@ -594,99 +571,25 @@ async def restart(ult=None, EDIT=False):
                 sys.argv[5],
                 sys.argv[6],
             )
-            """
+        """
 
 
 async def shutdown(ult):
-    from .. import HOSTED_ON
+    from .. import HOSTED_ON, ultroid_bot
 
-    ult = await eor(ult, "Shutting Down")
+    ult = await ult.eor("`Shutting Down..`")
     if HOSTED_ON == "heroku":
-        from ..heroku import Heroku
+        from pyUltroid.custom.heroku import Heroku
 
         if err := Heroku.get("err"):
-            return await eor(ult, err)
+            return await ult.edit(err)
         try:
             dynotype = os.getenv("DYNO").split(".")[0]
             Heroku.get("app").process_formation()[dynotype].scale(0)
         except BaseException as er:
             LOGS.exception(er)
-            await ult.eor("Something Wrong Occured!")
+            await ult.edit(
+                "Something Wrong happened while shuttig down your Heroku app."
+            )
     else:
-        sys.exit()
-
-
-class getFlags:
-    """Extract flags from string."""
-
-    def __init__(
-        self,
-        text,
-        seperator=" ",
-        args_seperator="-",
-        kwargs_seperator="=",
-        merge_args=False,
-        convert=True,
-        cmds=False,
-        original=False,
-    ):
-        self.text = text
-        self.seperator = seperator
-        self.args_seperator = args_seperator
-        self.kwargs_seperator = kwargs_seperator
-        self.merge_args = merge_args
-        # combines all args into one
-        self.convert = convert
-        self.cmds = cmds
-        self.original = original
-
-    @property
-    def args(self):
-        return self.flags[0]
-
-    @property
-    def kwargs(self):
-        return self.flags[1]
-
-    @property
-    def flags(self):
-        spl = self.splitter(self.text)
-        return self.sep_args_kwargs(spl)
-
-    def splitter(self, text: str):
-        from string import punctuation
-
-        text = str(text)
-        sep_lst = text.split(self.seperator)
-        if self.cmds:
-            return sep_lst
-        return sep_lst[1:] if sep_lst[0][0] in set(punctuation) else sep_lst
-
-    def sep_args_kwargs(self, text_lst: list):
-        kwargs, args = {}, []
-        for txt in text_lst:
-            txt = txt.strip()
-            if not txt:
-                continue
-            elif txt.startswith(self.args_seperator) and len(txt) > 1:
-                if self.kwargs_seperator in txt:
-                    fms = txt.split(self.kwargs_seperator)
-                    key_ = fms[0] if self.original else fms[0][1:]
-                    key_, value_ = key_.strip(), fms[1].strip()
-                    kwargs[key_] = self.change_types(value_) if self.convert else value_
-                else:
-                    txt = txt if self.original else txt[1:]
-                    kwargs[txt] = True
-            else:
-                args.append(txt)
-        if args and self.merge_args:
-            args = [self.seperator.join(args)]
-        return args, kwargs
-
-    @staticmethod
-    def change_types(text):
-        try:
-            text = literal_eval(str(text))
-        except:
-            pass
-        return text
+        await ultroid_bot.disconnect()

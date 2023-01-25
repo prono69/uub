@@ -26,7 +26,7 @@ from time import time
 
 from telethon.errors.rpcerrorlist import MessageNotModifiedError, MessageIdInvalidError
 
-from pyUltroid.fns._transfer import pyroDL, pyroUL
+from pyUltroid.custom._transfer import pyroDL, pyroUL
 from . import (
     LOGS,
     asyncread,

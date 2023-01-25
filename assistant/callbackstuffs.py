@@ -274,11 +274,12 @@ async def send(eve):
         await eve.answer(str(er), alert=True)
 
 
-heroku_api, app_name = Var.HEROKU_API, Var.HEROKU_APP_NAME
-
-
 @callback("updatenow", owner=True)
 async def update(eve):
+    return eve.answer("Use '.update now' to Update Ultroid.", alert=True)
+
+    """
+    heroku_api, app_name = Var.HEROKU_API, Var.HEROKU_APP_NAME
     repo = Repo()
     ac_br = repo.active_branch
     ups_rem = repo.remote("upstream")
@@ -323,6 +324,7 @@ async def update(eve):
         call_back()
         await bash("git pull && pip3 install -r requirements.txt")
         execl(sys.executable, sys.executable, "-m", "pyUltroid")
+"""
 
 
 @callback(re.compile("changes(.*)"), owner=True)

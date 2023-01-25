@@ -196,7 +196,7 @@ async def _(event):
         if not (filepath := ytHelper(vid_id, title)):
             return LOGS.error(f"YTDL ERROR: file not found: {vid_id}")
         size = os.path.getsize(filepath)
-        from pyUltroid.fns._transfer import pyroUL
+        from pyUltroid.custom._transfer import pyroUL
 
         ytaud = pyroUL(event=event, _path=filepath)
         yt_file = await ytaud.upload(
@@ -242,7 +242,7 @@ async def _(event):
         if not (filepath := ytHelper(vid_id, title)):
             return LOGS.error(f"YTDL ERROR: file not found: {vid_id}")
         size = os.path.getsize(filepath)
-        from pyUltroid.fns._transfer import pyroUL
+        from pyUltroid.custom._transfer import pyroUL
 
         ytvid = pyroUL(event=event, _path=filepath)
         yt_file = await ytvid.upload(

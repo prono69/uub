@@ -26,8 +26,8 @@ _default_client_values = {
     "api_id": Var.API_ID,
     "api_hash": Var.API_HASH,
     "workdir": getcwd() + "/resources/temp",
-    "sleep_threshold": 45,
-    "workers": 10,
+    "sleep_threshold": 80,
+    "workers": 6,
     "no_updates": True,
 }
 
@@ -42,7 +42,7 @@ def get_clients():
     var = "PYROGRAM_CLIENTS"
     stuff = environ.get(var)
     if not stuff:
-        LOGS.error("Pyro env wasn't found.")
+        LOGS.warning("Pyro env wasn't found, Skipping Pyro Run")
         return True
     data = literal_eval(stuff)
     del environ[var]
@@ -50,7 +50,7 @@ def get_clients():
         _default = deepcopy(_default_client_values)
         _default.update({"name": "bot_" + str(k)})
         if type(v) == dict:
-            _default = _default | v
+            _default |= v
         else:
             _default.update({"bot_token": v})
         PYROG_CLIENTS.update({int(k): Client(**_default)})

@@ -7,7 +7,7 @@ from subprocess import run
 
 from pymediainfo import MediaInfo
 
-from .helper import humanbytes
+from pyUltroid.fns.helper import humanbytes
 
 
 def _parser(data, attr, to_int=True):

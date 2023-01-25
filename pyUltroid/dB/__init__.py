@@ -1,13 +1,5 @@
-from .. import run_as_module
-
-if not run_as_module:
-    from ..exceptions import RunningAsFunctionLibError
-
-    raise RunningAsFunctionLibError(
-        "You are running 'pyUltroid' as a functions lib, not as run module. You can't access this folder.."
-    )
-
 from .. import *
+
 
 DEVLIST = [
     719195224,  # @xditya

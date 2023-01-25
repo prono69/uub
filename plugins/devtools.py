@@ -21,8 +21,8 @@ from random import choice
 from telethon.utils import get_display_name
 
 from pyUltroid import _ignore_eval
-from pyUltroid.fns.multi_db import *
-from pyUltroid.fns._transfer import pyroUL, pyroDL
+from pyUltroid.custom.multi_db import *
+from pyUltroid.custom._transfer import pyroUL, pyroDL
 
 from . import *
 

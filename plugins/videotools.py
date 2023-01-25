@@ -23,6 +23,7 @@ import glob
 import os
 
 from pyUltroid.fns.tools import set_attributes
+from pyUltroid.custom._transfer import pyroDL, pyroUL
 
 from . import (
     ULTConfig,
@@ -55,8 +56,6 @@ async def gen_sample(e):
     elif vido and vido.media and "video" in mediainfo(vido.media):
         await msg.edit(get_string("com_1"))
         to_del, reply_to = True, vido.id
-        from pyUltroid.fns._transfer import pyroDL
-
         dl = pyroDL(event=msg, source=vido)
         path = await dl.download(_log=False, auto_edit=False, **args.kwargs)
         if isinstance(path, Exception):
@@ -72,8 +71,6 @@ async def gen_sample(e):
     await bash(cmd)
     if to_del:
         os.remove(path)
-    from pyUltroid.fns._transfer import pyroUL
-
     x = pyroUL(event=msg, _path=out)
     await x.upload(
         _log=False,
@@ -102,8 +99,6 @@ async def gen_shots(e):
     elif vido and vido.media and "video" in mediainfo(vido.media):
         await msg.edit(get_string("com_1"))
         to_del, reply_to = True, vido.id
-        from pyUltroid.fns._transfer import pyroDL
-
         dl = pyroDL(event=msg, source=vido)
         path = await dl.download(auto_edit=False, _log=False, **args.kwargs)
         if isinstance(path, Exception):

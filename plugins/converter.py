@@ -27,6 +27,7 @@ except ImportError:
 
 from telegraph import upload_file as uf
 
+from pyUltroid.custom._transfer import pyroDL, pyroUL
 from . import (
     ULTConfig,
     bash,
@@ -77,8 +78,6 @@ async def imak(event):
     xx = await event.eor(get_string("com_1"))
     if reply.media:
         if hasattr(reply.media, "document"):
-            from pyUltroid.fns._transfer import pyroDL
-
             dl = pyroDL(event=xx, source=reply)
             file = await dl.download(auto_edit=False, _log=False, **args.kwargs)
             if isinstance(file, Exception):
@@ -92,8 +91,6 @@ async def imak(event):
     await bash(f"mv {shq(file)} {shq(inp)}")
     if not os.path.exists(inp) or (os.path.exists(inp) and not os.path.getsize(inp)):
         os.rename(file, inp)
-    from pyUltroid.fns._transfer import pyroUL
-
     ul = pyroUL(event=xx, _path=inp)
     await ul.upload(
         delete_file=True,

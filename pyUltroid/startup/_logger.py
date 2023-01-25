@@ -1,105 +1,116 @@
 import logging
-from os import environ, getenv, path, remove
+from ast import literal_eval
+from os import environ
 from platform import python_version, python_version_tuple
 
 from telethon import __version__
 from telethon.tl.alltlobjects import LAYER
 
 from ._extra import _fix_logging, _ask_input
-from ..fns.tglogger import TGLogHandler
-from .. import ultroid_version, __version__ as __pyUltroid__
+from ..version import ultroid_version, __version__ as __pyUltroid__
+from pyUltroid.custom.tglogger import TGLogHandler
 
+# ----------------------------------------------------------------------------
+
+LOG_DATA = {}
+LOG_HANDLERS = []
+
+LOGS = logging.getLogger("pyUltLogs")
+LOGS.setLevel(logging.DEBUG)
 
 # ----------------------------------------------------------------------------
 
 
 def where_hosted():
-    if getenv("DYNO"):
+    if environ.get("DYNO"):
         return "heroku"
-    if getenv("RAILWAY_STATIC_URL"):
+    if environ.get("RAILWAY_STATIC_URL"):
         return "railway"
-    if getenv("OKTETO_TOKEN"):
+    if environ.get("OKTETO_TOKEN"):
         return "okteto"
-    if getenv("KUBERNETES_PORT"):
+    if environ.get("KUBERNETES_PORT"):
         return "qovery | kubernetes"
-    if getenv("RUNNER_USER") or getenv("HOSTNAME"):
+    if environ.get("RUNNER_USER") or environ.get("HOSTNAME"):
         return "github actions"
-    if getenv("ANDROID_ROOT"):
+    if environ.get("ANDROID_ROOT"):
         return "termux"
-    if getenv("FLY_APP_NAME"):
+    if environ.get("FLY_APP_NAME"):
         return "fly.io"
     return "local"
 
 
-# ----------------------------------------------------------------------------
-
-LOGS = logging.getLogger("pyUltLogs")
-LOGS.setLevel(logging.DEBUG)
-TelethonLogger = logging.getLogger("Telethon")
-
-# ----------------------------------------------------------------------------
-
 HOSTED_ON = where_hosted()
-LOG_HANDLERS = []
-log_file = "ultroid.log"
 
 # ----------------------------------------------------------------------------
 
 if int(python_version_tuple()[1]) < 10:
     _fix_logging(logging.FileHandler)
-if HOSTED_ON == "local" or getenv("HOST") == "local":
+
+if HOSTED_ON == "local" or environ.get("HOST") == "local":
     _ask_input()
 
-# ----------------------------------------------------------------------------
-
-if path.isfile(log_file):
-    remove(log_file)
-if data := getenv("LOGGER_DATA"):
-    LOG_DATA = eval(data)
-    environ.pop("LOGGER_DATA", 0)
-else:
-    LOG_DATA = {}
+if data := environ.get("LOGGER_DATA"):
+    LOG_DATA = literal_eval(data)
+    environ.pop("LOGGER_DATA")
 
 # ----------------------------------------------------------------------------
 
-log_level = logging.INFO if LOG_DATA.get("verbose") is True else logging.WARNING
-TelethonLogger.setLevel(log_level)
-
-for i in ("pyrogram", "apscheduler"):
-    logging.getLogger(i).setLevel(logging.WARNING)
-for i in ("pyrogram.parser.html", "pyrogram.session.session"):
-    logging.getLogger(i).setLevel(logging.ERROR)
-
-# ----------------------------------------------------------------------------
-
-og_format = "%(asctime)s | %(name)s [%(levelname)s] : %(message)s"
-log_format1 = logging.Formatter(og_format, datefmt="%m/%d/%Y, %H:%M:%S")
-
-_logger_name = LOG_DATA.get("name", "TGLogger")
-log_format2 = logging.Formatter(
-    f"{_logger_name} [%(levelname)s] ~ %(asctime)s\n» Line %(lineno)s: %(filename)s\n» %(message)s",
-    datefmt="%H:%M:%S",
+TelethonLogger = logging.getLogger("Telethon")
+TelethonLogger.setLevel(
+    logging.INFO if LOG_DATA.get("verbose") is True else logging.WARNING
 )
 
+default_format = "%(asctime)s | %(name)s [%(levelname)s] : %(message)s"
+default_formatter = logging.Formatter(default_format, datefmt="%m/%d, %H:%M:%S")
+
+logging.getLogger("pyrogram").setLevel(logging.WARNING)
+logging.getLogger("apscheduler").setLevel(logging.WARNING)
+logging.getLogger("pyrogram.parser.html").setLevel(logging.ERROR)
+logging.getLogger("pyrogram.session.session").setLevel(logging.ERROR)
+
 # ----------------------------------------------------------------------------
 
-file_handler = logging.FileHandler(log_file)
-stream_handler = logging.StreamHandler()
-for hndlr in (file_handler, stream_handler):
-    hndlr.setLevel(logging.INFO)
-    hndlr.setFormatter(log_format1)
-LOG_HANDLERS.extend([file_handler, stream_handler])
+
+def setup_log_handlers():
+    file_handler = logging.FileHandler(
+        "ultlogs.txt",
+        mode="w",
+        encoding="utf-8",
+        errors="ignore",
+    )
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(default_formatter)
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.INFO)
+    stream_handler.setFormatter(default_formatter)
+
+    LOG_HANDLERS.extend((file_handler, stream_handler))
+
+
+setup_log_handlers()
 
 # ----------------------------------------------------------------------------
 
-if LOG_DATA.get("tglog") is True:
+
+def setup_tglogger():
     tglogger = TGLogHandler(
         chat=LOG_DATA.get("chat"),
         token=LOG_DATA.get("token"),
     )
+    uname = LOG_DATA.get("name", "TGLogger")
     tglogger.setLevel(logging.DEBUG)
-    tglogger.setFormatter(log_format2)
+    tglogger.setFormatter(
+        logging.Formatter(
+            f"{uname} [%(levelname)s] - (%(asctime)s)\n» Line %(lineno)s: %(filename)s\n» %(message)s",
+            datefmt="%d %b %H:%M:%S",
+        )
+    )
     LOG_HANDLERS.append(tglogger)
+
+
+if LOG_DATA.get("tglog") is True:
+    setup_tglogger()
 
 # ----------------------------------------------------------------------------
 
@@ -107,13 +118,11 @@ if LOG_DATA.get("tglog") is True:
 logging.basicConfig(handlers=LOG_HANDLERS)
 del LOG_DATA, LOG_HANDLERS
 
-# ----------------------------------------------------------------------------
-
-if getenv("HOST") == "local":
+if environ.get("HOST") == "local":
     try:
         import coloredlogs
 
-        coloredlogs.install(level=None, logger=LOGS, fmt=og_format)
+        coloredlogs.install(level=None, logger=LOGS, fmt=default_format)
     except ImportError:
         pass
 

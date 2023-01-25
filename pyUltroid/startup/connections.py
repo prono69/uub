@@ -13,6 +13,8 @@ import sys
 from telethon.errors.rpcerrorlist import AuthKeyDuplicatedError
 from telethon.sessions.string import _STRUCT_PREFORMAT, CURRENT_VERSION, StringSession
 
+from strings import get_string
+from ..configs import Var
 from . import *
 
 
@@ -29,8 +31,6 @@ DC_IPV4 = {
 
 
 def validate_session(session, logger=LOGS, _exit=True):
-    from strings import get_string
-
     if session:
         # Telethon Session
         if session.startswith(CURRENT_VERSION):
@@ -73,9 +73,7 @@ def validate_session(session, logger=LOGS, _exit=True):
 
 
 def vc_connection(udB, ultroid_bot):
-    from strings import get_string
     from .BaseClient import UltroidClient
-    from ..configs import Var
 
     VC_SESSION = Var.VC_SESSION or udB.get_key("VC_SESSION")
     if VC_SESSION and VC_SESSION != Var.SESSION:
@@ -90,18 +88,37 @@ def vc_connection(udB, ultroid_bot):
             LOGS.info(get_string("py_c3"))
             udB.del_key("VC_SESSION")
         except Exception as er:
-            LOGS.info("While creating Client for VC.")
+            LOGS.info("Error While creating Client for VC.")
             LOGS.exception(er)
     return ultroid_bot
 
 
+def connect_ub(s):
+    from .BaseClient import UltroidClient
+
+    VC_SESSION = Var.VC_SESSION or udB.get_key("VC_SESSION")
+    if s and s not in (VC_SESSION, Var.SESSION):
+        LOGS.debug("tying to boot up new Client")
+        try:
+            return UltroidClient(
+                validate_session(s, _exit=False),
+                exit_on_error=False,
+            )
+        except (AuthKeyDuplicatedError, EOFError) as er:
+            LOGS.exception("Error in the new Client.!")
+            return er
+        except Exception as er:
+            LOGS.exception("Error while creating new Client.")
+            return er
+
+
 # for Redis Telethon Session
-def _teleredis(log, data):
+def _teleredis(data):
     if data and data["_"] == True:
         from redis import Redis
-        from ..fns.redis_session import RedisSession
+        from pyUltroid.custom.redis_session import RedisSession
 
-        log.debug(f"Starting Redis Session - {data['name']}")
+        LOGS.debug(f"Starting Redis Session - {data['name']}")
         redis = Redis(
             host=data["host"],
             port=data["port"],
