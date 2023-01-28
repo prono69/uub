@@ -20,6 +20,7 @@ from telethon.errors import (
 )
 
 from ..configs import Var
+from ._logger import TelethonLogger
 from . import *
 
 
