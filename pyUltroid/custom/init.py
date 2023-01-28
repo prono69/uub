@@ -40,10 +40,16 @@ def setup_timezone():
 
 def telethon_checker():
     # todo: various telethon checks..
-    run(
-        "pip uninstall -q telethon -y && pip install -q https://github.com/New-dev0/Telethon/archive/platy.zip",
-        shell=True,
-    )
+    def _layer():
+        from telethon.tl.alltlobjects import LAYER
+
+        return LAYER
+
+    if _layer() < 151:
+        run(
+            "pip3 uninstall telethon -y && pip3 install https://github.com/New-dev0/Telethon/archive/platy.zip",
+            shell=True,
+        )
 
 
 def startup_tasks():

@@ -126,4 +126,4 @@ if __name__ == "__main__":
         loop.run_until_complete(init_shutdown())
         loop.stop()
         print("!! Bot Stopped !!")
-        time.sleep(20)
+        time.sleep(20)  # todo fix
