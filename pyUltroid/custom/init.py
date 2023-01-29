@@ -5,7 +5,7 @@ from pathlib import Path
 from subprocess import run, Popen
 from time import tzset
 
-from ._loop import loop
+from ._loop import loop, tasks_db
 
 try:
     from dotenv import load_dotenv

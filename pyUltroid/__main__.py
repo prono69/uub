@@ -107,7 +107,7 @@ async def init_shutdown():
     if not BOT_MODE:
         await asst.send_message(
             udB.get_key("TAG_LOG"),
-            "#offline\n**Shutting own Ultroid!**\n  - @{asst.me.username}\n\n🚫⭐",
+            f"#offline\n**Shutting own Ultroid!**\n  - @{asst.me.username}\n\n🚫⭐",
         )
         tasks.append(asst.disconnect())
     await asyncio.gather(*tasks, return_exceptions=True)

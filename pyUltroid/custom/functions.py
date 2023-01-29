@@ -2,7 +2,7 @@ import asyncio
 from ast import literal_eval
 from functools import wraps
 from pathlib import Path
-from random import sample, choice, randrange
+from random import sample, shuffle, choice, randrange
 from secrets import choice as schoice
 import string
 from time import perf_counter
