@@ -17,10 +17,11 @@ try:
 except ImportError:
     aiofiles = None
 
+from ._loop import loop, run_async_task
 from pyUltroid.startup import LOGS, HOSTED_ON
 from pyUltroid.fns.tools import async_searcher
 from pyUltroid.fns.helper import osremove
-from pyUltroid import udB, ultroid_bot, asst
+from pyUltroid import asst, udB, ultroid_bot
 
 
 # https://gist.github.com/DougAF/ef88f89d1d99763bb05afd81285ef233#file-timer-py
@@ -34,7 +35,7 @@ def timeit(func):
             start = perf_counter()
             result = await func(*args, **kwargs)
             time_taken = perf_counter() - start
-            return f"Function: {func.__name__} \nTime taken: {time_taken:.5f} seconds."
+            return f"Function: {func.__name__} \nOutput: {result} \nTime taken: {time_taken:.5f} seconds."
 
         return exec_time
     else:
@@ -49,16 +50,19 @@ def timeit(func):
         return exec_time
 
 
-async def asyncread(file):
-    if not aiofiles:
-        with open(file, "r+") as f:
-            return f.read()
-    else:
-        async with aiofiles.open(file, "r+") as f:
+async def asyncread(file, binary=False):
+    if not Path(file).is_file():
+        return
+    read_type = "rb" if binary else "r+"
+    if aiofiles:
+        async with aiofiles.open(file, read_type) as f:
             return await f.read()
+    with open(file, read_type) as f:
+        return f.read()
 
 
 async def msg_link(message):
+    # todo: add as msg property
     chat = await message.get_chat()
     if isinstance(chat, types.User):
         user = "tg://openmessage?user_id={user_id}&message_id={msg_id}"
@@ -89,10 +93,9 @@ def rnd_str(length=12, digits=True, symbols=False):
 
 async def get_imgbb_link(path, **kwargs):
     api = udB.get_key("IMGBB_API")
-    if not (api and aiofiles):
+    if not api or not Path(path).is_file():
         return
-    async with aiofiles.open(path, "rb") as f:
-        image_data = await f.read()
+    image_data = await asyncread(path, binary=True)
     if kwargs.get("delete"):
         Path(path).unlink()
     post = await async_searcher(
@@ -110,7 +113,7 @@ async def get_imgbb_link(path, **kwargs):
         flink = post["data"]["url"] if kwargs.get("hq") else post["data"]["display_url"]
         if kwargs.get("preview"):
             await asst.send_message(udB.get_key("TAG_LOG"), flink, link_preview=True)
-            await asyncio.sleep(2.5)
+            await asyncio.sleep(3)
         return flink
     else:
         from pyUltroid.fns.tools import json_parser
@@ -140,7 +143,7 @@ async def random_pic(re_photo=False, old_media=False, custom=False):
             offset_id=randrange(chn[1], chn[2]),
         ):
             txt = chn[0] + "_" + str(x.id)
-            await asyncio.sleep(randrange(9, 21))
+            await asyncio.sleep(randrange(30))
             dlx = await x.download_media()
             if link := await get_imgbb_link(
                 dlx, expire=24 * 8 * 60 * 60, title=txt, delete=True
@@ -235,6 +238,7 @@ __all__ = [
     "rnd_str",
     "get_imgbb_link",
     "random_pic",
+    "run_async_task",
     "getFlags",
     "msg_link",
 ]

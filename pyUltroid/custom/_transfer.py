@@ -27,10 +27,10 @@ from telethon.errors import MessageNotModifiedError, MessageIdInvalidError
 
 from pyrog import app
 from .mediainfo import media_info
-from .functions import cleargif, msg_link
+from .functions import cleargif, msg_link, run_async_task
+from pyUltroid.exceptions import UploadError, DownloadError
 from pyUltroid.fns.helper import bash, time_formatter, inline_mention
 from pyUltroid.fns.tools import check_filename, humanbytes, shq
-from pyUltroid.exceptions import UploadError, DownloadError
 from pyUltroid.fns.misc import random_string
 from pyUltroid.startup import LOGS
 from pyUltroid import asst, udB, ultroid_bot
@@ -42,7 +42,6 @@ DUMP_CHANNEL = udB.get_key("TAG_LOG")
 PROGRESS_LOG = {}
 LOGGER_MSG = "Uploading {} | Path: {} | DC: {} | Size: {}"
 DEFAULT_THUMB = str(Path.cwd().joinpath("resources/extras/ultroid.jpg"))
-async_tasks = set()
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -88,15 +87,6 @@ async def pyro_progress(
         await message.edit(to_edit)
     except MessageNotModifiedError as exc:
         LOGS.exception(exc)
-
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-def run_async_task(func, *args):
-    task = asyncio.create_task(func(*args))
-    async_tasks.add(task)
-    task.add_done_callback(async_tasks.discard)
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -476,7 +466,7 @@ class pyroUL:
         if self.schd_delete:
             await upl.delete()
         elif not copy.sticker:
-            dumpCaption = "#PyroUL ~ {0} \n\n•  Chat:  [{1}]({2}) \n•  User:  {3} - {4} \n•  Path:  ```{5}```"
+            dumpCaption = "#PyroUL ~ {0} \n\n•  Chat:  [{1}]({2}) \n•  User:  {3} - {4} \n•  Path:  `{5}`"
             sndr = copy.sender or await copy.get_sender()
             text = dumpCaption.format(
                 f"{self.count}/{self.total_files}",
@@ -490,7 +480,7 @@ class pyroUL:
                 await asyncio.sleep(5)
                 await upl.edit_caption(text)
             except Exception:
-                LOGS.exception("Editing Dump Media. <(ignore)>")
+                LOGS.exception("Editing Dump Media. <(to be ignored)>")
 
     # Uploader methods
 
@@ -636,7 +626,7 @@ async def videoThumb(path, duration):
             )
         else:
             dur = 1
-    thumb_path = Path(f"resources/temp/{random_string(8)}-{dur}.jpg").absolute()
+    thumb_path = Path(f"resources/temp/{random_string(8)}-{dur}.jpg").resolve()
     await bash(f"ffmpeg -ss {dur} -i {shq(path)} -vframes 1 {shq(str(thumb_path))} -y")
     return str(thumb_path) if thumb_path.exists() else DEFAULT_THUMB
 
@@ -653,6 +643,3 @@ async def audioThumb(path):
     except BaseException as exc:
         LOGS.error(exc)
         return DEFAULT_THUMB
-
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

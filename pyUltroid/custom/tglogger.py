@@ -10,7 +10,7 @@ from logging import StreamHandler
 
 from aiohttp import ClientSession
 
-from ._loop import loop
+from ._loop import loop, run_async_task
 
 
 _TG_MSG_LIMIT = 4020
@@ -25,31 +25,23 @@ class TGLogHandler(StreamHandler):
         self.log_db = []
         self.current = ""
         self.active = False
-        self.editCount = 0
         self.message_id = None
         self._floodwait = False
-        self.async_tasks = set()
         self.doc_message_id = None
         self.__tgtoken = _TG_API.format(token)
         _PAYLOAD.update({"chat_id": chat})
         StreamHandler.__init__(self)
 
     def __str__(self):
-        ecount = self.editCount
         active = self.active
-        return f"Total Queued Items: {len(self.log_db)} \n{active = } \nEdited {ecount} times."
-
-    def __clear(self, *args):
-        self.async_tasks.clear()
+        return f"Total Queued Items: {len(self.log_db)} \n{active = }"
 
     def emit(self, record):
         msg = self.format(record)
         self.log_db.append("\n\n\n" + msg)
         if not (self.active or self._floodwait):
             self.active = True
-            task = loop.create_task(self.runQueue())
-            self.async_tasks.add(task)
-            task.add_done_callback(self.__clear)
+            run_async_task(self.runQueue)
 
     async def runQueue(self):
         await asyncio.sleep(3)
@@ -99,7 +91,8 @@ class TGLogHandler(StreamHandler):
             async with session.request("POST", url, json=payload) as response:
                 return await response.json()
 
-    def handle_floodwait(self):
+    async def handle_floodwait(self, sleep):
+        await asyncio.sleep(sleep)
         self._floodwait = False
 
     async def send_message(self, message):
@@ -127,7 +120,6 @@ class TGLogHandler(StreamHandler):
         payload.update({"message_id": self.message_id, "text": f"```{message}```"})
         res = await self.send_request(self.__tgtoken + "/editMessageText", payload)
         if res.get("ok"):
-            self.editCount += 1
             self.current = message
         else:
             await self.handle_error(res)
@@ -148,7 +140,6 @@ class TGLogHandler(StreamHandler):
             ) as response:
                 res = await response.json()
         if res.get("ok"):
-            self.editCount += 1
             self.doc_message_id = int(res["result"]["message_id"])
             self.current = ""
             self.message_id = None
@@ -168,4 +159,4 @@ class TGLogHandler(StreamHandler):
         elif s := error.get("retry_after"):
             self._floodwait = True  # error.get("retry_after")
             print(f"tglogger: floodwait of {s}s")
-            loop.call_later(s + (s // 4), self.handle_floodwait)
+            run_async_task(self.handle_floodwait, s + s // 4)

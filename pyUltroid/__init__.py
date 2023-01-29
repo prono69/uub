@@ -11,7 +11,7 @@ start_time = time.time()
 
 
 from .version import __version__, ultroid_version
-from pyUltroid.custom.init import loop
+from pyUltroid.custom.init import loop, tasks_db
 from .configs import Var
 from .startup import *
 
@@ -23,7 +23,6 @@ class ULTConfig:
 
 _ult_cache = {}
 _ignore_eval = []
-tasks_db = {}
 
 from .startup._database import udB
 from .startup.BaseClient import UltroidClient

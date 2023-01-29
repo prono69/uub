@@ -49,6 +49,12 @@ class _BaseDatabase:
     def ping(self):
         return 1
 
+    def __repr__(self):
+        out = "<Ultroid.{name}\n -name: " + self._name + "{extra}\n>"
+        extra = f"-cached_keys: {len(self.keys())}" if self.to_cache else ""
+        out.format(name=self._name, extra=extra)
+        return out
+
     @property
     def usage(self):
         return 0
