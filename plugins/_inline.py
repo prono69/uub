@@ -33,6 +33,7 @@ from . import (
     start_time,
     udB,
 )
+
 from ._help import _main_help_menu
 
 # ================================================#
@@ -45,6 +46,7 @@ zhelps = get_string("inline_3") if add_ons is False else get_string("inline_2")
 PLUGINS = HELP.get("Official", [])
 ADDONS = HELP.get("Addons", [])
 upage = 0
+
 # ============================================#
 
 # --------------------BUTTONS--------------------#

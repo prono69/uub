@@ -89,7 +89,7 @@ The Ultroid Userbot
   ◍ Telethon - {}
 """
 
-_BRANCH = os.getenv("BRANCH")
+_BRANCH = os.getenv("BRANCH", "main")
 if not Repo:
     _REPO = "https://github.com/TeamUltroid/Ultroid.git"
 else:
@@ -210,7 +210,7 @@ async def cmds(event):
 
 
 @ultroid_cmd(
-    pattern="restart$",
+    pattern="restart( update)?$",
     fullsudo=True,
 )
 async def restartbt(ult):
@@ -218,6 +218,8 @@ async def restartbt(ult):
     call_back()
     who = "bot" if ult.client._bot else "user"
     udB.set_key("_RESTART", f"{who}_{ult.chat_id}_{ok.id}")
+    if ult.pattern_match.group(1):
+        await bash("git reset --hard; git pull --rebase")
     return await restart(ult=ok, edit=True)
 
     """
@@ -330,7 +332,8 @@ async def _(e):
         await asyncio.sleep(3)
         await xx.edit(get_string("upd_7"))
         call_back()
-        return await restart(ult=xx, edit=False, update=True)
+        await bash("git reset --hard; git pull --rebase")
+        return await restart(ult=xx, edit=False)
 
         """
         if HOSTED_ON != "heroku":

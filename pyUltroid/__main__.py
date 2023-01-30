@@ -6,6 +6,7 @@
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
 import asyncio
+import os
 import sys
 import time
 
@@ -114,10 +115,17 @@ async def init_shutdown():
     await loop.shutdown_asyncgens()
 
 
+def do_shutdown_or_restart():
+    sys.stdout.flush()
+    if not udB.get_key("_RESTART"):
+        sys.exit(0)
+    python = sys.executable
+    os.execl(python, python, "-m", "pyUltroid")
+
+
 if __name__ == "__main__":
     try:
         main()
-        # asst.run()
         loop.run_until_complete(ultroid_bot.disconnected)
     except BaseException as exc:
         LOGS.exception(exc)
@@ -125,5 +133,4 @@ if __name__ == "__main__":
         LOGS.info("Stopping Ultroid..")
         loop.run_until_complete(init_shutdown())
         loop.stop()
-        print("!! Bot Stopped !!")
-        time.sleep(20)  # todo fix
+        do_shutdown_or_restart()

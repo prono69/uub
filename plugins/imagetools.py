@@ -4,6 +4,7 @@
 # This file is a part of < https://github.com/TeamUltroid/Ultroid/ >
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
+
 """
 ✘ Commands Available -
 
@@ -52,6 +53,7 @@
 • `{i}pixelator <reply image>`
     Create a Pixelated Image..
 """
+
 import os
 
 from . import LOGS, con
@@ -68,6 +70,7 @@ try:
 except ImportError:
     Image = None
     LOGS.info(f"{__file__}: PIL  not Installed.")
+
 from telegraph import upload_file as upf
 from telethon.errors.rpcerrorlist import (
     ChatSendMediaForbiddenError,
@@ -79,6 +82,7 @@ from . import (
     async_searcher,
     download_file,
     get_string,
+    osremove,
     requests,
     udB,
     ultroid_cmd,
@@ -112,7 +116,7 @@ async def _(event):
         )
     r_json = r.json()["output_url"]
     await event.client.send_file(event.chat_id, r_json, reply_to=reply)
-    await xx.delete()
+    await xx.try_delete()
 
 
 @ultroid_cmd(pattern="(grey|blur|negative|danger|mirror|quad|sketch|flip|toon)$")
@@ -183,9 +187,8 @@ async def ult_tools(event):
         force_document=False,
         reply_to=event.reply_to_msg_id,
     )
-    await xx.delete()
-    os.remove("ult.jpg")
-    os.remove(file)
+    osremove("ult.jpg", file)
+    await xx.try_delete()
 
 
 @ultroid_cmd(pattern="csample (.*)")
@@ -203,7 +206,8 @@ async def sampl(ult):
                 await ult.reply(f"Colour Sample for `{color}` !", file="csample.png")
         except ChatSendMediaForbiddenError:
             await ult.eor("Umm! Sending Media is disabled here!")
-
+        finally:
+            osremove("csample.png")
     else:
         await ult.eor("Wrong Color Name/Hex Code specified!")
 
@@ -238,10 +242,8 @@ async def ultd(event):
         force_document=False,
         reply_to=event.reply_to_msg_id,
     )
-    await xx.delete()
-    os.remove("ult.png")
-    os.remove("ult.webp")
-    os.remove(ultt)
+    osremove("ult.png", "ult.webp", ultt)
+    await xx.try_delete()
 
 
 @ultroid_cmd(pattern="border( (.*)|$)")
@@ -267,9 +269,8 @@ async def ok(event):
     constant = cv2.copyMakeBorder(img1, wh, wh, wh, wh, cv2.BORDER_CONSTANT, value=col)
     cv2.imwrite("output.png", constant)
     await event.client.send_file(event.chat.id, "output.png")
-    os.remove("output.png")
-    os.remove(okla)
-    await event.delete()
+    osremove("output.png", okla)
+    await event.try_delete()
 
 
 @ultroid_cmd(pattern="pixelator( (.*)|$)")
@@ -291,6 +292,5 @@ async def pixelator(event):
     output = cv2.resize(temp, (width, height), interpolation=cv2.INTER_NEAREST)
     cv2.imwrite("output.jpg", output)
     await msg.respond("• Pixelated by Ultroid", file="output.jpg")
-    await msg.delete()
-    os.remove("output.jpg")
-    os.remove(image)
+    osremove("output.jpg", image)
+    await msg.try_delete()

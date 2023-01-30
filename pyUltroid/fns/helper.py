@@ -97,18 +97,18 @@ def inline_mention(user, custom=None, html=False):
 
 
 def osremove(*paths, folders=False):
-    from shutil import rmtree
-
     tmp = []
     for path in paths:
         if type(path) in (list, tuple, set):
             tmp.extend(path)
-        else:
+        elif path:
             tmp.append(path)
     for path in map(lambda i: Path(i), tmp):
         if path.is_file():
             path.unlink()
         elif path.is_dir() and folders:
+            from shutil import rmtree
+
             rmtree(str(path))
 
 
@@ -528,7 +528,7 @@ async def progress(current, total, event, start, type_of_ps, file_name=None):
 # @xditya @sppidy @techierror
 
 
-async def restart(ult=None, edit=False, update=False):
+async def restart(ult=None, edit=False):
     from .. import HOSTED_ON, ultroid_bot
 
     if edit and ult:
@@ -550,28 +550,7 @@ async def restart(ult=None, edit=False, update=False):
                     "Something Wrong happened while restarting your heroku app"
                 )
     else:
-        from subprocess import run
-
-        run("bash startup restart", shell=True)
         await ultroid_bot.disconnect()
-
-        """
-        if len(sys.argv) == 1:
-            os.execl(sys.executable, sys.executable, "-m", "pyUltroid")
-        else:
-            os.execl(
-                sys.executable,
-                sys.executable,
-                "-m",
-                "pyUltroid",
-                sys.argv[1],
-                sys.argv[2],
-                sys.argv[3],
-                sys.argv[4],
-                sys.argv[5],
-                sys.argv[6],
-            )
-        """
 
 
 async def shutdown(ult):

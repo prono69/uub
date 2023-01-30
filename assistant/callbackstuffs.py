@@ -324,7 +324,7 @@ async def update(eve):
         call_back()
         await bash("git pull && pip3 install -r requirements.txt")
         execl(sys.executable, sys.executable, "-m", "pyUltroid")
-"""
+    """
 
 
 @callback(re.compile("changes(.*)"), owner=True)

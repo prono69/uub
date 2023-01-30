@@ -13,6 +13,21 @@ except ModuleNotFoundError:
     load_dotenv = None
 
 
+def startup_logo():
+    # skipping `bash startup`
+    print(
+        """
+            ┏┳┓╋┏┓╋╋╋╋┏┓┏┓
+            ┃┃┣┓┃┗┳┳┳━╋╋┛┃
+            ┃┃┃┗┫┏┫┏┫╋┃┃╋┃
+            ┗━┻━┻━┻┛┗━┻┻━┛
+
+      Visit @TheUltroid for updates!!
+
+"""
+    )
+
+
 def cleanup_stuff():
     hitlist = [
         "/usr/local/lib/python3.*/site-packages/pip/_vendor/.wh.appdirs.py",
@@ -53,6 +68,9 @@ def telethon_checker():
 
 
 def startup_tasks():
+    if not Path("plugins").is_dir():
+        quit("Plugins Folder does not exists!")
+    startup_logo()
     cleanup_stuff()
     setup_timezone()
     if load_dotenv and Path(".env").is_file():
