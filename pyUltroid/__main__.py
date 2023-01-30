@@ -115,7 +115,8 @@ async def init_shutdown():
     await loop.shutdown_asyncgens()
 
 
-def do_shutdown_or_restart():
+def shutdown_or_restart():
+    time.sleep(5)
     sys.stdout.flush()
     if not udB.get_key("_RESTART"):
         sys.exit(0)
@@ -133,4 +134,4 @@ if __name__ == "__main__":
         LOGS.info("Stopping Ultroid..")
         loop.run_until_complete(init_shutdown())
         loop.stop()
-        do_shutdown_or_restart()
+        shutdown_or_restart()

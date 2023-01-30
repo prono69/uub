@@ -26,7 +26,7 @@ _default_client_values = {
     "api_id": Var.API_ID,
     "api_hash": Var.API_HASH,
     "workdir": getcwd() + "/resources/temp",
-    "sleep_threshold": 80,
+    "sleep_threshold": 60,
     "workers": 6,
     "no_updates": True,
 }
@@ -45,7 +45,7 @@ def get_clients():
         LOGS.warning("Pyro env wasn't found, Skipping Pyro Run")
         return True
     data = literal_eval(stuff)
-    del environ[var]
+    # del environ[var]
     for k, v in data.items():
         _default = deepcopy(_default_client_values)
         _default.update({"name": "bot_" + str(k)})

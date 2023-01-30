@@ -49,7 +49,7 @@ def _init_multi_dbs(var):
     if not stuff:
         return LOGS.warning(f"Var {var} is not filled.!")
     LOGS.info("Loading Multi DB's..")
-    del os.environ[var]
+    # del os.environ[var]
     data = literal_eval(str(stuff))
     dct = {}
     for k, v in data.items():
