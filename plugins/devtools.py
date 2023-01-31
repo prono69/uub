@@ -183,7 +183,8 @@ async def _(event):
         return cm
 
     if spli[0] in ["-s", "--silent"]:
-        await event.delete()
+        if event.out:
+            await event.delete()
         silent = True
         cmd = await get_()
     elif spli[0] in ["-c", "--carbon"]:
@@ -201,12 +202,11 @@ async def _(event):
 
     if not silent and not xx:
         xx = await event.eor(get_string("com_1"))
-    if event.chat_id != -1001774703582:
-        LOGS.debug(cmd)
+    LOGS.debug(cmd)
     if black:
         try:
             cmd = black.format_str(cmd, mode=black.Mode())
-        except BaseException:
+        except Exception:
             # Consider it as Code Error, and move on to be shown ahead.
             pass
 
