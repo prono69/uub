@@ -106,20 +106,26 @@ async def init_shutdown():
     if ultroid_bot.is_connected():
         tasks.append(ultroid_bot.disconnect())
     if not BOT_MODE:
+        msgs = (
+            ("#restart", "Restarting Bot")
+            if udB.get_key("_RESTART")
+            else ("#exiting", "Shutting Down")
+        )
         await asst.send_message(
             udB.get_key("TAG_LOG"),
-            f"#offline\n**Shutting own Ultroid!**\n  - @{asst.me.username}\n\n🚫⭐",
+            f"{msgs[0]}\n#ultroid\n\n`{msgs[1]}..`",
         )
         tasks.append(asst.disconnect())
+    await asyncio.sleep(2)
     await asyncio.gather(*tasks, return_exceptions=True)
     await loop.shutdown_asyncgens()
 
 
 def shutdown_or_restart():
-    time.sleep(5)
     sys.stdout.flush()
     if not udB.get_key("_RESTART"):
         sys.exit(0)
+    time.sleep(5)
     python = sys.executable
     os.execl(python, python, "-m", "pyUltroid")
 
