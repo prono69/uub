@@ -278,7 +278,7 @@ async def inline_alive(ult):
         pic = choice(pic)
     uptime = time_formatter((time.time() - start_time) * 1000)
     header = udB.get_key("ALIVE_TEXT") or get_string("bot_1")
-    y = os.getenv("_BRANCH")
+    y = os.getenv("BRANCH") or "main"
     xx = Repo().remotes[0].config_reader.get("url")
     rep = xx.replace(".git", f"/tree/{y}")
     kk = f"<a href={rep}>{y}</a>"
@@ -345,7 +345,7 @@ async def _(e):
         """
 
     m = await updater()
-    branch = os.getenv("BRANCH")
+    branch = os.getenv("BRANCH") or "main"
     if m:
         pic = await random_pic(re_photo=True) if udB.get_key("RANDOM_PIC") else ULTPIC()
         x = await asst.send_file(

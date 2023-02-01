@@ -116,7 +116,7 @@ async def init_shutdown():
             f"{msgs[0]}\n#ultroid\n\n`{msgs[1]}..`",
         )
         tasks.append(asst.disconnect())
-    await asyncio.sleep(2)
+    await asyncio.sleep(3)
     await asyncio.gather(*tasks, return_exceptions=True)
     await loop.shutdown_asyncgens()
 
@@ -125,7 +125,7 @@ def shutdown_or_restart():
     sys.stdout.flush()
     if not udB.get_key("_RESTART"):
         sys.exit(0)
-    time.sleep(5)
+    time.sleep(8)
     python = sys.executable
     os.execl(python, python, "-m", "pyUltroid")
 

@@ -19,7 +19,8 @@ except RuntimeError:
     asyncio.set_event_loop(loop)
 
 
-def run_async_task(func, id=None, *args, **kwargs):
+def run_async_task(func, *args, **kwargs):
+    id = kwargs.get("id")
     while not id or id in tasks_db:
         id = secrets.token_hex(nbytes=10)
     task = loop.create_task(func(*args, **kwargs))
