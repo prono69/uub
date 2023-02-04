@@ -90,7 +90,7 @@ from .heroku import herokuApp
 
 def _host_specifics():
     if Var.HOST.lower() == "heroku":
-        LOGS.debug("Setting up Heroku API")
+        LOGS.debug("Setting up heroku3 API")
         herokuApp()
     if environ.get("qBit") and Path("1337x").is_file():
         LOGS.info("Starting qBittorrent")

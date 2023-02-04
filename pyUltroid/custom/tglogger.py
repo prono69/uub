@@ -13,7 +13,7 @@ from aiohttp import ClientSession
 from ._loop import loop, run_async_task
 
 
-_TG_MSG_LIMIT = 4020
+_TG_MSG_LIMIT = 4030
 _MAX_LOG_LIMIT = 12000
 _TG_API = "https://api.telegram.org/bot{}"
 _PAYLOAD = {"disable_web_page_preview": True, "parse_mode": "Markdown"}
@@ -38,7 +38,7 @@ class TGLogHandler(StreamHandler):
 
     def emit(self, record):
         msg = self.format(record)
-        self.log_db.append("\n\n\n" + msg)
+        self.log_db.append("\n\n" + msg)
         if not (self.active or self._floodwait):
             self.active = True
             run_async_task(self.runQueue)
@@ -97,8 +97,8 @@ class TGLogHandler(StreamHandler):
 
     async def send_message(self, message):
         payload = _PAYLOAD.copy()
-        if message.startswith("\n\n\n"):
-            message = message[3:]
+        if message.startswith("\n\n"):
+            message = message[2:]
         payload["text"] = f"```{message}```"
         if ids := self.message_id or self.doc_message_id:
             payload["reply_to_message_id"] = ids
@@ -111,8 +111,8 @@ class TGLogHandler(StreamHandler):
             await self.handle_error(res)
 
     async def edit_message(self, message):
-        if message.startswith("\n\n\n"):
-            message = message[3:]
+        if message.startswith("\n\n"):
+            message = message[2:]
         if not self.message_id:
             await self.send_message(message)
             return

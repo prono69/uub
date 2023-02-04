@@ -102,7 +102,7 @@ def setup_tglogger():
     tglogger.setLevel(logging.DEBUG)
     tglogger.setFormatter(
         logging.Formatter(
-            f"{uname} [%(levelname)s] - (%(asctime)s)\n» Line %(lineno)s: %(filename)s\n» %(message)s",
+            f"{uname} [%(levelname)s] (%(asctime)s)\n» Line %(lineno)s: %(filename)s\n» %(message)s",
             datefmt="%d %b %H:%M:%S",
         )
     )

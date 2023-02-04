@@ -49,12 +49,6 @@ class _BaseDatabase:
     def ping(self):
         return 1
 
-    def __repr__(self):
-        out = "<Ultroid.{name}\n -name: " + self._name + "{extra}\n>"
-        extra = f"-cached_keys: {len(self.keys())}" if self.to_cache else ""
-        out.format(name=self._name, extra=extra)
-        return out
-
     @property
     def usage(self):
         return 0
@@ -152,7 +146,8 @@ class MongoDB(_BaseDatabase):
         super().__init__()
 
     def __repr__(self):
-        return f"<Ultroid.MonGoDB\n -total_keys: {len(self.keys())}\n>"
+        info = f"-cached_keys: {len(self._cache)}" if self.to_cache else ""
+        return f"<Ultroid.MonGoDB \n-name: {self.name} \n{info}>"
 
     @property
     def name(self):
@@ -231,6 +226,10 @@ class SqlDB(_BaseDatabase):
     @property
     def name(self):
         return self._name
+
+    def __repr__(self):
+        info = f"-cached_keys: {len(self._cache)}" if self.to_cache else ""
+        return f"<Ultroid.SQLDB \n-name: {self.name} \n{info}>"
 
     @property
     def usage(self):
@@ -345,6 +344,10 @@ class RedisDB(_BaseDatabase):
     @property
     def name(self):
         return self._name
+
+    def __repr__(self):
+        info = f"-cached_keys: {len(self._cache)}" if self.to_cache else ""
+        return f"<Ultroid.RedisDB \n-name: {self._name} \n{info}>"
 
     @property
     def usage(self):
