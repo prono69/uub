@@ -20,7 +20,7 @@ except ImportError:
 from ._loop import loop, run_async_task
 from pyUltroid.startup import LOGS, HOSTED_ON
 from pyUltroid.fns.tools import async_searcher
-from pyUltroid.fns.helper import osremove
+from pyUltroid.fns.helper import osremove, asyncread, asyncwrite
 from pyUltroid import asst, udB, ultroid_bot
 
 
@@ -48,17 +48,6 @@ def timeit(func):
             return f"Function: {func.__name__} \nOutput: {result} \nTime taken: {time_taken:.5f} seconds."
 
         return exec_time
-
-
-async def asyncread(file, binary=False):
-    if not Path(file).is_file():
-        return
-    read_type = "rb" if binary else "r+"
-    if aiofiles:
-        async with aiofiles.open(file, read_type) as f:
-            return await f.read()
-    with open(file, read_type) as f:
-        return f.read()
 
 
 async def msg_link(message):
@@ -234,7 +223,6 @@ __all__ = [
     "timeit",
     "cleargif",
     "osremove",
-    "asyncread",
     "rnd_str",
     "get_imgbb_link",
     "random_pic",

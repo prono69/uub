@@ -12,6 +12,7 @@ import re
 import sys
 import time
 from pathlib import Path
+from secrets import token_hex
 from traceback import format_exc
 from urllib.parse import unquote
 from urllib.request import urlretrieve
@@ -211,15 +212,10 @@ async def heroku_logs(event):
         LOGS.exception("Error getting Heroku Logs: ")
         await xx.edit("Something Wrong Occured!")
 
-    if not aiohttp:
-        with open("ultroid-heroku.log", "w") as log:
-            log.write(ok)
-    else:
-        async with aiofiles.open("ultroid-heroku.log", "w") as log:
-            await log.write(ok)
+    await asyncwrite("ultroid-heroku-logs.txt", ok)
     await event.client.send_file(
         event.chat_id,
-        file="ultroid-heroku.log",
+        file="ultroid-heroku-logs.txt",
         thumb="resources/extras/ultroid.jpg",
         caption="**Ultroid Heroku Logs.**",
     )
@@ -256,6 +252,30 @@ def gen_chlog(repo, diff):
     if ch_log:
         return str(ch + ch_log), str(ch_tl + tldr_log)
     return ch_log, tldr_log
+
+
+# --------------------------------------------------------------------- #
+
+
+async def asyncread(file, binary=False):
+    if not Path(file).is_file():
+        return
+    read_type = "rb" if binary else "r+"
+    if aiofiles:
+        async with aiofiles.open(file, read_type) as f:
+            return await f.read()
+    with open(file, read_type) as f:
+        return f.read()
+
+
+async def asyncwrite(file, data, binary=True):
+    read_type = "wb+" if binary else "w+"
+    if aiofiles:
+        async with aiofiles.open(file, read_type) as f:
+            await f.write(data)
+    else:
+        with open(file, read_type) as f:
+            f.write(data)
 
 
 # --------------------------------------------------------------------- #
@@ -366,12 +386,11 @@ async def download_file(link, name):
     if aiohttp:
         async with aiohttp.ClientSession() as ses:
             async with ses.get(link) as re_ses:
-                with open(name, "wb") as file:
-                    file.write(await re_ses.read())
+                content = await re_ses.read()
+                await asyncwrite(name, content)
     elif requests:
         content = requests.get(link).content
-        with open(name, "wb") as file:
-            file.write(content)
+        await asyncwrite(name, content)
     else:
         raise Exception("Aiohttp or requests is not installed.")
     return name
@@ -383,19 +402,19 @@ async def fast_download(download_url, filename=None, progress_callback=None):
     async with aiohttp.ClientSession() as session:
         async with session.get(download_url, timeout=None) as response:
             if not filename:
-                filename = unquote(download_url.rpartition("/")[-1])
+                try:
+                    filename = unquote(download_url.rpartition("/")[-1])
+                except:
+                    filename = token_hex(nbytes=6)
             total_size = int(response.headers.get("content-length", 0)) or None
             downloaded_size = 0
             start_time = time.time()
-            with open(filename, "wb") as f:
-                async for chunk in response.content.iter_chunked(1024):
-                    if chunk:
-                        f.write(chunk)
-                        downloaded_size += len(chunk)
-                    if progress_callback and total_size:
-                        await _maybe_await(
-                            progress_callback(downloaded_size, total_size)
-                        )
+            async for chunk in response.content.iter_chunked(128 * 1024):
+                if chunk:
+                    await asyncwrite(filename, chunk)
+                    downloaded_size += len(chunk)
+                if progress_callback and total_size:
+                    await _maybe_await(progress_callback(downloaded_size, total_size))
             return filename, time.time() - start_time
 
 
