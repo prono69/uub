@@ -1,4 +1,4 @@
 __version__ = "2022.12.18"
 ultroid_version = "0.7.2"
 
-moi_version = "04.02"
+moi_version = "06.02"

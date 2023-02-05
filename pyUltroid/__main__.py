@@ -116,7 +116,7 @@ async def init_shutdown():
             f"{msgs[0]}\n#ultroid\n\n`{msgs[1]}..`",
         )
         tasks.append(asst.disconnect())
-    await asyncio.sleep(3)
+    await asyncio.sleep(5)
     await asyncio.gather(*tasks, return_exceptions=True)
     await loop.shutdown_asyncgens()
 

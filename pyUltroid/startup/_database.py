@@ -147,7 +147,7 @@ class MongoDB(_BaseDatabase):
 
     def __repr__(self):
         info = f"-cached_keys: {len(self._cache)}" if self.to_cache else ""
-        return f"<Ultroid.MonGoDB \n-name: {self.name} \n{info}>"
+        return f"<Ultroid.MonGoDB \n-name: {self.name} \n{info}\n>"
 
     @property
     def name(self):
@@ -229,7 +229,7 @@ class SqlDB(_BaseDatabase):
 
     def __repr__(self):
         info = f"-cached_keys: {len(self._cache)}" if self.to_cache else ""
-        return f"<Ultroid.SQLDB \n-name: {self.name} \n{info}>"
+        return f"<Ultroid.SQLDB \n-name: {self.name} \n{info}\n>"
 
     @property
     def usage(self):
@@ -347,7 +347,7 @@ class RedisDB(_BaseDatabase):
 
     def __repr__(self):
         info = f"-cached_keys: {len(self._cache)}" if self.to_cache else ""
-        return f"<Ultroid.RedisDB \n-name: {self._name} \n{info}>"
+        return f"<Ultroid.RedisDB \n-name: {self._name} \n{info}\n>"
 
     @property
     def usage(self):

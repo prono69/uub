@@ -62,6 +62,7 @@ from ..dB._core import ADDONS, HELP, LIST, LOADED
 from ..version import ultroid_version
 from .FastTelethon import download_file as downloadable
 from .FastTelethon import upload_file as uploadable
+from .tools import check_filename
 
 
 def run_async(function):
@@ -212,15 +213,16 @@ async def heroku_logs(event):
         LOGS.exception("Error getting Heroku Logs: ")
         await xx.edit("Something Wrong Occured!")
 
-    await asyncwrite("ultroid-heroku-logs.txt", ok)
+    filename = check_filename("ultroid-heroku-logs.txt")
+    await asyncwrite(filename, ok, mode="w+")
     await event.client.send_file(
         event.chat_id,
-        file="ultroid-heroku-logs.txt",
+        file=filename,
         thumb="resources/extras/ultroid.jpg",
         caption="**Ultroid Heroku Logs.**",
     )
 
-    os.remove("ultroid-heroku.log")
+    os.remove(filename)
     await xx.delete()
 
 
@@ -268,13 +270,12 @@ async def asyncread(file, binary=False):
         return f.read()
 
 
-async def asyncwrite(file, data, binary=True):
-    read_type = "wb+" if binary else "w+"
+async def asyncwrite(file, data, mode):
     if aiofiles:
-        async with aiofiles.open(file, read_type) as f:
+        async with aiofiles.open(file, mode) as f:
             await f.write(data)
     else:
-        with open(file, read_type) as f:
+        with open(file, mode) as f:
             f.write(data)
 
 
@@ -383,14 +384,15 @@ async def downloader(filename, file, event, taime, msg):
 
 async def download_file(link, name):
     """for files, without progress callback with aiohttp"""
+    name = check_filename(name)
     if aiohttp:
         async with aiohttp.ClientSession() as ses:
             async with ses.get(link) as re_ses:
                 content = await re_ses.read()
-                await asyncwrite(name, content)
+                await asyncwrite(name, content, mode="ab+")
     elif requests:
         content = requests.get(link).content
-        await asyncwrite(name, content)
+        await asyncwrite(name, content, mode="ab+")
     else:
         raise Exception("Aiohttp or requests is not installed.")
     return name
@@ -399,19 +401,22 @@ async def download_file(link, name):
 async def fast_download(download_url, filename=None, progress_callback=None):
     if not aiohttp:
         return await download_file(download_url, filename)
+    if not filename:
+        try:
+            filename = "resources/downloads/" + unquote(
+                download_url.rpartition("/")[-1]
+            )
+        except:
+            filename = "resources/downloads/" + token_hex(nbytes=6)
+    filename = check_filename(filename)
     async with aiohttp.ClientSession() as session:
         async with session.get(download_url, timeout=None) as response:
-            if not filename:
-                try:
-                    filename = unquote(download_url.rpartition("/")[-1])
-                except:
-                    filename = token_hex(nbytes=6)
             total_size = int(response.headers.get("content-length", 0)) or None
             downloaded_size = 0
             start_time = time.time()
-            async for chunk in response.content.iter_chunked(128 * 1024):
+            async for chunk in response.content.iter_chunked(512 * 1024):
                 if chunk:
-                    await asyncwrite(filename, chunk)
+                    await asyncwrite(filename, chunk, mode="ab+")
                     downloaded_size += len(chunk)
                 if progress_callback and total_size:
                     await _maybe_await(progress_callback(downloaded_size, total_size))
@@ -540,7 +545,7 @@ async def progress(current, total, event, start, type_of_ps, file_name=None):
         No_Flood.update({jost: now})
         await event.edit(to_edit)
     except MessageNotModifiedError as exc:
-        LOGS.error("err in progress: message_not_modified")
+        LOGS.warning("err in progress: message_not_modified")
 
 
 # ------------------System\\Heroku stuff----------------
