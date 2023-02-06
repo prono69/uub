@@ -62,7 +62,6 @@ from ..dB._core import ADDONS, HELP, LIST, LOADED
 from ..version import ultroid_version
 from .FastTelethon import download_file as downloadable
 from .FastTelethon import upload_file as uploadable
-from .tools import check_filename
 
 
 def run_async(function):
@@ -77,6 +76,18 @@ def run_async(function):
 
 
 # ~~~~~~~~~~~~~~~~~~~~ small funcs ~~~~~~~~~~~~~~~~~~~~ #
+
+
+def check_filename(filroid):
+    if os.path.exists(filroid):
+        no = 1
+        while True:
+            ult = "{0}_{2}{1}".format(*os.path.splitext(filroid) + (no,))
+            if os.path.exists(ult):
+                no += 1
+            else:
+                return ult
+    return filroid
 
 
 def make_mention(user, custom=None):

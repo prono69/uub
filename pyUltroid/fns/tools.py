@@ -18,7 +18,7 @@ from shlex import quote as shq
 from traceback import format_exc
 
 from .. import *
-from .helper import bash, humanbytes, run_async
+from .helper import bash, check_filename, humanbytes, run_async
 from ..exceptions import DependencyMissingError
 
 try:
@@ -429,18 +429,6 @@ async def get_chatbot_reply(message):
         return (await async_searcher(req_link, re_json=True)).get("reply")
     except Exception:
         LOGS.info(f"**ERROR:**`{format_exc()}`")
-
-
-def check_filename(filroid):
-    if os.path.exists(filroid):
-        no = 1
-        while True:
-            ult = "{0}_{2}{1}".format(*os.path.splitext(filroid) + (no,))
-            if os.path.exists(ult):
-                no += 1
-            else:
-                return ult
-    return filroid
 
 
 # ------ Audio \\ Video tools func --------#
