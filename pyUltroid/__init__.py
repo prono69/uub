@@ -11,7 +11,7 @@ start_time = time.time()
 
 
 from .version import __version__, ultroid_version
-from pyUltroid.custom.init import loop, tasks_db
+from .custom.init import loop, tasks_db
 from .configs import Var
 from .startup import *
 
@@ -24,12 +24,14 @@ class ULTConfig:
 _ult_cache = {}
 _ignore_eval = []
 
+from .custom.init import afterBoot
 from .startup._database import udB
 from .startup.BaseClient import UltroidClient
 from .startup.connections import validate_session, vc_connection
 from .startup.funcs import autobot, enable_inline
 
 
+afterBoot(udB)
 BOT_MODE = udB.get_key("BOTMODE")
 DUAL_MODE = udB.get_key("DUAL_MODE")
 

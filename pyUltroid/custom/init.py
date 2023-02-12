@@ -69,7 +69,8 @@ def telethon_checker():
 
 def startup_tasks():
     if not Path("plugins").is_dir():
-        quit("Plugins Folder does not exists!")
+        print("Plugins Folder does not exists!")
+        quit(0)
     startup_logo()
     cleanup_stuff()
     setup_timezone()
@@ -98,10 +99,20 @@ def _host_specifics():
 
 
 def delayed_startup_tasks():
+    undel = ("local", "railway", "wfs", "doprax")
     env = Path(".env")
-    if Var.HOST.lower() not in ("local", "railway", "wfs") and env.is_file():
+    if Var.HOST.lower() not in undel and env.is_file():
         env.unlink()
     _host_specifics()
+
+
+# doprax checks
+def afterBoot(db):
+    if Var.HOST.lower() == "doprax":
+        chk = environ.get("CHECKS")
+        if not chk or (chk and chk not in db.get_key("DOPRAX")):
+            print("check the 'CHECKS' Var...")
+            quit(0)
 
 
 delayed_startup_tasks()

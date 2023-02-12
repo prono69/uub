@@ -51,7 +51,7 @@ if HOSTED_ON == "local" or environ.get("HOST") == "local":
 
 if data := environ.get("LOGGER_DATA"):
     LOG_DATA = literal_eval(data)
-    # environ.pop("LOGGER_DATA")
+    environ.pop("LOGGER_DATA")
 
 # ----------------------------------------------------------------------------
 

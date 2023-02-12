@@ -45,7 +45,7 @@ def get_clients():
         LOGS.warning("Pyro env wasn't found, Skipping Pyro Run")
         return True
     data = literal_eval(stuff)
-    # del environ[var]
+    del environ[var]
     for k, v in data.items():
         _default = deepcopy(_default_client_values)
         _default.update({"name": "bot_" + str(k)})
