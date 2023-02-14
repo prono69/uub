@@ -52,13 +52,12 @@ def inline_pic():
 
 try:
     from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
-    scheduler = AsyncIOScheduler()
-    scheduler.start()
 except ModuleNotFoundError as er:
     scheduler = None
     LOGS.error(f"'{er.name}' is not installed. Some Plugins might not Work.")
-
+else:
+    scheduler = AsyncIOScheduler()
+    scheduler.start()
 
 List = []
 Dict = {}

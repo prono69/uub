@@ -40,6 +40,11 @@ try:
 except ImportError:
     requests = None
 
+try:
+    import aiohttp
+except ImportError:
+    aiohttp = None
+
 from telethon import Button
 from telethon.tl.types import DocumentAttributeAudio, DocumentAttributeVideo
 
@@ -90,9 +95,7 @@ async def async_searcher(
     *args,
     **kwargs,
 ):
-    try:
-        import aiohttp
-    except ImportError:
+    if not aiohttp:
         raise DependencyMissingError(
             "'aiohttp' is not installed!\nthis function requires aiohttp to be installed."
         )
@@ -563,19 +566,20 @@ def make_html_telegraph(title, html=""):
 
 async def Carbon(
     code,
-    base_url="https://rayso-api-desvhu-33.koyeb.app/generate",
+    base_url="https://carbonara.vercel.app/api/cook",
     file_name="ultroid",
     download=False,
     rayso=False,
     **kwargs,
 ):
-    # if rayso:
-    kwargs["text"] = code
-    kwargs["theme"] = kwargs.get("theme", "meadow")
-    kwargs["darkMode"] = kwargs.get("darkMode", True)
-    kwargs["title"] = kwargs.get("title", "Ultroid")
-    # else:
-    # kwargs["code"] = code
+    if rayso:
+        base_url = "https://rayso-api-desvhu-33.koyeb.app/generate"
+        kwargs["text"] = code
+        kwargs["theme"] = kwargs.get("theme", "meadow")
+        kwargs["darkMode"] = kwargs.get("darkMode", True)
+        kwargs["title"] = kwargs.get("title", "Ultroid")
+    else:
+        kwargs["code"] = code
     con = await async_searcher(base_url, post=True, json=kwargs, re_content=True)
     if not download:
         file = BytesIO(con)

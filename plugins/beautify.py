@@ -10,11 +10,13 @@ from . import get_help
 __doc__ = get_help("help_beautify")
 
 
+import os
 import random
 
 from telethon.utils import get_display_name
 
-from . import Carbon, eor, get_string, inline_mention, os, ultroid_cmd
+from . import Carbon, eor, get_string, inline_mention, ultroid_cmd
+
 
 _colorspath = "resources/colorlist.txt"
 
