@@ -77,7 +77,7 @@ class TGMediaInfo:
     @staticmethod
     def _get_frame_count(file):
         cmd = f"ffprobe -hide_banner -v error -select_streams v:0 -show_entries stream=nb_read_packets -of default=noprint_wrappers=1 {quote(file)}"
-        # // -count_frames is sus. //
+        # -count_frames > slow
         try:
             res = run(split(cmd), capture_output=True, text=True)
             if res.returncode == 0:
@@ -119,14 +119,17 @@ class TGMediaInfo:
             and data.get("width") == 512
         ):
             data["type"] = "sticker"
+
         # recheck frame count
         if not data.get("frames"):
             if frames := self._get_frame_count(self.path):
                 data["frames"] = frames
+
         # recheck bitrate
         if not data.get("bitrate"):
             if b_rate := self._get_bitrate(self.path):
                 data["bitrate"] = b_rate
+
         # gif check
         format = _parser(self.track, "format", 0)
         if format and format.lower() == "gif":
@@ -140,6 +143,7 @@ class TGMediaInfo:
         out = {
             "type": "video",
             "duration": duration,
+            "has_audio": bool(self.obj.audio_tracks),
             "width": _parser(self.track, "width"),
             "height": _parser(self.track, "height"),
             "bitrate": _parser(self.track, "bit_rate"),

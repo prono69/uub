@@ -23,6 +23,7 @@ from os.path import getsize
 from pathlib import Path
 from re import findall
 from time import time
+from traceback import format_exc
 
 from telethon.errors.rpcerrorlist import MessageNotModifiedError, MessageIdInvalidError
 
@@ -54,7 +55,7 @@ def fix_resolution(width, height):
         if height > _height:
             _div = height / _height
             return m4(round(width / _div)), _height
-    _height = 1280  # portrait
+    _height = 1280
     if height > _height:
         _div = height / _height
         return m4(round(width / _div)), _height
@@ -96,7 +97,6 @@ async def og_compressor(e):
         await xxx.edit(
             f"`Downloaded {path} of {humanbytes(o_size)} in {dlx.dl_time}... \n\nNow Compressing...`"
         )
-
     else:
         return await xxx.eor(get_string("audiotools_8"), time=8)
 
@@ -104,8 +104,8 @@ async def og_compressor(e):
     if _isgif:
         _audio = ""
         codec = "libx264"
-    out = check_filename(f"resources/downloads/{Path(path).stem}-compressed.mp4")
-    slp_time = 10 if e.client._bot else 8
+    out = check_filename("resources/downloads/" + Path(path).stem + "-compressed.mp4")
+    slp_time = 10  # if e.client._bot else 8
     minfo = media_info(path)
     total_frame = minfo.get("frames")
     c_time = time()
@@ -115,7 +115,7 @@ async def og_compressor(e):
     # total_frame = x.split(":")[1].split("\n")[0]
     text = f"`Compressing {Path(out).name} at {crf} CRF` \n"
     progress = check_filename(f"progress-{c_time}.txt")
-    with open(progress, "w+") as hmm:
+    with open(progress, "w+") as f:
         pass
 
     if args.kwargs.pop("r", 0):
@@ -141,7 +141,7 @@ async def og_compressor(e):
     )
 
     # Starting Compress!
-    while proce.returncode != 0:
+    while not proce.returncode:
         speed = 0
         await asyncio.sleep(slp_time)
         filetext = await asyncread(progress)
@@ -180,25 +180,34 @@ async def og_compressor(e):
             try:
                 await xxx.edit(p_text)
             except MessageNotModifiedError:
-                LOGS.exception("Compressor msg edit err..")
+                LOGS.warning("Compressor msg edit err..")
+                LOGS.debug(format_exc())
             except MessageIdInvalidError:
-                await asyncio.sleep(3)
-                n = [progress, out]
+                proce.kill()
+                await asyncio.sleep(6)
+                osremove(progress, out)
                 if to_delete:
-                    n.append(path)
-                return osremove(n)
+                    osremove(path)
+                return LOGS.debug(f"cancelled compression: {path}")
 
     # Uploader
     if to_delete:
         osremove(path)
-    c_size = getsize(out)
-    difff = time_formatter((time() - c_time) * 1000)
     osremove(progress)
+    difff = time_formatter((time() - c_time) * 1000)
+
+    minfo = media_info(out)
+    if minfo.get("type") == "video" and not minfo.get("has_audio"):
+        o_path = Path(out)
+        out = check_filename(str(o_path.parent.joinpath(o_path.stem + ".mkv")))
+        o_path.rename(out)
+
+    c_size = getsize(out)
     await xxx.edit(
         f"`Compressed {humanbytes(o_size)} to {humanbytes(c_size)} in {difff}\nTrying to Upload...`"
     )
     differ = 100 - ((c_size / o_size) * 100)
-    minfo = media_info(out)
+
     edtext = f"{minfo.get('height')}p"
     if frames := minfo.get("frames"):
         edtext += f"@{round(frames / minfo.get('duration'))}fps"
