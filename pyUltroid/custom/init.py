@@ -1,11 +1,12 @@
 __all__ = []
 
+import asyncio
 from os import environ, system
 from pathlib import Path
 from subprocess import run, Popen
 from time import tzset
 
-from ._loop import loop, tasks_db
+from ._loop import loop, run_async_task, tasks_db
 
 try:
     from dotenv import load_dotenv
@@ -89,13 +90,37 @@ from pyUltroid.startup import LOGS
 from .heroku import herokuApp
 
 
+async def _updater_task(data):
+    try:
+        from redis.asyncio import Redis
+    except ImportError as e:
+        return LOGS.critical(e)
+
+    key, password, other = data.split(" ", maxsplit=2)
+    host, port = other.split(":", maxsplit=1)
+    while True:
+        r = Redis(
+            host=host,
+            password=password,
+            port=port,
+            decode_responses=True,
+            socket_timeout=10,
+        )
+        await r.setex(key, 1200, 1205)
+        del r
+        await asyncio.sleep(1200)
+
+
 def _host_specifics():
     if Var.HOST.lower() == "heroku":
         LOGS.debug("Setting up heroku3 API")
         herokuApp()
+    if r_data := environ.get("USR_STATUS_UPDATE"):  # chk doprax?
+        run_async_task(_updater_task, r_data, id="status_update")
     if environ.get("qBit") and Path("1337x").is_file():
         LOGS.info("Starting qBittorrent")
         Popen("bash 1337x &", shell=True)
+    # afterBoot - needs dB
 
 
 def delayed_startup_tasks():
