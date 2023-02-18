@@ -26,7 +26,7 @@ def main():
     )
     from .startup.loader import load_other_plugins
 
-    # Option to Auto Update On Restarts..
+    # Option to Auto Update On Restart..
     """
     if (
         udB.get_key("UPDATE_ON_RESTART")
@@ -37,14 +37,14 @@ def main():
         os.execl(sys.executable, "python3", "-m", "pyUltroid")
     """
 
+    LOGS.info("Initialising...")
+
     ultroid_bot.run_in_loop(startup_stuff())
 
     ultroid_bot.me.phone = None
 
     if not ultroid_bot.me.bot:
         udB.set_key("OWNER_ID", ultroid_bot.uid)
-
-    LOGS.info("Initialising...")
 
     ultroid_bot.run_in_loop(autopilot())
 

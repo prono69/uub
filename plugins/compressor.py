@@ -141,7 +141,7 @@ async def og_compressor(e):
     )
 
     # Starting Compress!
-    while not proce.returncode:
+    while type(proce.returncode) != int:
         speed = 0
         await asyncio.sleep(slp_time)
         filetext = await asyncread(progress)
@@ -183,7 +183,10 @@ async def og_compressor(e):
                 LOGS.warning("Compressor msg edit err..")
                 LOGS.debug(format_exc())
             except MessageIdInvalidError:
-                proce.kill()
+                try:
+                    proce.kill()
+                except:
+                    pass
                 await asyncio.sleep(6)
                 osremove(progress, out)
                 if to_delete:
