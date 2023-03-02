@@ -18,6 +18,7 @@ from .. import LOGS, asst, udB, ultroid_bot
 from ..fns.admins import admin_check
 from . import append_or_update, owner_and_sudos
 
+
 OWNER = ultroid_bot.full_name
 
 MSG = f"""
@@ -40,8 +41,6 @@ IN_BTTS = [
 
 
 # decorator for assistant
-
-
 def asst_cmd(pattern=None, load=None, owner=False, **kwargs):
     """Decorator for assistant's command"""
     name = inspect.stack()[1].filename.split("/")[-1].replace(".py", "")
@@ -50,15 +49,23 @@ def asst_cmd(pattern=None, load=None, owner=False, **kwargs):
     def ult(func):
         if pattern:
             kwargs["pattern"] = re.compile(f"^/{pattern}")
-        if owner:
-            kwargs["from_users"] = owner_and_sudos
-        asst.add_event_handler(func, NewMessage(**kwargs))
+
+        async def handler(event):
+            if owner and event.sender_id not in owner_and_sudos():
+                return
+            try:
+                await func(event)
+            except Exception as er:
+                LOGS.exception(er)
+
+        asst.add_event_handler(handler, NewMessage(**kwargs))
         if load is not None:
             append_or_update(load, func, name, kwargs)
 
     return ult
 
 
+# callback decorator for assistant
 def callback(data=None, from_users=[], admins=False, owner=False, **kwargs):
     """Assistant's callback decorator"""
     if "me" in from_users:
@@ -83,6 +90,7 @@ def callback(data=None, from_users=[], admins=False, owner=False, **kwargs):
     return ultr
 
 
+# inline decorator for assistant
 def in_pattern(pattern=None, owner=False, **kwargs):
     """Assistant's inline decorator."""
 
@@ -132,7 +140,7 @@ def in_pattern(pattern=None, owner=False, **kwargs):
                             )
                         ]
                     )
-                except (QueryIdInvalidError, ResultIdDuplicateError) as err:
+                except (QueryIdInvalidError, ResultIdDuplicateError):
                     LOGS.exception(err)
                 except Exception as er:
                     LOGS.exception(er)

@@ -84,8 +84,8 @@ def update_envs():
     """Update Var. attributes to udB"""
     from .. import udB
 
-    for envs in list(os.environ):
-        if envs in ["LOG_CHANNEL", "BOT_TOKEN"] or envs in udB.keys():
+    for envs in tuple(os.environ):
+        if envs in ("LOG_CHANNEL", "BOT_TOKEN") or envs in udB.keys():
             udB.set_key(envs, os.environ[envs])
 
 
@@ -145,7 +145,7 @@ async def autobot():
         LOGS.critical(
             "Please make a Bot from @BotFather and add it's token in BOT_TOKEN, as an env var and restart me."
         )
-        quit()
+        quit(0)
 
     await ultroid_bot.send_message(bf, name)
     await asyncio.sleep(1)
@@ -158,7 +158,7 @@ async def autobot():
             LOGS.critical(
                 "Please make a Bot from @BotFather and add it's token in BOT_TOKEN, as an env var and restart me."
             )
-            quit()
+            quit(0)
 
     await ultroid_bot.send_message(bf, username)
     await asyncio.sleep(1)
@@ -181,7 +181,7 @@ async def autobot():
         LOGS.info(
             "Please Delete Some Of your Telegram bots at @Botfather or Set Var BOT_TOKEN with token of a bot"
         )
-        quit()
+        quit(0)
 
 
 async def autopilot():
@@ -278,7 +278,7 @@ async def autopilot():
                 LOGS.info("Error while promoting assistant in Log Channel..")
                 LOGS.exception(er)
     if isinstance(chat.photo, ChatPhotoEmpty):
-        photo = await download_file(
+        photo, _ = await download_file(
             "https://graph.org/file/27c6812becf6f376cbb10.jpg", "channelphoto.jpg"
         )
         ll = await ultroid_bot.upload_file(photo)
@@ -314,7 +314,7 @@ async def customize():
             ]
         )
         if not os.path.exists(file):
-            file = await download_file(file, "profile.jpg")
+            file, _ = await download_file(file, "profile.jpg")
             rem = True
         msg = await asst.send_message(
             chat_id, "**Auto Customisation** Started on @Botfather"
@@ -426,24 +426,60 @@ async def plug(plugin_channels):
                 if not os.path.exists(plugin):
                     await asyncio.sleep(0.6)
                     plugin = await x.download_media(plugin)
-                try:
-                    load_addons(plugin)
-                except Exception as e:
-                    LOGS.info(f"Ultroid - PLUGIN_CHANNEL - ERROR - {plugin}")
-                    LOGS.exception(e)
-                    os.remove(plugin)
+                    try:
+                        load_addons(plugin)
+                    except Exception as e:
+                        LOGS.info(f"Ultroid - PLUGIN_CHANNEL - ERROR - {plugin}")
+                        LOGS.exception(e)
+                        os.remove(plugin)
         except Exception as er:
             LOGS.exception(er)
 
 
 # some stuffs
-async def ready():
-    from .. import asst, udB, ultroid_bot, _ult_cache
+
+
+async def fetch_ann():
+    from .. import asst, udB
     from ..fns.tools import async_searcher
+
+    get_ = udB.get_key("OLDANN") or []
+    chat_id = udB.get_key("LOG_CHANNEL")
+
+    try:
+        updts = await async_searcher(
+            "https://ultroid-api.vercel.app/announcements", post=True, re_json=True
+        )
+        for upt in updts:
+            key = list(upt.keys())[0]
+            if key not in get_:
+                cont = upt[key]
+                if isinstance(cont, dict) and cont.get("lang"):
+                    if cont["lang"] != (udB.get_key("language") or "en"):
+                        continue
+                    cont = cont["msg"]
+                if isinstance(cont, str):
+                    await asst.send_message(chat_id, cont)
+                elif isinstance(cont, dict) and cont.get("chat"):
+                    await asst.forward_messages(chat_id, cont["msg_id"], cont["chat"])
+                else:
+                    LOGS.info(cont)
+                    LOGS.info(
+                        "Invalid Type of Announcement Detected!\nMake sure you are on latest version.."
+                    )
+                get_.append(key)
+        udB.set_key("OLDANN", get_)
+    except Exception as er:
+        LOGS.exception(er)
+
+
+async def ready():
+    from .. import asst, udB, ultroid_bot
 
     chat_id = udB.get_key("LOG_CHANNEL")
     spam_sent = None
-    if not udB.get_key("INIT_DEPLOY"):  # Detailed Message at Initial Deploy
+    if not udB.get_key("INIT_DEPLOY"):
+        # Detailed Message at Initial Deploy
         MSG = """🎇 **Thanks for Deploying Ultroid Userbot!**
 • Here, are the Some Basic stuff from, where you can Know, about its Usage."""
         PHOTO = "https://graph.org/file/54a917cc9dbb94733ea5f.jpg"
@@ -484,29 +520,7 @@ async def ready():
 
     # if spam_sent and not spam_sent.media:
     # udB.set_key("LAST_UPDATE_LOG_SPAM", spam_sent.id)
-
-    get_ = udB.get_key("OLDANN") or []
-    try:
-        updts = await async_searcher(
-            "https://ultroid-api.vercel.app/announcements", post=True, re_json=True
-        )
-        for upt in updts:
-            key = list(upt.keys())[0]
-            if key not in get_:
-                cont = upt[key]
-                if isinstance(cont, str):
-                    await asst.send_message(chat_id, cont)
-                elif isinstance(cont, dict) and cont.get("chat"):
-                    await asst.forward_messages(chat_id, cont["msg_id"], cont["chat"])
-                else:
-                    LOGS.info(cont)
-                    LOGS.info(
-                        "Invalid Type of Announcement Detected!\nMake sure you are on latest version.."
-                    )
-                get_.append(key)
-        udB.set_key("OLDANN", get_)
-    except Exception as er:
-        LOGS.exception(er)
+    await fetch_ann()
 
 
 async def WasItRestart(udb):
@@ -522,12 +536,12 @@ async def WasItRestart(udb):
             int(data[1]), int(data[2]), "__Restarted Successfully.__"
         )
     except Exception as er:
-        LOGS.exception("Restart Message Edit Error:")
+        LOGS.exception("Restart Message Edit Error")
     udb.del_key("_RESTART")
 
 
 def _version_changes(udb):
-    for _ in [
+    for _ in (
         "BOT_USERS",
         "BOT_BLS",
         "VC_SUDOS",
@@ -538,7 +552,7 @@ def _version_changes(udb):
         "CH_SOURCE",
         "CH_DESTINATION",
         "BROADCAST",
-    ]:
+    ):
         key = udb.get_key(_)
         if key and str(key)[0] != "[":
             key = udb.get(_)

@@ -4,6 +4,7 @@
 # This file is a part of < https://github.com/TeamUltroid/Ultroid/ >
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
+
 """
 ✘ Commands Available -
 
@@ -82,8 +83,18 @@ from telethon.tl.functions.channels import (
 from telethon.tl.functions.contacts import GetBlockedRequest
 from telethon.tl.functions.messages import AddChatUserRequest, GetAllStickersRequest
 from telethon.tl.functions.users import GetFullUserRequest
-from telethon.tl.types import Channel, Chat, InputMediaPoll, Poll, PollAnswer, User
+from telethon.tl.types import (
+    Channel,
+    Chat,
+    InputMediaPoll,
+    Poll,
+    PollAnswer,
+    TLObject,
+    User,
+)
 from telethon.utils import get_peer_id
+
+from pyUltroid.fns.info import get_chat_info
 
 from . import (
     HNDLR,
@@ -92,17 +103,18 @@ from . import (
     ReTrieveFile,
     Telegraph,
     asst,
+    asyncread,
     async_searcher,
     bash,
     check_filename,
     eod,
     eor,
-    get_chat_info,
     get_paste,
     get_string,
     inline_mention,
     json_parser,
     mediainfo,
+    osremove,
     udB,
     ultroid_cmd,
 )
@@ -237,9 +249,8 @@ async def _(event):
                 previous_message,
                 "./resources/downloads",
             )
-            with open(downloaded_file_name, "r") as fd:
-                message = fd.read()
-            os.remove(downloaded_file_name)
+            message = await asyncread(downloaded_file_name)
+            osremove(downloaded_file_name)
         else:
             message = previous_message.message
     else:
@@ -429,16 +440,16 @@ async def abs_rmbg(event):
             event, f"Use `{HNDLR}rmbg` as reply to a pic to remove its background."
         )
     if not (dl and dl.endswith(("webp", "jpg", "png", "jpeg"))):
-        os.remove(dl)
+        osremove(dl)
         return await event.eor(get_string("com_4"))
     if dl.endswith("webp"):
         file = f"{dl}.png"
         Image.open(dl).save(file)
-        os.remove(dl)
+        osremove(dl)
         dl = file
     xx = await event.eor("`Sending to remove.bg`")
     dn, out = await ReTrieveFile(dl)
-    os.remove(dl)
+    osremove(dl)
     if not dn:
         dr = out["errors"][0]
         de = dr.get("detail", "")
@@ -457,8 +468,7 @@ async def abs_rmbg(event):
         reply_to=reply,
     )
     await event.client.send_file(event.chat_id, wbn, reply_to=reply)
-    os.remove(out)
-    os.remove(wbn)
+    osremove(out, wbn)
     await xx.delete()
 
 
@@ -479,12 +489,12 @@ async def telegraphcmd(event):
         if dar == "sticker":
             file = f"{getit}.png"
             Image.open(getit).save(file)
-            os.remove(getit)
+            osremove(getit)
             getit = file
         elif dar.endswith("animated"):
             file = f"{getit}.gif"
             await bash(f"lottie_convert.py '{getit}' {file}")
-            os.remove(getit)
+            osremove(getit)
             getit = file
         if "document" not in dar:
             try:
@@ -492,10 +502,10 @@ async def telegraphcmd(event):
                 amsg = f"Uploaded to [Telegraph]({nn}) !"
             except Exception as e:
                 amsg = f"Error : {e}"
-            os.remove(getit)
+            osremove(getit)
             return await xx.eor(amsg)
         content = pathlib.Path(getit).read_text()
-        os.remove(getit)
+        osremove(getit)
     makeit = Telegraph.create_page(title=match, content=[content])
     await xx.eor(
         f"Pasted to Telegraph : [Telegraph]({makeit['url']})", link_preview=False
@@ -512,16 +522,28 @@ async def _(event):
     else:
         msg = event
         reply_to_id = event.message.id
-    if match and hasattr(msg, match):
-        msg = getattr(msg, match)
-        if hasattr(msg, "to_json"):
-            try:
-                msg = json_parser(msg.to_json(ensure_ascii=False), indent=1)
-            except Exception as e:
-                LOGS.exception(e)
+    if match and hasattr(msg, match.split()[0]):
+        msg = getattr(msg, match.split()[0])
+        try:
+            if hasattr(msg, "to_json"):
+                msg = msg.to_json(ensure_ascii=False, indent=1)
+            elif hasattr(msg, "to_dict"):
+                msg = json_parser(msg.to_dict(), indent=1)
+            else:
+                msg = TLObject.stringify(msg)
+        except Exception:
+            pass
         msg = str(msg)
     else:
         msg = json_parser(msg.to_json(), indent=1)
+    if "-t" in match:
+        try:
+            data = json_parser(msg)
+            msg = json_parser(
+                {key: data[key] for key in data.keys() if data[key]}, indent=1
+            )
+        except Exception:
+            pass
     if len(msg) > 4096:
         with io.BytesIO(str.encode(msg)) as out_file:
             out_file.name = "json-ult.txt"
@@ -668,7 +690,7 @@ async def thumb_dl(event):
     x = await event.get_reply_message()
     m = await x.download_media(thumb=-1)
     await event.reply(file=m)
-    os.remove(m)
+    osremove(m)
 
 
 @ultroid_cmd(pattern="getmsg( ?(.*)|$)")
@@ -724,4 +746,4 @@ async def get_restriced_msg(event):
         )
         await xx.delete()
         if thumb:
-            os.remove(thumb)
+            osremove(thumb)

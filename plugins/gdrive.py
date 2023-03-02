@@ -114,7 +114,7 @@ async def _(event):
         if isinstance(filename, Exception):
             return await mone.edit(f"Error in downloading: `{filename}`")
         await mone.edit(
-            f"`Downloaded to ```{filename}```",
+            f"Downloaded to ```{filename}```",
         )
     else:
         filename = input_file.strip()
@@ -144,7 +144,7 @@ async def _(event):
                         f"Exception occurred while uploading to gDrive {e}"
                     )
         return await mone.edit(
-            f"`Uploaded `[{filename}](https://drive.google.com/folderview?id={folder_id})` with {c} files.`"
+            f"`Uploaded [{filename}](https://drive.google.com/folderview?id={folder_id}) with {c} files.`"
         )
     try:
         g_drive_link = await GDrive._upload_file(

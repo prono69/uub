@@ -13,6 +13,7 @@ from telethon.tl.functions.channels import GetParticipantRequest
 from telethon.utils import get_display_name
 
 from pyUltroid.dB import stickers
+from pyUltroid.dB.echo_db import check_echo
 from pyUltroid.dB.forcesub_db import get_forcesetting
 from pyUltroid.dB.gban_mute_db import is_gbanned
 from pyUltroid.dB.greetings_db import get_goodbye, get_welcome, must_thank
@@ -29,24 +30,28 @@ from . import LOG_CHANNEL, LOGS, asst, get_string, types, udB, ultroid_bot
 from ._inline import something
 
 
-if udB.get_key("USERNAME_LOG"):
-
-    @ultroid_bot.on(events.Raw(types.UpdateUserName))
-    async def uname_change(e):
-        await uname_stuff(e.user_id, e.username, e.first_name)
-
-
-@asst.on(events.ChatAction(func=lambda e: e.user_added))
-async def asst_join(event):
-    await when_added_or_joined(event)
-
-
-@ultroid_bot.on(events.ChatAction())
-async def Function(event):
-    try:
-        await DummyHandler(event)
-    except Exception as er:
-        LOGS.exception(er)
+# log for assistant/user joins/add
+async def when_added_or_joined(event):
+    user = await event.get_user()
+    chat = await event.get_chat()
+    if not (user and user.is_self):
+        return
+    if getattr(chat, "username", None):
+        chat = f"[{chat.title}](https://t.me/{chat.username}/{event.action_message.id})"
+    else:
+        chat = f"[{chat.title}](https://t.me/c/{chat.id}/{event.action_message.id})"
+    key = "bot" if event.client._bot else "user"
+    buttons = Button.inline(
+        get_string("userlogs_3"), data=f"leave_ch_{event.chat_id}|{key}"
+    )
+    if event.user_added:
+        tmp = event.added_by
+        text = f"#ADD_LOG\n\n{inline_mention(tmp)} just added {inline_mention(user)} to {chat}."
+    elif event.from_request:
+        text = f"#APPROVAL_LOG\n\n{inline_mention(user)} just got Chat Join Approval to {chat}."
+    else:
+        text = f"#JOIN_LOG\n\n{inline_mention(user)} just joined {chat}."
+    await asst.send_message(int(udB.get_key("LOG_CHANNEL")), text, buttons=buttons)
 
 
 async def DummyHandler(ult):
@@ -107,8 +112,7 @@ async def DummyHandler(ult):
                         user.id,
                         view_messages=False,
                     )
-                    await ult.client.send_message(
-                        chat.id,
+                    await ult.respond(
                         f'**@UltroidBans:** Banned user detected and banned!\n`{str(is_banned)}`.\nBan reason: {is_banned["reason"]}',
                     )
             except BaseException:
@@ -215,64 +219,6 @@ async def DummyHandler(ult):
         await when_added_or_joined(ult)
 
 
-if (
-    udB.get_key("CHATBOT_USERS")
-    or udB.get_key("USERNAME_LOG")
-    # rip profanity checker 👋
-):
-
-    @ultroid_bot.on(
-        events.NewMessage(
-            incoming=True,
-            func=lambda e: e.is_private,
-        )
-    )
-    async def chatBot_replies(e):
-        sender = await e.get_sender()
-        key = udB.get_key("CHATBOT_USERS") or {}
-        if e.text and key.get(e.chat_id) and sender.id in key[e.chat_id]:
-            msg = await get_chatbot_reply(e.message.message)
-            if msg:
-                sleep = udB.get_key("CHATBOT_SLEEP") or 1.5
-                await asyncio.sleep(sleep)
-                await e.reply(msg)
-        chat = await e.get_chat()
-        if e.is_group and not sender.bot:
-            if sender.username:
-                await uname_stuff(e.sender_id, sender.username, sender.first_name)
-        elif e.is_private and not sender.bot:
-            if chat.username:
-                await uname_stuff(e.sender_id, chat.username, chat.first_name)
-        if detector and is_profan(e.chat_id) and e.text:
-            x, y = detector(e.text)
-            if y:
-                await e.delete()
-
-
-# log for assistant/user joins/add
-async def when_added_or_joined(event):
-    user = await event.get_user()
-    chat = await event.get_chat()
-    if not (user and user.is_self):
-        return
-    if getattr(chat, "username", None):
-        chat = f"[{chat.title}](https://t.me/{chat.username}/{event.action_message.id})"
-    else:
-        chat = f"[{chat.title}](https://t.me/c/{chat.id}/{event.action_message.id})"
-    key = "bot" if event.client._bot else "user"
-    buttons = Button.inline(
-        get_string("userlogs_3"), data=f"leave_ch_{event.chat_id}|{key}"
-    )
-    if event.user_added:
-        tmp = event.added_by
-        text = f"#ADD_LOG\n\n{inline_mention(tmp)} just added {inline_mention(user)} to {chat}."
-    elif event.from_request:
-        text = f"#APPROVAL_LOG\n\n{inline_mention(user)} just got Chat Join Approval to {chat}."
-    else:
-        text = f"#JOIN_LOG\n\n{inline_mention(user)} just joined {chat}."
-    await asst.send_message(int(udB.get_key("LOG_CHANNEL")), text, buttons=buttons)
-
-
 # username db
 async def uname_stuff(id, uname, name):
     if udB.get_key("USERNAME_LOG"):
@@ -299,3 +245,66 @@ async def uname_stuff(id, uname, name):
 
         old_[id] = uname
         udB.set_key("USERNAME_DB", old_)
+
+
+if any(
+    udB.get_key(i)
+    for i in (
+        "CHATBOT_USERS",
+        "PROFANITY",
+        "USERNAME_LOG",
+    )
+):
+
+    @ultroid_bot.on(events.NewMessage(incoming=True))
+    async def chatBot_replies(e):
+        sender = e.sender or await e.get_sender()
+        if not isinstance(sender, types.User) or sender.bot:
+            return
+        if check_echo(e.chat_id, e.sender_id):
+            try:
+                await e.respond(e)
+            except Exception as er:
+                LOGS.exception(er)
+        key = udB.get_key("CHATBOT_USERS") or {}
+        if e.text and key.get(e.chat_id) and sender.id in key[e.chat_id]:
+            msg = await get_chatbot_reply(e.message.message)
+            if msg:
+                sleep = udB.get_key("CHATBOT_SLEEP") or 1.5
+                await asyncio.sleep(sleep)
+                await e.reply(msg)
+
+        chat = await e.get_chat()
+        if udB.get_key("USERNAME_LOG"):
+            if e.is_group and sender.username:
+                await uname_stuff(e.sender_id, sender.username, sender.first_name)
+            elif e.is_private and chat.username:
+                await uname_stuff(e.sender_id, chat.username, chat.first_name)
+
+        if udB.get_key("PROFANITY") and detector:
+            if is_profan(e.chat_id) and e.text:
+                x, y = detector(e.text)
+                if y:
+                    await e.delete()
+
+
+if udB.get_key("USERNAME_LOG"):
+
+    @ultroid_bot.on(events.Raw(types.UpdateUserName))
+    async def uname_change(e):
+        await uname_stuff(e.user_id, e.username, e.first_name)
+
+
+# asst added to chat
+@asst.on(events.ChatAction(func=lambda e: e.user_added))
+async def asst_join(event):
+    await when_added_or_joined(event)
+
+
+# user chatactions
+@ultroid_bot.on(events.ChatAction())
+async def Function(event):
+    try:
+        await DummyHandler(event)
+    except Exception as er:
+        LOGS.exception(er)

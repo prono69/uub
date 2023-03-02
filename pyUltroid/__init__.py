@@ -35,6 +35,10 @@ afterBoot(udB)
 BOT_MODE = udB.get_key("BOTMODE")
 DUAL_MODE = udB.get_key("DUAL_MODE")
 
+USER_MODE = udB.get_key("USER_MODE")
+if USER_MODE:
+    DUAL_MODE = False
+
 if BOT_MODE:
     if DUAL_MODE:
         udB.del_key("DUAL_MODE")
@@ -54,7 +58,10 @@ else:
     )
     ultroid_bot.run_in_loop(autobot())
 
-asst = UltroidClient(None, bot_token=udB.get_key("BOT_TOKEN"), udB=udB)
+if USER_MODE:
+    asst = ultroid_bot
+else:
+    asst = UltroidClient(None, bot_token=udB.get_key("BOT_TOKEN"), udB=udB)
 
 if BOT_MODE:
     ultroid_bot = asst

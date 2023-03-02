@@ -4,7 +4,6 @@
 # This file is a part of < https://github.com/TeamUltroid/Ultroid/ >
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
-
 """
 ✘ Commands Available
 
@@ -24,13 +23,12 @@
 •`{i}gif <query>`
    Send video regarding to query.
 """
-
 import os
 import random
 import time
 from datetime import datetime as dt
 
-from . import HNDLR, LOGS, bash, downloader, get_string, mediainfo, shq, ultroid_cmd
+from . import HNDLR, LOGS, bash, downloader, get_string, mediainfo, ultroid_cmd
 
 
 @ultroid_cmd(pattern="(bw|invert)gif$")
@@ -45,9 +43,9 @@ async def igif(e):
     xx = await e.eor(get_string("com_1"))
     z = await a.download_media()
     if match == "bw":
-        cmd = f"ffmpeg -i {shq(z)} -vf format=gray ult.gif -y"
+        cmd = f'ffmpeg -i "{z}" -vf format=gray ult.gif -y'
     else:
-        cmd = f'ffmpeg -i {shq(z)} -vf lutyuv="y=negval:u=negval:v=negval" ult.gif -y'
+        cmd = f'ffmpeg -i "{z}" -vf lutyuv="y=negval:u=negval:v=negval" ult.gif -y'
     try:
         await bash(cmd)
         await e.client.send_file(e.chat_id, "ult.gif", supports_streaming=True)
@@ -62,10 +60,10 @@ async def igif(e):
 async def reverse_gif(event):
     a = await event.get_reply_message()
     if not (a and a.media) and "video" not in mediainfo(a.media):
-        return await e.eor("`Reply To Video only`", time=5)
+        return await event.eor("`Reply To Video only`", time=5)
     msg = await event.eor(get_string("com_1"))
     file = await a.download_media()
-    await bash(f"ffmpeg -i {shq(file)} -vf reverse -af areverse reversed.mp4 -y")
+    await bash(f'ffmpeg -i "{file}" -vf reverse -af areverse reversed.mp4 -y')
     await event.respond("- **Reversed Video/GIF**", file="reversed.mp4")
     await msg.delete()
     os.remove(file)
@@ -112,7 +110,7 @@ async def vtogif(e):
     if int(dur) < 120:
         z = await a.download_media()
         await bash(
-            f'ffmpeg -i {shq(z)} -vf "fps=10,scale=320:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 ult.gif -y'
+            f'ffmpeg -i {z} -vf "fps=10,scale=320:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 ult.gif -y'
         )
     else:
         filename = a.file.name
@@ -121,7 +119,7 @@ async def vtogif(e):
         vid = await downloader(filename, a.media.document, xx, tt, get_string("com_5"))
         z = vid.name
         await bash(
-            f'ffmpeg -ss 3 -t 100 -i {shq(z)} -vf "fps=10,scale=320:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 ult.gif'
+            f'ffmpeg -ss 3 -t 100 -i {z} -vf "fps=10,scale=320:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 ult.gif'
         )
 
     await e.client.send_file(e.chat_id, "ult.gif", support_stream=True)

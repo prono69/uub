@@ -11,14 +11,17 @@ import os
 import re
 import secrets
 import ssl
-from random import choice
+from random import choice, shuffle
 from io import BytesIO
 from json.decoder import JSONDecodeError
 from shlex import quote as shq
 from traceback import format_exc
 
+import requests
+
 from .. import *
-from .helper import bash, check_filename, humanbytes, run_async
+from . import some_random_headers
+from .helper import asyncwrite, bash, check_filename, humanbytes, run_async
 from ..exceptions import DependencyMissingError
 
 try:
@@ -61,6 +64,10 @@ try:
 except ImportError:
     Telegraph = None
 
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    BeautifulSoup = None
 
 # ~~~~~~~~~~~~~~~~~~~~OFOX API~~~~~~~~~~~~~~~~~~~~
 # @buddhhu
@@ -144,18 +151,11 @@ def json_parser(data, indent=None, ascii=False):
 # ~~~~~~~~~~~~~~~~Link Checker~~~~~~~~~~~~~~~~~
 
 
-def is_url_ok(url: str):
+async def is_url_ok(url: str):
     try:
-        import requests
-    except ImportError:
-        raise DependencyMissingError("This function needs 'requests' to be installed.")
-    try:
-        r = requests.head(url)
-    except MissingSchema:
-        return None
-    except BaseException:
-        return False
-    return r.ok
+        return await async_searcher(url, head=True)
+    except BaseException as er:
+        LOGS.debug(er)
 
 
 # ~~~~~~~~~~~~~~~~ Metadata ~~~~~~~~~~~~~~~~~~~~
@@ -175,7 +175,9 @@ async def metadata(file):
 
     out, _ = await bash(f"mediainfo {shq(file)} --Output=JSON")
     if _ and _.endswith("NOT_FOUND"):
-        raise Exception(_)
+        raise DependencyMissingError(
+            f"'{_}' is not installed!\nInstall it to use this command."
+        )
     data = {}
     _info = json.loads(out)["media"]["track"]
     info = _info[0]
@@ -420,12 +422,78 @@ async def get_paste(data: str, extension: str = "txt"):
         return None, str(e)
 
 
+# --------------------------------------
+
+# https://stackoverflow.com/a/74563494
+async def get_google_images(query):
+    soup = BeautifulSoup(
+        await async_searcher(
+            "https://google.com/search",
+            params={"q": query, "tbm": "isch"},
+            headers={"User-Agent": choice(some_random_headers)},
+        ),
+        "lxml",
+    )
+    google_images = []
+    all_script_tags = soup.select("script")
+    matched_images_data = "".join(
+        re.findall(r"AF_initDataCallback\(([^<]+)\);", str(all_script_tags))
+    )
+    matched_images_data_fix = json.dumps(matched_images_data)
+    matched_images_data_json = json.loads(matched_images_data_fix)
+    matched_google_image_data = re.findall(
+        r"\"b-GRID_STATE0\"(.*)sideChannel:\s?{}}", matched_images_data_json
+    )
+    matched_google_images_thumbnails = ", ".join(
+        re.findall(
+            r"\[\"(https\:\/\/encrypted-tbn0\.gstatic\.com\/images\?.*?)\",\d+,\d+\]",
+            str(matched_google_image_data),
+        )
+    ).split(", ")
+    thumbnails = [
+        bytes(bytes(thumbnail, "ascii").decode("unicode-escape"), "ascii").decode(
+            "unicode-escape"
+        )
+        for thumbnail in matched_google_images_thumbnails
+    ]
+    removed_matched_google_images_thumbnails = re.sub(
+        r"\[\"(https\:\/\/encrypted-tbn0\.gstatic\.com\/images\?.*?)\",\d+,\d+\]",
+        "",
+        str(matched_google_image_data),
+    )
+    matched_google_full_resolution_images = re.findall(
+        r"(?:'|,),\[\"(https:|http.*?)\",\d+,\d+\]",
+        removed_matched_google_images_thumbnails,
+    )
+    full_res_images = [
+        bytes(bytes(img, "ascii").decode("unicode-escape"), "ascii").decode(
+            "unicode-escape"
+        )
+        for img in matched_google_full_resolution_images
+    ]
+    for index, (metadata, thumbnail, original) in enumerate(
+        zip(soup.select(".isv-r.PNCib.MSM1fd.BUooTd"), thumbnails, full_res_images),
+        start=1,
+    ):
+        google_images.append(
+            {
+                "title": metadata.select_one(".VFACy.kGQAp.sMi44c.lNHeqe.WGvvNb")[
+                    "title"
+                ],
+                "link": metadata.select_one(".VFACy.kGQAp.sMi44c.lNHeqe.WGvvNb")[
+                    "href"
+                ],
+                "source": metadata.select_one(".fxgdke").text,
+                "thumbnail": thumbnail,
+                "original": original,
+            }
+        )
+    shuffle(google_images)
+    return google_images
+
+
 # Thanks https://t.me/KukiUpdates/23 for ChatBotApi
-
-
 async def get_chatbot_reply(message):
-    from .. import ultroid_bot
-
     chatbot_base = "https://kuki-api-lac.vercel.app/message={}"
     req_link = chatbot_base.format(message)
     try:
@@ -575,7 +643,7 @@ async def Carbon(
     if rayso:
         base_url = "https://rayso-api-desvhu-33.koyeb.app/generate"
         kwargs["text"] = code
-        kwargs["theme"] = kwargs.get("theme", "meadow")
+        kwargs["theme"] = kwargs.get("theme", "breeze")
         kwargs["darkMode"] = kwargs.get("darkMode", True)
         kwargs["title"] = kwargs.get("title", "Ultroid")
     else:
@@ -585,9 +653,12 @@ async def Carbon(
         file = BytesIO(con)
         file.name = file_name + ".jpg"
     else:
+        try:
+            return json_parser(con.decode())
+        except Exception:
+            pass
         file = file_name + ".jpg"
-        with open(file, "wb") as f:
-            f.write(con)
+        await asyncwrite(file, con, mode="wb")
     return file
 
 

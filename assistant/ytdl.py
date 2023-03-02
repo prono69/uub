@@ -7,6 +7,7 @@
 
 import os
 import re
+from asyncio import sleep
 
 try:
     from PIL import Image
@@ -148,8 +149,6 @@ async def _(e):
     owner=True,
 )
 async def _(event):
-    from asyncio import sleep
-
     url = event.pattern_match.group(1).strip().decode("UTF-8")
     lets_split = url.split(":")
     vid_id = lets_split[2]

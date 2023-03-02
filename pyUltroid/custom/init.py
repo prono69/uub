@@ -15,7 +15,7 @@ except ModuleNotFoundError:
 
 
 def startup_logo():
-    # skipping `bash startup`
+    # skipping bash startup
     print(
         """
             ┏┳┓╋┏┓╋╋╋╋┏┓┏┓
@@ -120,7 +120,6 @@ def _host_specifics():
     if environ.get("qBit") and Path("1337x").is_file():
         LOGS.info("Starting qBittorrent")
         Popen("bash 1337x &", shell=True)
-    # afterBoot - needs dB
 
 
 def delayed_startup_tasks():

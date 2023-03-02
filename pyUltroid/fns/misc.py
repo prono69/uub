@@ -31,21 +31,18 @@ from ..dB import DEVLIST
 from ..dB._core import LIST
 
 from . import some_random_headers
-from .tools import async_searcher, check_filename, json_parser
+from .helper import async_searcher
+from .tools import check_filename, json_parser
 
 try:
-    import aiofiles
     import aiohttp
 except ImportError:
     aiohttp = None
-    aiofiles = None
 
 try:
-    from instagrapi import Client
-    from instagrapi.exceptions import LoginRequired, ManualInputRequired
+    import aiofiles
 except ImportError:
-    Client = None
-    ManualInputRequired = None
+    aiofiles = None
 
 try:
     from PIL import Image
@@ -118,9 +115,9 @@ async def YtDataScraper(url: str):
         common_data["videoActions"]["menuRenderer"]["topLevelButtons"][0][
             "toggleButtonRenderer"
         ]["defaultText"]["simpleText"]
-        or like_dislike[0]["toggleButtonRenderer"]["defaultText"]["accessibility"][
-            "accessibilityData"
-        ]["label"]
+        # or like_dislike[0]["toggleButtonRenderer"]["defaultText"]["accessibility"][
+        #    "accessibilityData"
+        # ]["label"]
     )
     to_return["description"] = description
     return to_return
@@ -201,17 +198,15 @@ async def unsplashsearch(query, limit=None, shuf=True):
     link = "https://unsplash.com/s/photos/" + query
     extra = await async_searcher(link, re_content=True)
     res = BeautifulSoup(extra, "html.parser", from_encoding="utf-8")
-    all_ = res.find_all("img", "YVj9w")
+    all_ = res.find_all("img", srcset=re.compile("images.unsplash.com/photo"))
     if shuf:
         shuffle(all_)
-    all_ = all_[:limit]
-    return [image["src"] for image in all_]
+    return list(map(lambda e: e["src"], all_[:limit]))
 
 
 # ---------------- Random User Gen ----------------
+
 # @xditya
-
-
 async def get_random_user_data():
     base_url = "https://randomuser.me/api/"
     cc = await async_searcher(
@@ -261,8 +256,6 @@ async def get_random_user_data():
 
 
 # Dictionary (Synonyms and Antonyms)
-
-
 async def get_synonyms_or_antonyms(word, type_of_words):
     if type_of_words not in ["synonyms", "antonyms"]:
         return "Dude! Please give a corrent type of words you want."
@@ -280,99 +273,7 @@ async def get_synonyms_or_antonyms(word, type_of_words):
     return [y["term"] for y in li_1]
 
 
-# --------------------- Instagram Plugin ------------------------- #
-# @New-dev0
-
-INSTA_CLIENT = []
-
-
-async def _insta_login():
-    if "insta_creds" in ultroid_bot._cache:
-        return ultroid_bot._cache["insta_creds"]
-    username = udB.get_key("INSTA_USERNAME")
-    password = udB.get_key("INSTA_PASSWORD")
-    if username and password:
-        settings = eval(udB["INSTA_SET"]) if udB.get_key("INSTA_SET") else {}
-        cl = Client(settings)
-        try:
-            cl.login(username, password)
-            ultroid_bot._cache.update({"insta_creds": cl})
-        except ManualInputRequired:
-            LOGS.exception(format_exc())
-            # await get_insta_code(cl, username, password)
-            return False
-        except LoginRequired:
-            udB.del_key("INSTA_SET")
-            return await _insta_login()
-        except Exception:
-            udB.del_key(iter(["INSTA_USERNAME", "INSTA_PASSWORD"]))
-            LOGS.exception(format_exc())
-            return False
-        udB.set_key("INSTA_SET", str(cl.get_settings()))
-        cl.logger.setLevel(WARNING)
-        return ultroid_bot._cache["insta_creds"]
-    return False
-
-
-async def get_insta_code(username, choice):
-    from .. import asst, ultroid_bot
-
-    async with asst.conversation(ultroid_bot.uid, timeout=60 * 2) as conv:
-        await conv.send_message(
-            "Enter The **Instagram Verification Code** Sent to Your Email.."
-        )
-        ct = await conv.get_response()
-        while not ct.text.isdigit():
-            if ct.message == "/cancel":
-                await conv.send_message("Cancelled Verification!")
-                return
-            await conv.send_message(
-                "CODE SHOULD BE INTEGER\nSend The Code Back or\nUse /cancel to Cancel Process..."
-            )
-            ct = await conv.get_response()
-        return ct.text
-
-
-async def create_instagram_client(event):
-    if not Client:
-        await event.eor("`Instagrapi not Found\nInstall it to use Instagram plugin...`")
-        return
-    try:
-        return INSTA_CLIENT[0]
-    except IndexError:
-        pass
-    from .. import udB
-
-    username = udB.get_key("INSTA_USERNAME")
-    password = udB.get_key("INSTA_PASSWORD")
-    if not (username and password):
-        await event.eor("`Please Fill Instagram Credentials to Use This...`")
-        return
-    settings = udB.get_key("INSTA_SET") or {}
-    cl = Client(settings)
-    cl.challenge_code_handler = get_insta_code
-    try:
-        cl.login(username, password)
-    except ManualInputRequired:
-        await eor(event, f"Check Pm From @{asst.me.username}")
-        await get_insta_code(cl, username, password)
-    except LoginRequired:
-        # "login required" refers to relogin...
-        udB.del_key("INSTA_SET")
-        return await create_instagram_client(event)
-    except Exception as er:
-        LOGS.exception(er)
-        await eor(event, str(er))
-        return False
-    udB.set_key("INSTA_SET", str(cl.get_settings()))
-    cl.logger.setLevel(WARNING)
-    INSTA_CLIENT.append(cl)
-    return cl
-
-
 # Quotly
-
-
 class Quotly:
     _API = "https://bot.lyo.su/quote/generate"
     _entities = {
@@ -423,11 +324,9 @@ class Quotly:
         last_name = None
         if sender and sender.id not in DEVLIST:
             id_ = get_peer_id(sender)
-            name = get_display_name(sender)
         elif not is_fwd:
             id_ = event.sender_id
             sender = await event.get_sender()
-            name = get_display_name(sender)
         else:
             id_, sender = None, None
             name = is_fwd.from_name
@@ -435,11 +334,12 @@ class Quotly:
                 id_ = get_peer_id(is_fwd.from_id)
                 try:
                     sender = await event.client.get_entity(id_)
-                    name = get_display_name(sender)
                 except ValueError:
                     pass
-        if sender and hasattr(sender, "last_name"):
-            last_name = sender.last_name
+        if sender:
+            name = get_display_name(sender)
+            if hasattr(sender, "last_name"):
+                last_name = sender.last_name
         entities = []
         if event.entities:
             for entity in event.entities:
@@ -457,6 +357,7 @@ class Quotly:
                     text += f" in {rep.game.title}"
             elif isinstance(event.action, types.MessageActionPinMessage):
                 text = "pinned a message."
+            # TODO: Are there any more events with sender?
         message = {
             "entities": entities,
             "chatId": id_,
@@ -469,7 +370,7 @@ class Quotly:
                 "username": sender.username if sender else None,
                 "language_code": "en",
                 "title": name,
-                "name": name or "Unknown",
+                "name": name or "Deleted Account",
                 "type": type_,
             },
             "text": text,
@@ -485,7 +386,7 @@ class Quotly:
     async def create_quotly(
         self,
         event,
-        url="https://qoute-api-akashpattnaik.koyeb.app/generate",
+        url="https://bot.lyo.su/quote/generate",
         reply={},
         bg=None,
         sender=None,
@@ -533,9 +434,6 @@ class Quotly:
         raise Exception(str(request))
 
 
-# Some Sarcasm
-
-
 def split_list(List, index):
     new_ = []
     while List:
@@ -545,8 +443,6 @@ def split_list(List, index):
 
 
 # https://stackoverflow.com/questions/9041681/opencv-python-rotate-image-by-x-degrees-around-specific-point
-
-
 def rotate_image(image, angle):
     if not cv2:
         raise DependencyMissingError("This function needs 'cv2' to be installed!")

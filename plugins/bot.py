@@ -11,6 +11,7 @@ __doc__ = get_help("help_bot")
 
 import os
 import sys
+import asyncio
 import time
 from platform import python_version as pyver
 from random import choice
@@ -89,12 +90,13 @@ The Ultroid Userbot
   ◍ Telethon - {}
 """
 
+in_alive = "{}\n\n🌀 <b>Ultroid Version -><b> <code>{}</code>\n🌀 <b>PyUltroid -></b> <code>{}</code>\n🌀 <b>Python -></b> <code>{}</code>\n🌀 <b>Uptime -></b> <code>{}</code>\n🌀 <b>Branch -></b>[ {} ]\n\n• <b>Join @TeamUltroid</b>"
+
 _BRANCH = os.getenv("BRANCH", "main")
 if not Repo:
     _REPO = "https://github.com/TeamUltroid/Ultroid.git"
 else:
     _REPO = Repo().remotes[0].config_reader.get("url").replace(".git", "")
-in_alive = "{}\n\n🌀 <b>Ultroid Version -><b> <code>{}</code>\n🌀 <b>PyUltroid -></b> <code>{}</code>\n🌀 <b>Python -></b> <code>{}</code>\n🌀 <b>Uptime -></b> <code>{}</code>\n🌀 <b>Branch -></b> [ {} ]\n\n• <b>Join @TeamUltroid</b>"
 
 
 @callback("alive")
@@ -332,7 +334,7 @@ async def _(e):
         await asyncio.sleep(3)
         await xx.edit(get_string("upd_7"))
         call_back()
-        await bash("git reset --hard; git pull --rebase")
+        await bash("git reset --hard ; git pull --rebase")
         return await restart(ult=xx, edit=False)
 
         """

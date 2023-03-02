@@ -4,6 +4,7 @@
 # This file is a part of < https://github.com/TeamUltroid/Ultroid/ >
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
+
 """
 ✘ Commands Available -
 
@@ -14,6 +15,7 @@
    Rotate any video/photo/media..
    Note : for video it should be angle of 90's
 """
+
 import os
 import time
 from datetime import datetime as dt
@@ -29,6 +31,7 @@ from . import (
     get_string,
     is_url_ok,
     mediainfo,
+    shq,
     ultroid_cmd,
 )
 
@@ -73,12 +76,13 @@ async def mi(e):
         else:
             naam = await r.download_media()
     elif match and (
-        os.path.isfile(match) or (match.startswith("https://") and is_url_ok(match))
+        os.path.isfile(match)
+        or (match.startswith("https://") and await is_url_ok(match))
     ):
         naam, xx = match, "file"
     else:
         return await e.eor(get_string("cvt_3"), time=5)
-    out, er = await bash(f"mediainfo '{naam}'")
+    out, er = await bash(f"mediainfo {shq(naam)}")
     if er:
         LOGS.info(er)
         out = extra or str(er)
@@ -133,7 +137,7 @@ async def rotate_(ult):
         media = await reply.download_media()
         file = f"{media}.mp4"
         await bash(
-            f'ffmpeg -i "{media}" -c copy -metadata:s:v:0 rotate={match} "{file}" -y'
+            f"ffmpeg -i {shq(media)} -c copy -metadata:s:v:0 rotate={match} {shq(file)} -y"
         )
     else:
         return await msg.edit("`Unsupported Media..\nReply to Photo/Video`")

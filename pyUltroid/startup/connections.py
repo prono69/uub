@@ -31,6 +31,8 @@ DC_IPV4 = {
 
 
 def validate_session(session, logger=LOGS, _exit=True):
+    from strings import get_string
+
     if session:
         # Telethon Session
         if session.startswith(CURRENT_VERSION):
@@ -41,16 +43,15 @@ def validate_session(session, logger=LOGS, _exit=True):
 
         # Pyrogram Session
         elif len(session) in _PYRO_FORM.keys():
+            data_ = struct.unpack(
+                _PYRO_FORM[len(session)],
+                base64.urlsafe_b64decode(session + "=" * (-len(session) % 4)),
+            )
             if len(session) in (351, 356):
-                dc_id, _, auth_key, _, _ = struct.unpack(
-                    _PYRO_FORM[len(session)],
-                    base64.urlsafe_b64decode(session + "=" * (-len(session) % 4)),
-                )
+                auth_id = 2
             else:
-                dc_id, _, _, auth_key, _, _ = struct.unpack(
-                    _PYRO_FORM[len(session)],
-                    base64.urlsafe_b64decode(session + "=" * (-len(session) % 4)),
-                )
+                auth_id = 3
+            dc_id, auth_key = data_[0], data_[auth_id]
             return StringSession(
                 CURRENT_VERSION
                 + base64.urlsafe_b64encode(
@@ -109,7 +110,6 @@ def connect_ub(s):
             return er
         except Exception as er:
             LOGS.exception("Error while creating new Client.")
-            return er
 
 
 # for Redis Telethon Session

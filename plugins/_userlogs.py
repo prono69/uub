@@ -55,7 +55,7 @@ async def all_messages_catcher(e):
     if not udB.get_key("TAG_LOG"):
         return
     try:
-        NEEDTOLOG = int(udB.get_key("TAG_LOG"))
+        NEEDTOLOG = udB.get_key("TAG_LOG")
     except Exception:
         return LOGS.info(get_string("userlogs_1"))
     buttons = await parse_buttons(e)

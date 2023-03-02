@@ -112,7 +112,7 @@ async def download_yt(event, link, ytd):
             pass
         return
 
-    title = info["title"][:50]
+    title = info["title"]  # [:50]
     id_ = info["id"]
     thumb = id_ + ".jpg"
     await download_file(

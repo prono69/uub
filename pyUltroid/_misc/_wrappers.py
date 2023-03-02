@@ -18,14 +18,14 @@ async def eor(event, text=None, time=None, link_preview=False, edit_time=None, *
     if event.out and not isinstance(event, MessageService):
         if edit_time:
             await sleep(edit_time)
-        if "file" in args and args["file"] and not event.media:
+        if args.get("file") and not event.media:
             await event.delete()
             ok = await event.client.send_message(
                 event.chat_id,
                 text,
                 link_preview=link_preview,
                 reply_to=reply_to,
-                **args,
+                **args
             )
         else:
             try:

@@ -13,7 +13,6 @@ from random import choice
 import requests
 from telethon import Button, events
 from telethon.tl import functions, types  # pylint:ignore
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from pyUltroid import *
 from pyUltroid._misc._assistant import asst_cmd, callback, in_pattern
@@ -21,10 +20,11 @@ from pyUltroid._misc._decorators import ultroid_cmd
 from pyUltroid._misc._wrappers import eod, eor
 from pyUltroid.dB import DEVLIST, ULTROID_IMAGES
 from pyUltroid.fns.helper import *
-from pyUltroid.fns.info import *
 from pyUltroid.fns.misc import *
 from pyUltroid.fns.tools import *
 from pyUltroid.custom.functions import *
+from pyUltroid.startup._database import _BaseDatabase as Database
+from pyUltroid.version import __version__, ultroid_version
 from strings import get_help, get_string
 
 
@@ -34,11 +34,15 @@ Telegraph = telegraph_client()
 Redis = udB.get_key
 con = TgConverter
 
-LOG_CHANNEL = udB.get_key("LOG_CHANNEL")
-TAG_LOG = udB.get_key("TAG_LOG")
-
 OWNER_NAME = ultroid_bot.full_name
 OWNER_ID = ultroid_bot.uid
+
+udB: Database
+ultroid_bot: UltroidClient
+asst: UltroidClient
+
+LOG_CHANNEL = udB.get_key("LOG_CHANNEL")
+TAG_LOG = udB.get_key("TAG_LOG")
 
 
 def inline_pic():
@@ -50,19 +54,11 @@ def inline_pic():
     return INLINE_PIC
 
 
-try:
-    from apscheduler.schedulers.asyncio import AsyncIOScheduler
-except ModuleNotFoundError as er:
-    scheduler = None
-    LOGS.error(f"'{er.name}' is not installed. Some Plugins might not Work.")
-else:
-    scheduler = AsyncIOScheduler()
-    scheduler.start()
-
 List = []
 Dict = {}
 InlinePlugin = {}
 N = 0
+cmd = ultroid_cmd
 STUFF = {}
 
 

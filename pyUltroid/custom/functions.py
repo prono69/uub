@@ -12,16 +12,26 @@ from telethon.tl.functions.messages import SaveGifRequest
 from telethon.utils import get_display_name, get_input_document
 from telethon.tl.types import InputMessagesFilterPhotos
 
-try:
-    import aiofiles
-except ImportError:
-    aiofiles = None
-
 from ._loop import loop, run_async_task
 from pyUltroid.startup import LOGS, HOSTED_ON
 from pyUltroid.fns.tools import async_searcher
 from pyUltroid.fns.helper import osremove, asyncread, asyncwrite
 from pyUltroid import asst, udB, ultroid_bot
+
+
+# scheduler
+def init_scheduler():
+    try:
+        from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+        schd = AsyncIOScheduler()
+        schd.start()
+        return schd
+    except ImportError:
+        pass
+
+
+scheduler = init_scheduler()
 
 
 # https://gist.github.com/DougAF/ef88f89d1d99763bb05afd81285ef233#file-timer-py
@@ -227,6 +237,7 @@ __all__ = [
     "get_imgbb_link",
     "random_pic",
     "run_async_task",
+    "scheduler",
     "getFlags",
     "msg_link",
 ]

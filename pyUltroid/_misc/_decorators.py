@@ -15,7 +15,6 @@ from pathlib import Path
 from time import gmtime, strftime
 from traceback import format_exc
 
-from strings import get_string
 from telethon import Button
 from telethon import __version__ as telever
 from telethon import events
@@ -47,6 +46,9 @@ from ..version import __version__ as pyver
 from ..version import ultroid_version as ult_ver
 from . import SUDO_M, owner_and_sudos
 from ._wrappers import eod
+
+from strings import get_string
+from pyUltroid.exceptions import DependencyMissingError
 
 
 MANAGER = udB.get_key("MANAGER")
@@ -93,6 +95,7 @@ def ultroid_cmd(
                     )
                 if fullsudo and ult.sender_id not in SUDO_M.fullsudos:
                     return await eod(ult, get_string("py_d2"), time=15)
+
             chat = ult.chat
             if hasattr(chat, "title"):
                 if (
@@ -101,19 +104,22 @@ def ultroid_cmd(
                     and not (ult.sender_id in DEVLIST)
                 ):
                     return
-            if admins_only:
-                if ult.is_private:
-                    return await eod(ult, get_string("py_d3"))
-                if not (chat.admin_rights or chat.creator):
-                    return await eod(ult, get_string("py_d5"))
+
+            if ult.is_private and (groups_only or admins_only):
+                return await eod(ult, get_string("py_d3"))
+            elif admins_only and not (chat.admin_rights or chat.creator):
+                return await eod(ult, get_string("py_d5"))
+
             if only_devs and not udB.get_key("I_DEV"):
                 return await eod(
                     ult,
                     get_string("py_d4").format(HNDLR),
                     time=10,
                 )
+
             if groups_only and ult.is_private:
                 return await eod(ult, get_string("py_d5"))
+
             try:
                 await dec(ult)
             except FloodWaitError as fwerr:
@@ -121,9 +127,9 @@ def ultroid_cmd(
                     udB.get_key("LOG_CHANNEL"),
                     f"`FloodWaitError:\n{str(fwerr)}\n\nSleeping for {tf((fwerr.seconds + 10)*1000)}`",
                 )
-                await ultroid_bot.disconnect()
+                # await ultroid_bot.disconnect()
                 await asyncio.sleep(fwerr.seconds + 10)
-                await ultroid_bot.connect()
+                # await ultroid_bot.connect()
                 await asst.send_message(
                     udB.get_key("LOG_CHANNEL"),
                     "`Bot is working again`",
@@ -140,7 +146,7 @@ def ultroid_cmd(
                     ult,
                     get_string("py_d7"),
                 )
-            except (BotInlineDisabledError) as er:
+            except (BotInlineDisabledError, DependencyMissingError) as er:
                 return await eod(ult, f"`{er}`")
             except (
                 MessageIdInvalidError,
@@ -302,7 +308,8 @@ def ultroid_cmd(
                             )
                         except Exception as er:
                             LOGS.exception(er)
-                    LOGS.exception(f"• MANAGER [{ult.chat_id}]:")
+                    LOGS.info(f"• MANAGER [{ult.chat_id}]:")
+                    LOGS.exception(er)
 
             if pattern:
                 cmd = compile_pattern(pattern, "/")

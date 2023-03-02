@@ -5,7 +5,7 @@
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
 
-
+from ast import literal_eval
 import asyncio
 import re
 import sys
@@ -20,6 +20,7 @@ try:
     from pyUltroid.fns.gDrive import GDriveManager
 except ImportError:
     GDriveManager = None
+
 from telegraph import upload_file as upl
 from telethon import Button, events
 from telethon.tl.types import MessageMediaWebPage
@@ -276,7 +277,7 @@ async def send(eve):
 
 @callback("updatenow", owner=True)
 async def update(eve):
-    return eve.answer("Use '.update now' to Update Ultroid.", alert=True)
+    return await eve.answer("Use '.update now' to Update Ultroid.", alert=True)
 
     """
     heroku_api, app_name = Var.HEROKU_API, Var.HEROKU_APP_NAME
@@ -428,9 +429,12 @@ async def convo_handler(event: events.CallbackQuery):
     back = get_["back"]
     async with event.client.conversation(event.sender_id) as conv:
         await conv.send_message(get_["text"])
-        response = conv.wait_event(events.NewMessage(chats=event.sender_id))
-        response = await response
-        themssg = response.message.message
+        response = await conv.get_response()
+        themssg = response.message
+        try:
+            themssg = literal_eval(themssg)
+        except Exception:
+            pass
         if themssg == "/cancel":
             return await conv.send_message(
                 "Cancelled!!",
@@ -1184,7 +1188,7 @@ async def name(event):
 async def chon(event):
     var = "PMBOT"
     await setit(event, var, "True")
-    Loader(path="assistant/pmbot.py", key="PM Bot").load_single()
+    Loader(path="assistant/pmbot.py", key="PM Bot").load()
     if AST_PLUGINS.get("pmbot"):
         for i, e in AST_PLUGINS["pmbot"]:
             event.client.remove_event_handler(i)
@@ -1197,7 +1201,7 @@ async def chon(event):
 
 
 @callback("ofchbot", owner=True)
-async def chon(event):
+async def choff(event):
     var = "PMBOT"
     await setit(event, var, "False")
     if AST_PLUGINS.get("pmbot"):

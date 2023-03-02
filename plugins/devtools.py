@@ -59,23 +59,38 @@ async def _(e):
     all_col = (await asyncread("resources/colorlist.txt")).splitlines()
     p = np.replace("\n\n", "")
     haa = await Carbon(code=p, file_name="neofetch", backgroundColor=choice(all_col))
+    if isinstance(haa, dict):
+        return await xx.edit(f"`{haa}`")
     await e.reply(file=haa)
+    osremove("neo.txt")
     await xx.delete()
-    remove("neo.txt")
 
 
 @ultroid_cmd(pattern="bash", fullsudo=True, only_devs=True)
 async def _(event):
-    carb, yamlf = None, False
+    carb, rayso, yamlf = False, False, False
     try:
         cmd = event.text.split(" ", maxsplit=1)[1]
-        if cmd.split()[0] in ["-c", "--carbon"]:
+        if cmd.split()[0] in ("-c", "--carbon"):
             cmd = cmd.split(maxsplit=1)[1]
             carb = True
+        if cmd.split()[0] in ("-r", "--rayso"):
+            cmd = cmd.split(maxsplit=1)[1]
+            rayso = True
     except IndexError:
         return await event.eor(get_string("devs_1"), time=10)
-    xx = await event.eor(get_string("com_1"))
+
     LOGS.debug(cmd)
+    xx = await event.eor(get_string("com_1"))
+
+    _preview = any(
+        (
+            carb,
+            rayso,
+            udB.get_key("CARBON_ON_BASH"),
+            udB.get_key("RAYSO_ON_BASH"),
+        )
+    )
     reply_to_id = event.reply_to_msg_id or event.id
     stdout, stderr = await bash(cmd, run_code=1)
     OUT = f"**☞ BASH\n\n• COMMAND:**\n`{cmd}` \n\n"
@@ -83,14 +98,19 @@ async def _(event):
     if stderr:
         err = f"**• ERROR:** \n`{stderr}`\n\n"
     if stdout:
-        if carb or udB.get_key("CARBON_ON_BASH"):
+        if _preview:
             colors = (await asyncread("resources/colorlist.txt")).splitlines()
             li = await Carbon(
                 code=stdout,
                 file_name="_bash",
                 download=True,
                 backgroundColor=choice(colors),
+                rayso=rayso or udB.get_key("RAYSO_ON_BASH"),
             )
+            if isinstance(li, dict):
+                return await xx.edit(
+                    f"Unknown Response from Carbon: `{li}`\n\n**Output:** `{stdout}`\n**Error:** `{stderr}`"
+                )
             url = await get_imgbb_link(
                 "_bash.jpg",
                 hq=True,
@@ -98,7 +118,6 @@ async def _(event):
                 delete=True,
                 preview=True,
             )
-            # url = f"https://graph.org{uf(li)[-1]}"
             OUT = f"[\xad]({url}){OUT}"
             out = "**• OUTPUT:**"
         else:
@@ -131,13 +150,12 @@ async def _(event):
                 force_document=True,
                 thumb=ULTConfig.thumb,
                 allow_cache=False,
-                caption=f"```{cmd[:1000]}```",
+                caption=f"```{cmd}```" if len(cmd) < 998 else None,
                 reply_to=reply_to_id,
             )
-
             await xx.delete()
     else:
-        await xx.edit(OUT, link_preview=not yamlf)
+        await xx.edit(OUT, link_preview=_preview)
     await evalogger(cmd, event)
 
 
@@ -146,7 +164,7 @@ bot = ultroid = ultroid_bot
 
 
 class u:
-    ...
+    _ = ""
 
 
 def _parse_eval(value=None):
@@ -159,9 +177,17 @@ def _parse_eval(value=None):
             pass
     elif isinstance(value, dict):
         try:
-            return json_parser(value, indent=2)
+            return json_parser(value, indent=1)
         except Exception:
             pass
+    elif isinstance(value, list):
+        newlist = "["
+        for index, child in enumerate(value):
+            newlist += "\n  " + str(_parse_eval(child))
+            if index < len(value) - 1:
+                newlist += ","
+        newlist += "\n]"
+        return newlist
     return str(value)
 
 
@@ -171,8 +197,9 @@ async def _(event):
         cmd = event.text.split(maxsplit=1)[1]
     except IndexError:
         return await event.eor(get_string("devs_2"), time=5)
-    silent, gsource, xx, carb = False, False, None, False
-    spli = cmd.split()
+
+    xx, mode = None, ""
+    spli = cmd.split(maxsplit=1)
 
     async def get_():
         try:
@@ -182,28 +209,33 @@ async def _(event):
             cm = None
         return cm
 
-    if spli[0] in ["-s", "--silent"]:
+    if spli[0] in ("-s", "--silent"):
         if event.out:
             await event.delete()
-        silent = True
-        cmd = await get_()
-    elif spli[0] in ["-c", "--carbon"]:
-        carb = True
-        cmd = await get_()
-    elif spli[0] in ["-n", "-noedit"]:
-        cmd = await get_()
+        mode = "silent"
+    elif spli[0] in ("-n", "--noedit"):
+        mode = "no-edit"
         xx = await event.reply(get_string("com_1"))
-    elif spli[0] in ["-gs", "--source"]:
-        gsource = True
+    elif spli[0] in ("-gs", "--source"):
+        mode = "gsource"
+    elif spli[0] in ("-ga", "--args"):
+        mode = "g-args"
+    elif spli[0] in ("-c", "--carbon"):
+        mode = "carb"
+    elif spli[0] in ("-r", "--rayso"):
+        mode = "rayso"
+    elif spli[0] in ("-b", "--black"):
+        mode = "black"
+    if mode:
         cmd = await get_()
 
     if not cmd:
         return
 
-    if not silent and not xx:
+    if mode != "silent" and not xx:
         xx = await event.eor(get_string("com_1"))
     LOGS.debug(cmd)
-    if black:
+    if mode == "black" and black:
         try:
             cmd = black.format_str(cmd, mode=black.Mode())
         except Exception:
@@ -239,13 +271,20 @@ async def _(event):
     stderr = redirected_error.getvalue()
     sys.stdout = old_stdout
     sys.stderr = old_stderr
-    if value and gsource:
+    if value:
         try:
-            exc = inspect.getsource(value)
+            if mode == "gsource":
+                exc = inspect.getsource(value)
+            elif mode == "g-args":
+                args = inspect.signature(value).parameters.values()
+                name = ""
+                if hasattr(value, "__name__"):
+                    name = value.__name__
+                exc = f"**{name}**\n\n" + "\n ".join([str(arg) for arg in args])
         except Exception:
             exc = traceback.format_exc()
     evaluation = exc or stderr or stdout or _parse_eval(value) or get_string("instu_4")
-    if silent:
+    if mode == "silent":
         if exc:
             msg = f"• <b>EVAL ERROR\n\n• CHAT:</b> <code>{get_display_name(event.chat)}</code> [<code>{event.chat_id}</code>]"
             msg += f"\n\n∆ <b>CODE:</b>\n<code>{cmd}</code>\n\n∆ <b>ERROR:</b>\n<code>{exc}</code>"
@@ -261,12 +300,13 @@ async def _(event):
     tmt = tima * 1000
     timef = time_formatter(tmt)
     timeform = timef if not timef == "0s" else f"{tmt:.3f}ms"
-    if carb:
+    if mode in ("carb", "rayso"):
         colors = (await asyncread("resources/colorlist.txt")).splitlines()
         lin = await Carbon(
             code=evaluation,
             file_name="_eval",
             download=True,
+            rayso=mode == "rayso",
             backgroundColor=choice(colors),
         )
         url = await get_imgbb_link(
@@ -293,11 +333,11 @@ async def _(event):
                 force_document=True,
                 thumb=ULTConfig.thumb,
                 allow_cache=False,
-                caption=f"```{cmd[:1000]}```",
+                caption=f"```{cmd}```" if len(cmd) < 998 else None,
                 reply_to=reply_to_id,
             )
         return await xx.delete()
-    await xx.edit(final_output, link_preview=carb)
+    await xx.edit(final_output, link_preview=mode == "carb")
     await evalogger(cmd, event)
 
 

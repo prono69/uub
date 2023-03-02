@@ -78,7 +78,6 @@ from telethon.errors.rpcerrorlist import (
 )
 
 from . import (
-    Redis,
     async_searcher,
     download_file,
     get_string,
@@ -100,7 +99,7 @@ async def _(event):
     ret, frame = img.read()
     cv2.imwrite("ult.jpg", frame)
     if udB.get_key("DEEP_API"):
-        key = Redis("DEEP_API")
+        key = udB.get_key("DEEP_API")
     else:
         key = "quickstart-QUdJIGlzIGNvbWluZy4uLi4K"
     r = requests.post(
@@ -108,14 +107,13 @@ async def _(event):
         files={"image": open("ult.jpg", "rb")},
         headers={"api-key": key},
     )
-    os.remove("ult.jpg")
-    os.remove(image)
+    osremove("ult.jpg", image)
     if "status" in r.json():
         return await event.edit(
             r.json()["status"] + "\nGet api nd set `{i}setdb DEEP_API key`"
         )
     r_json = r.json()["output_url"]
-    await event.client.send_file(event.chat_id, r_json, reply_to=reply)
+    await reply.reply(file=r_json)
     await xx.try_delete()
 
 
@@ -179,14 +177,9 @@ async def ult_tools(event):
         )
         centers = np.uint8(centers)
         ish = centers[labels.flatten()]
-        ultroid = ish.reshape(ult.shape)
-    cv2.imwrite("ult.jpg", ultroid)
-    await event.client.send_file(
-        event.chat_id,
-        "ult.jpg",
-        force_document=False,
-        reply_to=event.reply_to_msg_id,
-    )
+        _ultroid = ish.reshape(ult.shape)
+    cv2.imwrite("ult.jpg", _ultroid)
+    await ureply.reply(file="ult.jpg")
     osremove("ult.jpg", file)
     await xx.try_delete()
 
@@ -199,9 +192,7 @@ async def sampl(ult):
         try:
             try:
                 await ult.delete()
-                await ult.client.send_message(
-                    ult.chat_id, f"Colour Sample for `{color}` !", file="csample.png"
-                )
+                await ult.respond(f"Colour Sample for `{color}` !", file="csample.png")
             except MessageDeleteForbiddenError:
                 await ult.reply(f"Colour Sample for `{color}` !", file="csample.png")
         except ChatSendMediaForbiddenError:
@@ -236,12 +227,7 @@ async def ultd(event):
     await download_file(ms, "ult.png")
     img = Image.open("ult.png").convert("RGB")
     img.save("ult.webp", "webp")
-    await event.client.send_file(
-        event.chat_id,
-        "ult.webp",
-        force_document=False,
-        reply_to=event.reply_to_msg_id,
-    )
+    await ureply.reply(file="ult.webp")
     osremove("ult.png", "ult.webp", ultt)
     await xx.try_delete()
 
@@ -268,7 +254,7 @@ async def ok(event):
     img1 = cv2.imread(okla)
     constant = cv2.copyMakeBorder(img1, wh, wh, wh, wh, cv2.BORDER_CONSTANT, value=col)
     cv2.imwrite("output.png", constant)
-    await event.client.send_file(event.chat.id, "output.png")
+    await hm.reply(file="output.png")
     osremove("output.png", okla)
     await event.try_delete()
 
@@ -276,7 +262,7 @@ async def ok(event):
 @ultroid_cmd(pattern="pixelator( (.*)|$)")
 async def pixelator(event):
     reply_message = await event.get_reply_message()
-    if not (reply_message and reply_message.photo):
+    if not (reply_message and (reply_message.photo or reply_message.sticker)):
         return await event.eor("`Reply to a photo`")
     hw = 50
     try:
@@ -291,6 +277,6 @@ async def pixelator(event):
     temp = cv2.resize(input_, (w, h), interpolation=cv2.INTER_LINEAR)
     output = cv2.resize(temp, (width, height), interpolation=cv2.INTER_NEAREST)
     cv2.imwrite("output.jpg", output)
-    await msg.respond("• Pixelated by Ultroid", file="output.jpg")
+    await msg.reply("• Pixelated by Ultroid", file="output.jpg")
     osremove("output.jpg", image)
     await msg.try_delete()

@@ -4,6 +4,7 @@
 # This file is a part of < https://github.com/TeamUltroid/Ultroid/ >
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
+
 """
 ✘ Commands Available -
 
@@ -31,18 +32,17 @@
 • `{i}wall <query>`
     Search Hd Wallpaper as Per ur Wish..
 """
+
 import os
 import time
 from datetime import datetime as dt
 from random import choice
-from shutil import rmtree
 
 import pytz
 from bs4 import BeautifulSoup as bs
 from telethon.tl.types import DocumentAttributeVideo
 
-from pyUltroid.fns.google_image import googleimagesdownload
-from pyUltroid.fns.tools import metadata
+from pyUltroid.fns.tools import get_google_images, metadata
 
 from . import (
     HNDLR,
@@ -58,7 +58,9 @@ from . import (
     ultroid_cmd,
     uploader,
 )
+
 from .beautify import all_col
+
 
 File = []
 
@@ -82,7 +84,6 @@ async def daudtoid(e):
         c_time,
         f"Downloading {dl}...",
     )
-
     File.append(file.name)
     await xxx.edit(get_string("spcltool_2"))
 
@@ -284,17 +285,9 @@ async def wall(event):
         return await event.eor("`Give me something to search..`")
     nn = await event.eor(get_string("com_1"))
     query = f"hd {inp}"
-    gi = googleimagesdownload()
-    args = {
-        "keywords": query,
-        "limit": 10,
-        "format": "jpg",
-        "output_directory": "./resources/downloads/",
-    }
-    await gi.download(args)
-    xx = choice(os.listdir(os.path.abspath(f"./resources/downloads/{query}/")))
-    await event.client.send_file(event.chat_id, f"./resources/downloads/{query}/{xx}")
-    rmtree(f"./resources/downloads/{query}/")
+    images = await get_google_images(query)
+    for z in range(5):
+        await event.client.send_file(event.chat_id, file=images[z]["original"])
     await nn.delete()
 
 

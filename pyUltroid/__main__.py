@@ -15,11 +15,12 @@ from . import *
 
 def main():
     from pyrog import _init_pyrog
-    from .fns.helper import time_formatter, updater, bash
+    from .fns.helper import bash, time_formatter, updater
     from .startup.funcs import (
         WasItRestart,
         autopilot,
         customize,
+        fetch_ann,
         plug,
         ready,
         startup_stuff,
@@ -81,6 +82,12 @@ def main():
     # Load Addons from Plugin Channels.
     if plugin_channels:
         ultroid_bot.run_in_loop(plug(plugin_channels))
+
+    # add job to scheduler
+    from pyUltroid.custom.functions import scheduler
+
+    if scheduler:
+        scheduler.add_job(fetch_ann, "interval", minutes=12 * 60)
 
     # Edit Restarting Message (if It's restarting)
     ultroid_bot.run_in_loop(WasItRestart(udB))

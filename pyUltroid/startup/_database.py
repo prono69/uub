@@ -7,6 +7,7 @@
 
 from os import environ, system
 from copy import deepcopy
+from sys import executable
 
 from redis.exceptions import ResponseError
 
@@ -22,7 +23,7 @@ try:
     from pymongo import MongoClient
 except ModuleNotFoundError:
     LOGS.info("Installing redis and pymongo for database.")
-    system("pip3 install -q redis[hiredis] pymongo[srv]")
+    system(f"{executable} -m pip install -q redis[hiredis] pymongo[srv]")
     from redis import Redis
     from pymongo import MongoClient
 
@@ -32,7 +33,7 @@ if Var.DATABASE_URL:
         import psycopg2
     except ImportError:
         LOGS.info("Installing 'pyscopg2' for database.")
-        system("pip3 install -q psycopg2-binary")
+        system(f"{executable} -m pip install -q psycopg2-binary")
         import psycopg2
 
 # ---------------------------------------------------------------------------------------------
@@ -68,7 +69,7 @@ class _BaseDatabase:
                 data = self.get(str(key))
             except ResponseError:
                 return "WRONGTYPE"
-        if data:
+        if data and type(data) == str:
             try:
                 data = eval(str(data))
             except Exception:
@@ -99,10 +100,12 @@ class _BaseDatabase:
                 self._cache.update({key: value})
                 return deepcopy(value)
 
-    def set_key(self, key, value):
+    def set_key(self, key, value, cache_only=False):
         value = self._get_data(data=value)
         if self.to_cache:
             self._cache.update({key: value})
+            if cache_only:
+                return True
         self.set(str(key), str(value))
         return True
 
@@ -164,7 +167,7 @@ class MongoDB(_BaseDatabase):
     def keys(self):
         return self.db.list_collection_names()
 
-    def set_key(self, key, value):
+    def set(self, key, value):
         value = self._get_data(data=value)
         if key in self.keys():
             self.db[key].replace_one({"_id": key}, {"value": str(value)})
@@ -381,6 +384,9 @@ class LocalDB(_BaseDatabase):
         self.db = Database("ultroid")
         self._name = "LocalDB"
         self.to_cache = True
+        self.get = self.db.get
+        self.set = self.db.set
+        self.delete = self.db.delete
         super().__init__()
 
     def keys(self):
@@ -423,7 +429,7 @@ def UltroidDB():
         LOGS.critical(
             "No DB requirement fullfilled!\nPlease install redis, mongo or sql dependencies..."
         )
-    if HOSTED_ON == "termux":
+    if HOSTED_ON == "local":
         LOGS.info("Using Local DB for now..")
         return LocalDB()
     quit()

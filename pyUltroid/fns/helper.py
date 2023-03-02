@@ -18,9 +18,9 @@ from urllib.parse import unquote
 from urllib.request import urlretrieve
 
 try:
-    import aiohttp
+    from aiohttp import ClientSession as aiohttp_client
 except ImportError:
-    aiohttp = None
+    aiohttp_client = None
     try:
         import requests
     except ImportError:
@@ -60,6 +60,7 @@ from . import *
 from ..dB._core import ADDONS, HELP, LIST, LOADED
 
 from ..version import ultroid_version
+from ..exceptions import DependencyMissingError
 from .FastTelethon import download_file as downloadable
 from .FastTelethon import upload_file as uploadable
 
@@ -125,6 +126,29 @@ def osremove(*paths, folders=False):
             rmtree(str(path))
 
 
+# --------------------------------------------------------------------- #
+
+
+async def asyncread(file, binary=False):
+    if not Path(file).is_file():
+        return
+    read_type = "rb" if binary else "r+"
+    if aiofiles:
+        async with aiofiles.open(file, read_type) as f:
+            return await f.read()
+    with open(file, read_type) as f:
+        return f.read()
+
+
+async def asyncwrite(file, data, mode):
+    if aiofiles:
+        async with aiofiles.open(file, mode) as f:
+            await f.write(data)
+    else:
+        with open(file, mode) as f:
+            f.write(data)
+
+
 # ----------------- Load \\ Unloader ---------------- #
 
 
@@ -157,12 +181,12 @@ def un_plug(shortname):
 
 async def safeinstall(event):
     from .. import HNDLR
-    from ..startup import KEEP_SAFE
     from ..startup.utils import load_addons
 
     if not event.reply_to:
         return await eod(event, f"Please use `{HNDLR}install` as reply to a .py file.")
-    ok = await eor(event, "`Installing...`")
+        ok = await eor(event, "`Installing...`")
+
     reply = await event.get_reply_message()
     if not (
         reply.media
@@ -184,12 +208,12 @@ async def safeinstall(event):
                 return await ok.edit(
                     f"**Installation Aborted.**\n**Reason:** Occurance of `{dan}` in `{reply.file.name}`.\n\nIf you trust the provider and/or know what you're doing, use `{HNDLR}install f` to force install.",
                 )
+
     try:
-        load_addons(dl)
+        load_addons(dl)  # dl.split("/")[-1].replace(".py", ""))
     except BaseException:
         os.remove(dl)
         return await eor(ok, f"**ERROR**\n\n`{format_exc()}`", time=30)
-
     plug = sm.replace(".py", "")
     if plug in HELP:
         output = "**Plugin** - `{}`\n".format(plug)
@@ -222,7 +246,7 @@ async def heroku_logs(event):
         ok = Heroku.get("app").get_log()
     except BaseException as er:
         LOGS.exception("Error getting Heroku Logs: ")
-        await xx.edit("Something Wrong Occured!")
+        return await xx.edit("Something Wrong Occured!")
 
     filename = check_filename("ultroid-heroku-logs.txt")
     await asyncwrite(filename, ok, mode="w+")
@@ -232,9 +256,11 @@ async def heroku_logs(event):
         thumb="resources/extras/ultroid.jpg",
         caption="**Ultroid Heroku Logs.**",
     )
-
     os.remove(filename)
     await xx.delete()
+
+
+# --------------------------------------------------------------------- #
 
 
 async def def_logs(ult, file):
@@ -265,32 +291,6 @@ def gen_chlog(repo, diff):
     if ch_log:
         return str(ch + ch_log), str(ch_tl + tldr_log)
     return ch_log, tldr_log
-
-
-# --------------------------------------------------------------------- #
-
-
-async def asyncread(file, binary=False):
-    if not Path(file).is_file():
-        return
-    read_type = "rb" if binary else "r+"
-    if aiofiles:
-        async with aiofiles.open(file, read_type) as f:
-            return await f.read()
-    with open(file, read_type) as f:
-        return f.read()
-
-
-async def asyncwrite(file, data, mode):
-    if aiofiles:
-        async with aiofiles.open(file, mode) as f:
-            await f.write(data)
-    else:
-        with open(file, mode) as f:
-            f.write(data)
-
-
-# --------------------------------------------------------------------- #
 
 
 async def bash(cmd, run_code=0):
@@ -389,43 +389,85 @@ async def downloader(filename, file, event, taime, msg):
     return result
 
 
+# ~~~~~~~~~~~~~~~Async Searcher~~~~~~~~~~~~~~~
+# @buddhhu
+
+
+async def async_searcher(
+    url: str,
+    post: bool = False,
+    head: bool = False,
+    headers: dict = None,
+    evaluate=None,
+    object: bool = False,
+    re_json: bool = False,
+    re_content: bool = False,
+    *args,
+    **kwargs,
+):
+    if aiohttp_client:
+        async with aiohttp_client(headers=headers) as client:
+            method = client.head if head else (client.post if post else client.get)
+            data = await method(url, *args, **kwargs)
+            if evaluate:
+                return await evaluate(data)
+            if re_json:
+                return await data.json()
+            if re_content:
+                return await data.read()
+            if head or object:
+                return data
+            return await data.text()
+    # elif requests:
+    #     method = requests.head if head else (requests.post if post else requests.get)
+    #     data = method(url, headers=headers, *args, **kwargs)
+    #     if re_json:
+    #         return data.json()
+    #     if re_content:
+    #         return data.content
+    #     if head or object:
+    #         return data
+    #     return data.text
+    else:
+        raise DependencyMissingError("install 'aiohttp' to use this.")
+
+
 # ~~~~~~~~~~~~~~~~~ DDL Downloader ~~~~~~~~~~~~~~~~
 # @buddhhu @new-dev0
 
 
-async def download_file(link, name):
+async def download_file(link, name, validate=False):
     """for files, without progress callback with aiohttp"""
     name = check_filename(name)
-    if aiohttp:
-        async with aiohttp.ClientSession() as ses:
-            async with ses.get(link) as re_ses:
-                content = await re_ses.read()
-                await asyncwrite(name, content, mode="ab+")
-    elif requests:
-        content = requests.get(link).content
-        await asyncwrite(name, content, mode="ab+")
-    else:
-        raise Exception("Aiohttp or requests is not installed.")
-    return name
+
+    async def _download(content):
+        if validate and "application/json" in content.headers.get("Content-Type"):
+            return None, await content.json()
+        data = await content.read()
+        await asyncwrite(name, data, mode="ab+")
+        return name, ""
+
+    return await async_searcher(link, evaluate=_download)
 
 
 async def fast_download(download_url, filename=None, progress_callback=None):
-    if not aiohttp:
-        return await download_file(download_url, filename)
-    if not filename:
-        try:
-            filename = "resources/downloads/" + unquote(
-                download_url.rpartition("/")[-1]
-            )
-        except:
-            filename = "resources/downloads/" + token_hex(nbytes=6)
-    filename = check_filename(filename)
-    async with aiohttp.ClientSession() as session:
+    if not aiohttp_client:
+        return await download_file(download_url, filename)[0], None
+
+    async with aiohttp_client() as session:
         async with session.get(download_url, timeout=None) as response:
+            if not filename:
+                try:
+                    filename = "resources/downloads/" + unquote(
+                        download_url.rpartition("/")[-1]
+                    )
+                except:
+                    filename = "resources/downloads/" + token_hex(nbytes=6)
+            filename = check_filename(filename)
             total_size = int(response.headers.get("content-length", 0)) or None
             downloaded_size = 0
             start_time = time.time()
-            async for chunk in response.content.iter_chunked(512 * 1024):
+            async for chunk in response.content.iter_chunked(384 * 1024):
                 if chunk:
                     await asyncwrite(filename, chunk, mode="ab+")
                     downloaded_size += len(chunk)
@@ -511,6 +553,7 @@ def humanbytes(size):
 def numerize(number):
     if not number:
         return None
+    unit = ""
     for unit in ["", "K", "M", "B", "T"]:
         if number < 1000:
             break

@@ -15,7 +15,7 @@ import random
 
 from telethon.utils import get_display_name
 
-from . import Carbon, eor, get_string, inline_mention, ultroid_cmd
+from . import asyncread, Carbon, get_string, inline_mention, ultroid_cmd
 
 
 _colorspath = "resources/colorlist.txt"
@@ -47,8 +47,10 @@ async def crbn(event):
         try:
             code = event.text.split(" ", maxsplit=1)[1]
         except IndexError:
-            return await eor(xxxx, get_string("carbon_2"))
+            return await xxxx.eor(get_string("carbon_2"))
     xx = await Carbon(code=code, file_name="ultroid_carbon", backgroundColor=col)
+    if isinstance(xx, dict):
+        return await xxxx.edit(f"`{xx}`")
     await xxxx.delete()
     await event.reply(
         f"Carbonised by {inline_mention(event.sender)}",
@@ -68,8 +70,7 @@ async def crbn(event):
         temp = await event.get_reply_message()
         if temp.media:
             b = await event.client.download_media(temp)
-            with open(b) as a:
-                code = a.read()
+            code = await asyncread(b)
             os.remove(b)
         else:
             code = temp.message
@@ -79,7 +80,7 @@ async def crbn(event):
             code = match[1]
             match = match[0]
         except IndexError:
-            return await eor(msg, get_string("carbon_2"))
+            return await msg.eor(get_string("carbon_2"))
     xx = await Carbon(code=code, backgroundColor=match)
     await msg.delete()
     await event.reply(
@@ -115,9 +116,7 @@ async def pass_on(ult):
             text = "**List of Rayso Themes:**\n" + "\n".join(
                 [f"- `{th_}`" for th_ in RaySoTheme]
             )
-
-            await ult.eor(text)
-            return
+            return await ult.eor(text)
         else:
             try:
                 text = ult.text.split(maxsplit=1)[1]
@@ -127,7 +126,7 @@ async def pass_on(ult):
         theme = random.choice(RaySoTheme)
     if ult.is_reply:
         msg = await ult.get_reply_message()
-        text = msg.text
+        text = msg.message
         title = get_display_name(msg.sender)
     await ult.reply(
         file=await Carbon(text, rayso=True, title=title, theme=theme, darkMode=dark)
