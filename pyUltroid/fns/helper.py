@@ -185,8 +185,7 @@ async def safeinstall(event):
 
     if not event.reply_to:
         return await eod(event, f"Please use `{HNDLR}install` as reply to a .py file.")
-        ok = await eor(event, "`Installing...`")
-
+    ok = await eor(event, "`Installing...`")
     reply = await event.get_reply_message()
     if not (
         reply.media
@@ -398,13 +397,14 @@ async def async_searcher(
     post: bool = False,
     head: bool = False,
     headers: dict = None,
-    evaluate=None,
+    evaluate = None,
     object: bool = False,
     re_json: bool = False,
     re_content: bool = False,
     *args,
     **kwargs,
 ):
+    object = kwargs.pop("real", object)
     if aiohttp_client:
         async with aiohttp_client(headers=headers) as client:
             method = client.head if head else (client.post if post else client.get)
@@ -429,7 +429,7 @@ async def async_searcher(
     #         return data
     #     return data.text
     else:
-        raise DependencyMissingError("install 'aiohttp' to use this.")
+        raise DependencyMissingError("Install 'aiohttp' to use this.")
 
 
 # ~~~~~~~~~~~~~~~~~ DDL Downloader ~~~~~~~~~~~~~~~~

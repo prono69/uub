@@ -646,7 +646,7 @@ async def get_file_link(msg):
 
 
 async def get_stored_file(event, hash):
-    from .. import udB
+    from .. import udB, asst
 
     msg_id = get_stored_msg(hash)
     if not msg_id:
