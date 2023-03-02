@@ -14,8 +14,7 @@ from telethon.tl.types import InputMessagesFilterPhotos
 
 from ._loop import loop, run_async_task
 from pyUltroid.startup import LOGS, HOSTED_ON
-from pyUltroid.fns.tools import async_searcher
-from pyUltroid.fns.helper import osremove, asyncread, asyncwrite
+from pyUltroid.fns.helper import async_searcher, osremove, asyncread, asyncwrite
 from pyUltroid import asst, udB, ultroid_bot
 
 
