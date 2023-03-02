@@ -21,7 +21,14 @@ import requests
 
 from .. import *
 from . import some_random_headers
-from .helper import async_searcher, asyncwrite, bash, check_filename, humanbytes, run_async
+from .helper import (
+    async_searcher,
+    asyncwrite,
+    bash,
+    check_filename,
+    humanbytes,
+    run_async,
+)
 from ..exceptions import DependencyMissingError
 
 try:

@@ -84,10 +84,10 @@ def main():
         ultroid_bot.run_in_loop(plug(plugin_channels))
 
     # add job to scheduler
-    from pyUltroid.custom.functions import scheduler
+    # from pyUltroid.custom.functions import scheduler
 
-    if scheduler:
-        scheduler.add_job(fetch_ann, "interval", minutes=12 * 60)
+    # if scheduler:
+    # scheduler.add_job(fetch_ann, "interval", minutes=12 * 60)
 
     # Edit Restarting Message (if It's restarting)
     ultroid_bot.run_in_loop(WasItRestart(udB))
