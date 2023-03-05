@@ -397,7 +397,7 @@ async def async_searcher(
     post: bool = False,
     head: bool = False,
     headers: dict = None,
-    evaluate = None,
+    evaluate=None,
     object: bool = False,
     re_json: bool = False,
     re_content: bool = False,

@@ -96,6 +96,10 @@ def ultroid_cmd(
                 if fullsudo and ult.sender_id not in SUDO_M.fullsudos:
                     return await eod(ult, get_string("py_d2"), time=15)
 
+            if isinstance(ult, MessageEdited.Event) and getattr(
+                ult.message, "edit_hide", 0
+            ):
+                return
             chat = ult.chat
             if hasattr(chat, "title"):
                 if (

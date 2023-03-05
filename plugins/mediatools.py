@@ -46,14 +46,15 @@ except ImportError:
 async def mi(e):
     r = await e.get_reply_message()
     match = e.pattern_match.group(1).strip()
+    msg = await e.eor(f"`Loading mediainfo...`")
     taime = time.time()
     extra = ""
+
     if r and r.media:
         xx = mediainfo(r.media)
         murl = r.media.stringify()
         url = await make_html_telegraph("Mediainfo", f"<pre>{murl}</pre>")
-        extra = f"**[{xx}]({url})**\n\n"
-        e = await e.eor(f"{extra}`Loading More...`", link_preview=False)
+        extra = f"[{xx}]({url})\n\n"
 
         if hasattr(r.media, "document"):
             file = r.media.document
@@ -67,26 +68,30 @@ async def mi(e):
             dl = await downloader(
                 f"resources/downloads/{filename}",
                 file,
-                e,
+                msg,
                 taime,
-                f"{extra}`Loading More...`",
+                f"`Loading More...`",
             )
-
             naam = dl.name
         else:
             naam = await r.download_media()
+
     elif match and (
         os.path.isfile(match)
         or (match.startswith("https://") and await is_url_ok(match))
     ):
         naam, xx = match, "file"
     else:
-        return await e.eor(get_string("cvt_3"), time=5)
+        return await msg.eor(get_string("cvt_3"), time=5)
+
     out, er = await bash(f"mediainfo {shq(naam)}")
     if er:
         LOGS.info(er)
         out = extra or str(er)
-        return await e.edit(out, link_preview=False)
+        if not match:
+            os.remove(naam)
+        return await msg.edit(out, link_preview=False)
+
     makehtml = ""
     if naam.endswith((".jpg", ".png")):
         if os.path.exists(naam):
@@ -106,8 +111,8 @@ async def mi(e):
         urll = await make_html_telegraph("Mediainfo", makehtml)
     except Exception as er:
         LOGS.exception(er)
-        return
-    await e.eor(f"{extra}[{get_string('mdi_1')}]({urll})", link_preview=False)
+        return await msg.edit(f"**Error:** `{er}`")
+    await msg.edit(f"{extra}[{get_string('mdi_1')}]({urll})", link_preview=False)
     if not match:
         os.remove(naam)
 

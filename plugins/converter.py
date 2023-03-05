@@ -27,13 +27,18 @@ except ImportError:
 
 from telegraph import upload_file as uf
 
+from pyUltroid.custom._transfer import pyroDL, pyroUL
 from . import (
     ULTConfig,
+    asyncwrite,
     bash,
+    check_filename,
     con,
     downloader,
     get_paste,
     get_string,
+    getFlags,
+    shq,
     udB,
     ultroid_cmd,
     uploader,
@@ -66,41 +71,34 @@ async def _(e):
 )
 async def imak(event):
     reply = await event.get_reply_message()
-    t = time.time()
-    if not reply:
+    if not (reply and reply.media):
         return await event.eor(get_string("cvt_1"))
-    inp = event.pattern_match.group(1).strip()
-    if not inp:
+    args = getFlags(event.text, merge_args=True)
+    if not bool(args.args):
         return await event.eor(get_string("cvt_2"))
     xx = await event.eor(get_string("com_1"))
+    inp = args.args[0]
     if reply.media:
         if hasattr(reply.media, "document"):
-            file = reply.media.document
-            image = await downloader(
-                reply.file.name or str(time.time()),
-                reply.media.document,
-                xx,
-                t,
-                get_string("com_5"),
-            )
-
-            file = image.name
+            dl = pyroDL(event=xx, source=reply)
+            file = await dl.download(auto_edit=False, _log=False, **args.kwargs)
+            if isinstance(file, Exception):
+                return await xx.edit(f"**Error while downloading** \n`{file}`")
         else:
             file = await event.client.download_media(reply.media)
-    if os.path.exists(inp):
-        os.remove(inp)
-    await bash(f'mv """{file}""" """{inp}"""')
-    if not os.path.exists(inp) or os.path.exists(inp) and not os.path.getsize(inp):
+
+    inp = check_filename(inp)
+    await bash(f"mv {shq(file)} {shq(inp)}")
+    if not os.path.exists(inp) or (os.path.exists(inp) and not os.path.getsize(inp)):
         os.rename(file, inp)
-    k = time.time()
-    xxx = await uploader(inp, inp, k, xx, get_string("com_6"))
-    await event.reply(
-        f"`{xxx.name}`",
-        file=xxx,
-        force_document=True,
-        thumb=ULTConfig.thumb,
+    ul = pyroUL(event=xx, _path=inp)
+    await ul.upload(
+        delete_file=True,
+        reply_to=reply.id,
+        auto_edit=False,
+        _log=False,
+        **args.kwargs,
     )
-    os.remove(inp)
     await xx.delete()
 
 
@@ -154,12 +152,17 @@ async def _(event):
     a = await event.get_reply_message()
     if not a.message:
         return await xx.edit(get_string("ex_1"))
-    with open(input_str, "w") as b:
-        b.write(str(a.message))
+    input_str = check_filename(input_str)
     await xx.edit(f"**Packing into** `{input_str}`")
-    await event.reply(file=input_str, thumb=ULTConfig.thumb)
-    await xx.delete()
+    await asyncwrite(input_str, str(a.message), mode="w")
+    await event.client.send_file(
+        event.chat_id,
+        file=input_str,
+        thumb=ULTConfig.thumb,
+        reply_to=event.reply_to_msg_id,
+    )
     os.remove(input_str)
+    await xx.delete()
 
 
 @ultroid_cmd(
