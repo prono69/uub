@@ -46,7 +46,7 @@ except ImportError:
 async def mi(e):
     r = await e.get_reply_message()
     match = e.pattern_match.group(1).strip()
-    msg = await e.eor(f"`Loading mediainfo...`")
+    msg = await e.eor(f"`Loading Mediainfo...`")
     taime = time.time()
     extra = ""
 
@@ -54,7 +54,7 @@ async def mi(e):
         xx = mediainfo(r.media)
         murl = r.media.stringify()
         url = await make_html_telegraph("Mediainfo", f"<pre>{murl}</pre>")
-        extra = f"[{xx}]({url})\n\n"
+        extra = f"[{xx}]({url})"
 
         if hasattr(r.media, "document"):
             file = r.media.document
@@ -70,7 +70,7 @@ async def mi(e):
                 file,
                 msg,
                 taime,
-                f"`Loading More...`",
+                get_string("com_5") + filename,
             )
             naam = dl.name
         else:
@@ -112,7 +112,7 @@ async def mi(e):
     except Exception as er:
         LOGS.exception(er)
         return await msg.edit(f"**Error:** `{er}`")
-    await msg.edit(f"{extra}[{get_string('mdi_1')}]({urll})", link_preview=False)
+    await msg.edit(f"{extra} \n\n[{get_string('mdi_1')}]({urll})", link_preview=False)
     if not match:
         os.remove(naam)
 
