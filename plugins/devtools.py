@@ -68,19 +68,23 @@ async def _(e):
 
 @ultroid_cmd(pattern="bash", fullsudo=True, only_devs=True)
 async def _(event):
-    carb, rayso, yamlf = False, False, False
+    carb, rayso, nolog, yamlf = False, False, False, False
     try:
         cmd = event.text.split(" ", maxsplit=1)[1]
-        if cmd.split()[0] in ("-c", "--carbon"):
+        if cmd.split()[0] == "-c":  # --carbon
             cmd = cmd.split(maxsplit=1)[1]
             carb = True
-        if cmd.split()[0] in ("-r", "--rayso"):
+        elif cmd.split()[0] == "-r":  # --rayso
             cmd = cmd.split(maxsplit=1)[1]
             rayso = True
+        elif cmd.split()[0] == "-nl":
+            cmd = cmd.split(maxsplit=1)[1]
+            nolog = True
     except IndexError:
         return await event.eor(get_string("devs_1"), time=10)
 
-    LOGS.debug(cmd)
+    if not nolog:
+        LOGS.debug(cmd)
     xx = await event.eor(get_string("com_1"))
 
     _preview = any(
@@ -156,7 +160,8 @@ async def _(event):
             await xx.delete()
     else:
         await xx.edit(OUT, link_preview=_preview)
-    await evalogger(cmd, event)
+    if not nolog:
+        await evalogger(cmd, event)
 
 
 pp = pprint  # ignore: pylint
@@ -209,23 +214,25 @@ async def _(event):
             cm = None
         return cm
 
-    if spli[0] in ("-s", "--silent"):
+    if spli[0] == "-s":  # --silent
         if event.out:
             await event.delete()
         mode = "silent"
-    elif spli[0] in ("-n", "--noedit"):
+    elif spli[0] == "-n":  # --noedit
         mode = "no-edit"
         xx = await event.reply(get_string("com_1"))
+    elif spli[0] == "-c":  # --carbon
+        mode = "carb"
+    elif spli[0] == "-r":  # --rayso
+        mode = "rayso"
+    elif spli[0] == "-nl":
+        mode = "nolog"
+    elif spli[0] == "-b":  # --black
+        mode = "black"
     elif spli[0] in ("-gs", "--source"):
         mode = "gsource"
     elif spli[0] in ("-ga", "--args"):
         mode = "g-args"
-    elif spli[0] in ("-c", "--carbon"):
-        mode = "carb"
-    elif spli[0] in ("-r", "--rayso"):
-        mode = "rayso"
-    elif spli[0] in ("-b", "--black"):
-        mode = "black"
     if mode:
         cmd = await get_()
 
@@ -234,7 +241,8 @@ async def _(event):
 
     if mode != "silent" and not xx:
         xx = await event.eor(get_string("com_1"))
-    LOGS.debug(cmd)
+    if mode != "nolog":
+        LOGS.debug(cmd)
     if mode == "black" and black:
         try:
             cmd = black.format_str(cmd, mode=black.Mode())
@@ -338,7 +346,8 @@ async def _(event):
             )
         return await xx.delete()
     await xx.edit(final_output, link_preview=mode == "carb")
-    await evalogger(cmd, event)
+    if mode != "nolog":
+        await evalogger(cmd, event)
 
 
 def _stringify(text=None, *args, **kwargs):
