@@ -1282,6 +1282,7 @@ async def fdroid_dler(event):
 
     # downloading files
     thumb, _ = await fast_download(thumb, filename=f"{uri}.png")
+    s_time = time.time()
     file, _ = await fast_download(
         dl_,
         filename=f"{title}.apk",
@@ -1290,37 +1291,32 @@ async def fdroid_dler(event):
                 d,
                 t,
                 event,
-                time.time(),
+                s_time,
                 "Downloading...",
             )
         ),
     )
 
-    # uploading file
+    # uploading file and editing inline
     n_file, _ = await event.client.fast_uploader(
         file, show_progress=True, event=event, message="Uploading...", to_delete=True
     )
+    snd_file = await asst.send_file(udB.get_key("TAG_LOG"), n_file, caption=dl_)
     buttons = Button.switch_inline("Search Back", query="fdroid", same_peer=True)
     try:
+        await asyncio.sleep(1)
         msg = await event.edit(
-            f"**• [{title}]({URL}) •**", file=n_file, thumb=thumb, buttons=buttons
+            f"<b><a href='{URL}'>• {title} •</a></b>",
+            file=snd_file.media,
+            thumb=thumb,
+            buttons=buttons,
+            parse_mode="html",
         )
+        FD_MEDIA.update({uri: snd_file.media})
     except Exception as er:
         LOGS.exception(er)
-        try:
-            msg = await event.client.edit_message(
-                await event.get_input_chat(),
-                event.message_id,
-                f"**• [{title}]({URL}) •**",
-                buttons=buttons,
-                thumb=thumb,
-                file=n_file,
-            )
-        except Exception as er:
-            LOGS.exception(er)
-            return await event.edit(f"**ERROR**: `{er}`", buttons=buttons)
+        return await event.edit(f"**ERROR**: `{er}`", buttons=buttons)
     finally:
-        if os.path.exists(thumb):
-            os.remove(thumb)
-    if msg and hasattr(msg, "media"):
-        FD_MEDIA.update({uri: msg.media})
+        for i in (thumb, file):
+            if os.path.exists(i):
+                os.remove(i)
