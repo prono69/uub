@@ -32,9 +32,12 @@ from pyUltroid.startup.loader import Loader
 
 from . import *
 
+
 # --------------------------------------------------------------------#
+
 telegraph = telegraph_client()
 GDrive = GDriveManager() if GDriveManager else None
+
 # --------------------------------------------------------------------#
 
 
@@ -1276,8 +1279,9 @@ async def fdroid_dler(event):
     thumb = BSC.find("img", "package-icon")["src"]
     if thumb.startswith("/"):
         thumb = f"https://f-droid.org{thumb}"
+
+    # downloading files
     thumb, _ = await fast_download(thumb, filename=f"{uri}.png")
-    s_time = time.time()
     file, _ = await fast_download(
         dl_,
         filename=f"{title}.apk",
@@ -1286,14 +1290,14 @@ async def fdroid_dler(event):
                 d,
                 t,
                 event,
-                s_time,
+                time.time(),
                 "Downloading...",
             )
         ),
     )
 
-    time.time()
-    n_file = await event.client.fast_uploader(
+    # uploading file
+    n_file, _ = await event.client.fast_uploader(
         file, show_progress=True, event=event, message="Uploading...", to_delete=True
     )
     buttons = Button.switch_inline("Search Back", query="fdroid", same_peer=True)
@@ -1313,9 +1317,10 @@ async def fdroid_dler(event):
                 file=n_file,
             )
         except Exception as er:
-            os.remove(thumb)
             LOGS.exception(er)
             return await event.edit(f"**ERROR**: `{er}`", buttons=buttons)
+    finally:
+        if os.path.exists(thumb):
+            os.remove(thumb)
     if msg and hasattr(msg, "media"):
         FD_MEDIA.update({uri: msg.media})
-    os.remove(thumb)

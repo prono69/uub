@@ -17,6 +17,7 @@ from pyUltroid.fns.tools import cmd_regex_replace
 
 from . import HNDLR, LOGS, OWNER_NAME, asst, get_string, inline_pic, udB, ultroid_cmd
 
+
 _main_help_menu = [
     [
         Button.inline(get_string("help_4"), data="uh_Official_"),
@@ -123,7 +124,9 @@ async def _help(ult):
                     len(HELP["Addons"] if "Addons" in HELP else []),
                     cmd,
                 ),
-                file=inline_pic(),
+                file=await random_pic(re_photo=True)
+                if udB.get_key("RANDOM_PIC")
+                else inline_pic(),
                 buttons=_main_help_menu,
             )
         except BotResponseTimeoutError:
