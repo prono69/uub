@@ -278,8 +278,8 @@ async def updateme_requirements():
 @run_async
 def gen_chlog(repo, diff):
     """Generate Changelogs..."""
-    UPSTREAM_REPO_URL = Repo().remotes[0].config_reader.get("url").replace(".git", "")
-    ac_br = os.getenv("BRANCH")  # repo.active_branch.name
+    UPSTREAM_REPO_URL = repo.remote("origin").config_reader.get("url")
+    ac_br = repo.active_branch.name
     ch_log = tldr_log = ""
     ch = f"<b>Ultroid {ultroid_version} updates for <a href={UPSTREAM_REPO_URL}/tree/{ac_br}>[{ac_br}]</a>:</b>"
     ch_tl = f"Ultroid {ultroid_version} updates for {ac_br}:"
@@ -317,17 +317,23 @@ async def bash(cmd, run_code=0):
 async def updater():
     try:
         repo = Repo()
+        origin_remote = repo.remote("origin")
     except BaseException:
         LOGS.exception("Git Initialise error.")
         Repo().__del__()
         return
 
     # Git Hacks!
-    ac_br = os.getenv("BRANCH")  # repo.active_branch.name
-    ups_rem = repo.remote("upstream")
-    ups_rem.fetch()
-    ups_rem.fetch(ac_br)
-    changelog, tl_chnglog = await gen_chlog(repo, f"HEAD..upstream/{ac_br}")
+    try:
+        upstream_remote = repo.remote("upstream")
+    except ValueError:
+        repo.create_remote("upstream", origin_remote.config_reader.get("url"))
+        upstream_remote = repo.remote("upstream")
+
+    # upstream_remote.fetch()
+    branch = repo.active_branch.name
+    upstream_remote.fetch(branch)
+    changelog, tl_chnglog = await gen_chlog(repo, f"HEAD..upstream/{branch}")
     return bool(changelog)
 
     """
@@ -345,7 +351,7 @@ async def updater():
     """
 
 
-# ----------------Fast Upload/Download----------------
+# ---------------- Fast Upload/Download ----------------
 
 # @1danish_00 @new-dev0 @buddhhu
 
