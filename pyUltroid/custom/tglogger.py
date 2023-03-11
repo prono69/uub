@@ -23,8 +23,8 @@ class TGLogHandler(StreamHandler):
     def __init__(self, chat, token):
         self.chat = chat
         self.log_db = []
-        self.current = ""
-        self.active = False
+        self.current_log_msg = ""
+        self.is_active = False
         self.message_id = None
         self._floodwait = False
         self.doc_message_id = None
@@ -33,29 +33,29 @@ class TGLogHandler(StreamHandler):
         StreamHandler.__init__(self)
 
     def __str__(self):
-        active = self.active
+        active = self.is_active
         return f"Total Queued Items: {len(self.log_db)} \n{active = }"
 
     def emit(self, record):
         msg = self.format(record)
         self.log_db.append("\n\n" + msg)
-        if not (self.active or self._floodwait):
-            self.active = True
+        if not (self.is_active or self._floodwait):
+            self.is_active = True
             run_async_task(self.runQueue)
 
     async def runQueue(self):
         await asyncio.sleep(3)
         if not self.log_db:
-            self.active = False
+            self.is_active = False
             return
-        self.active = True
+        self.is_active = True
         await self.handle_logs(self.log_db.copy())
         await asyncio.sleep(8)
         await self.runQueue()
 
-    def splitter(self, logs):
+    def _splitter(self, logs):
         _log = []
-        current = self.current
+        current = self.current_log_msg
         for l in logs:
             edit_left = _TG_MSG_LIMIT - len(current)
             if edit_left > len(l):
@@ -67,24 +67,25 @@ class TGLogHandler(StreamHandler):
         return _log
 
     async def conditionX(self, log_msg):
-        lst = self.splitter(log_msg)
-        if lst[0] != self.current:
+        lst = self._splitter(log_msg)
+        if lst[0] != self.current_log_msg:
             await self.edit_message(lst.pop(0))
-        if lst:
-            for i in lst:
-                await self.send_message(i)
-                await asyncio.sleep(8)
+            await asyncio.sleep(8)
+        for i in lst:
+            await self.send_message(i)
+            await asyncio.sleep(8)
 
     async def handle_logs(self, db):
         log_msgs = "".join(db)
-        edit_left = _TG_MSG_LIMIT - len(self.current)
+        edit_left = _TG_MSG_LIMIT - len(self.current_log_msg)
         if edit_left > len(log_msgs):
-            await self.edit_message(self.current + log_msgs)
+            await self.edit_message(self.current_log_msg + log_msgs)
         elif any(len(i) > _TG_MSG_LIMIT for i in db) or len(log_msgs) > _MAX_LOG_LIMIT:
             await self.send_file(log_msgs)
         else:
             await self.conditionX(db)
-        self.log_db = self.log_db[len(db) :]
+        for _ in range(len(db)):
+            self.log_db.pop(0)
 
     async def send_request(self, url, payload):
         async with ClientSession() as session:
@@ -104,24 +105,24 @@ class TGLogHandler(StreamHandler):
         res = await self.send_request(self.__tgtoken + "/sendMessage", payload)
         if res.get("ok"):
             self.message_id = int(res["result"]["message_id"])
-            self.current = message
+            self.current_log_msg = message
             self.doc_message_id = None
         else:
             await self.handle_error(res)
 
     async def edit_message(self, message):
-        message = message.lstrip("\n\n")
         if not self.message_id:
-            await self.send_message(message)
-            return
+            return await self.send_message(message)
         payload = _PAYLOAD.copy()
+        message = message.lstrip("\n\n")
         payload.update({"message_id": self.message_id, "text": f"```{message}```"})
         res = await self.send_request(self.__tgtoken + "/editMessageText", payload)
-        self.current = message
+        self.current_log_msg = message
         if not res.get("ok"):
             await self.handle_error(res)
 
     async def send_file(self, logs):
+        logs = logs.lstrip("\n\n")
         file = BytesIO(logs.encode())
         file.name = "tglogging.txt"
         url = self.__tgtoken + "/sendDocument"
@@ -138,7 +139,7 @@ class TGLogHandler(StreamHandler):
                 res = await response.json()
         if res.get("ok"):
             self.doc_message_id = int(res["result"]["message_id"])
-            self.current = ""
+            self.current_log_msg = ""
             self.message_id = None
         else:
             await self.handle_error(res)
@@ -148,7 +149,7 @@ class TGLogHandler(StreamHandler):
         if not error:
             if resp.get("error_code") in (401, 400) and resp.get(
                 "description"
-            ).stratswith(("Unauthorized", "Bad Request: message is not modified")):
+            ).startswith(("Unauthorized", "Bad Request: message is not modified")):
                 return
             elif resp.get("error_code") == 400 and "MESSAGE_ID_INVALID" in resp.get(
                 "description"

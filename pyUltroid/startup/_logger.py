@@ -31,6 +31,8 @@ def where_hosted():
     if environ.get("KUBERNETES_PORT"):
         return "qovery | kubernetes"
     if environ.get("RUNNER_USER") or environ.get("HOSTNAME"):
+        if environ.get("USER") == "codespace":
+            return "codespace"
         return "github actions"
     if environ.get("ANDROID_ROOT"):
         return "termux"
@@ -102,7 +104,8 @@ def setup_tglogger():
     tglogger.setLevel(logging.DEBUG)
     tglogger.setFormatter(
         logging.Formatter(
-            f"{uname} [%(levelname)s] (%(asctime)s)\n» Line %(lineno)s: %(filename)s\n» %(message)s",
+            uname
+            + " [%(levelname)s] (%(asctime)s)\n» Line %(lineno)s: %(filename)s\n» %(message)s",
             datefmt="%d %b %H:%M:%S",
         )
     )
