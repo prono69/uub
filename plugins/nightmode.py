@@ -138,7 +138,7 @@ async def close_grp():
             LOGS.info(er)
 
 
-if scheduler and keym.get():
+if scheduler and keym.get() and keym.get() != [None]:
     try:
         h1, m1, h2, m2 = 0, 0, 7, 0
         if udB.get_key("NIGHT_TIME"):

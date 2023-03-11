@@ -177,10 +177,11 @@ async def ult_tools(event):
         )
         centers = np.uint8(centers)
         ish = centers[labels.flatten()]
-        _ultroid = ish.reshape(ult.shape)
-    cv2.imwrite("ult.jpg", _ultroid)
-    await ureply.reply(file="ult.jpg")
-    osremove("ult.jpg", file)
+        ultroid = ish.reshape(ult.shape)
+    out = check_filename("ult.jpg")
+    cv2.imwrite(out, ultroid)
+    await ureply.reply(file=out)
+    osremove(ultt, file, out)
     await xx.try_delete()
 
 
