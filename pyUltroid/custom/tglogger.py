@@ -68,8 +68,9 @@ class TGLogHandler(StreamHandler):
 
     async def conditionX(self, log_msg):
         lst = self._splitter(log_msg)
-        if lst[0] != self.current_log_msg:
-            await self.edit_message(lst.pop(0))
+        first_msg = lst.pop(0)
+        if first_msg != self.current_log_msg:
+            await self.edit_message(first_msg)
             await asyncio.sleep(8)
         for i in lst:
             await self.send_message(i)
