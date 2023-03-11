@@ -68,20 +68,20 @@ class TGLogHandler(StreamHandler):
 
     async def conditionX(self, log_msg):
         lst = self.splitter(log_msg)
-        if lst[0] != self.current.replace("```", ""):
-            await self.edit_message(lst[0])
-        for i in lst[1:]:
-            await self.send_message(i)
-            await asyncio.sleep(8)
+        if lst[0] != self.current:
+            await self.edit_message(lst.pop(0))
+        if lst:
+            for i in lst:
+                await self.send_message(i)
+                await asyncio.sleep(8)
 
     async def handle_logs(self, db):
-        msgs = "".join(db)
+        log_msgs = "".join(db)
         edit_left = _TG_MSG_LIMIT - len(self.current)
-        as_file = any(len(i) > _TG_MSG_LIMIT for i in db)
-        if edit_left > len(msgs):
-            await self.edit_message(self.current + msgs)
-        elif as_file or len(msgs) > _MAX_LOG_LIMIT:
-            await self.send_file(msgs)
+        if edit_left > len(log_msgs):
+            await self.edit_message(self.current + log_msgs)
+        elif any(len(i) > _TG_MSG_LIMIT for i in db) or len(log_msgs) > _MAX_LOG_LIMIT:
+            await self.send_file(log_msgs)
         else:
             await self.conditionX(db)
         self.log_db = self.log_db[len(db) :]
@@ -97,8 +97,7 @@ class TGLogHandler(StreamHandler):
 
     async def send_message(self, message):
         payload = _PAYLOAD.copy()
-        if message.startswith("\n\n"):
-            message = message[2:]
+        message = message.lstrip("\n\n")
         payload["text"] = f"```{message}```"
         if ids := self.message_id or self.doc_message_id:
             payload["reply_to_message_id"] = ids
@@ -111,17 +110,15 @@ class TGLogHandler(StreamHandler):
             await self.handle_error(res)
 
     async def edit_message(self, message):
-        if message.startswith("\n\n"):
-            message = message[2:]
+        message = message.lstrip("\n\n")
         if not self.message_id:
             await self.send_message(message)
             return
         payload = _PAYLOAD.copy()
         payload.update({"message_id": self.message_id, "text": f"```{message}```"})
         res = await self.send_request(self.__tgtoken + "/editMessageText", payload)
-        if res.get("ok"):
-            self.current = message
-        else:
+        self.current = message
+        if not res.get("ok"):
             await self.handle_error(res)
 
     async def send_file(self, logs):
@@ -129,7 +126,7 @@ class TGLogHandler(StreamHandler):
         file.name = "tglogging.txt"
         url = self.__tgtoken + "/sendDocument"
         payload = _PAYLOAD.copy()
-        payload["caption"] = "Too much logs to send, hence sending as file."
+        payload["caption"] = "Too much logs, hence sending as file."
         if ids := self.message_id:
             payload["reply_to_message_id"] = ids
         files = {"document": file}
@@ -149,10 +146,14 @@ class TGLogHandler(StreamHandler):
     async def handle_error(self, resp):
         error = resp.get("parameters", {})
         if not error:
-            if (
-                resp.get("error_code") == 401
-                and resp.get("description") == "Unauthorized"
+            if resp.get("error_code") in (401, 400) and resp.get(
+                "description"
+            ).stratswith(("Unauthorized", "Bad Request: message is not modified")):
+                return
+            elif resp.get("error_code") == 400 and "MESSAGE_ID_INVALID" in resp.get(
+                "description"
             ):
+                self.message_id = None
                 return
             print(f"Errors while updating TG logs: {resp}")
             return
