@@ -7,6 +7,7 @@
 
 from os import environ, system
 from copy import deepcopy
+from random import randrange
 from sys import executable
 
 from redis.exceptions import ResponseError
@@ -42,10 +43,11 @@ if Var.DATABASE_URL:
 class _BaseDatabase:
     def __init__(self, *args, **kwargs):
         self._cache = {}
-        if self.to_cache:
-            self.re_cache()
+        if not self.to_cache:
+            if randrange(100) > 40:
+                self.__nocache__()
         else:
-            self.ping()
+            self.re_cache()
 
     def ping(self):
         return 1
@@ -432,7 +434,7 @@ def UltroidDB():
     if HOSTED_ON == "local":
         LOGS.info("Using Local DB for now..")
         return LocalDB()
-    quit()
+    quit(0)
 
 
 LOGS.info("Connecting to Database..")
