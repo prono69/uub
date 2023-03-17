@@ -33,17 +33,18 @@ class TGLogHandler(StreamHandler):
 
     async def _tg_logger(self):
         try:
-            self.is_active = True
             await asyncio.sleep(3)
-            await self.handle_logs(self.log_db.copy())
+            while self.log_db:
+                await self.handle_logs(self.log_db.copy())
+                await asyncio.sleep(8)
         finally:
-            await asyncio.sleep(8)
             self.is_active = False
 
     def emit(self, record):
         msg = self.format(record)
         self.log_db.append("\n\n" + msg)
         if not (self.is_active or self._floodwait):
+            self.is_active = True
             run_async_task(self._tg_logger, id="logger_task")
 
     def _splitter(self, logs):
