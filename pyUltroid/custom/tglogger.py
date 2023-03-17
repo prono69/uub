@@ -13,45 +13,38 @@ from aiohttp import ClientSession
 from ._loop import loop, run_async_task
 
 
-_TG_MSG_LIMIT = 4030
+_TG_MSG_LIMIT = 4000
 _MAX_LOG_LIMIT = 12000
-_TG_API = "https://api.telegram.org/bot{}"
 _PAYLOAD = {"disable_web_page_preview": True, "parse_mode": "Markdown"}
 
 
 class TGLogHandler(StreamHandler):
     def __init__(self, chat, token):
         self.chat = chat
+        self.__tgtoken = f"https://api.telegram.org/bot{token}"
         self.log_db = []
         self.current_log_msg = ""
-        self.is_active = False
         self.message_id = None
+        self.is_active = False
         self._floodwait = False
         self.doc_message_id = None
-        self.__tgtoken = _TG_API.format(token)
         _PAYLOAD.update({"chat_id": chat})
         StreamHandler.__init__(self)
 
-    def __str__(self):
-        active = self.is_active
-        return f"Total Queued Items: {len(self.log_db)} \n{active = }"
+    async def _tg_logger(self):
+        try:
+            self.is_active = True
+            await asyncio.sleep(3)
+            await self.handle_logs(self.logs_db.copy())
+        finally:
+            await asyncio.sleep(8)
+            self.is_active = False
 
     def emit(self, record):
         msg = self.format(record)
         self.log_db.append("\n\n" + msg)
         if not (self.is_active or self._floodwait):
-            self.is_active = True
-            run_async_task(self.runQueue)
-
-    async def runQueue(self):
-        await asyncio.sleep(3)
-        if not self.log_db:
-            self.is_active = False
-            return
-        self.is_active = True
-        await self.handle_logs(self.log_db.copy())
-        await asyncio.sleep(8)
-        await self.runQueue()
+            run_async_task(self._tg_logger, id="logger_task")
 
     def _splitter(self, logs):
         _log = []
@@ -151,15 +144,15 @@ class TGLogHandler(StreamHandler):
             if resp.get("error_code") in (401, 400) and resp.get(
                 "description"
             ).startswith(("Unauthorized", "Bad Request: message is not modified")):
-                return
+                return  # same message content
             elif resp.get("error_code") == 400 and "MESSAGE_ID_INVALID" in resp.get(
                 "description"
             ):
                 self.message_id = None
-                return
+                return  # message was deleted
             print(f"Errors while updating TG logs: {resp}")
             return
         elif s := error.get("retry_after"):
-            self._floodwait = True  # error.get("retry_after")
+            self._floodwait = True
             print(f"tglogger: floodwait of {s}s")
-            run_async_task(self.handle_floodwait, s + s // 4)
+            run_async_task(self.handle_floodwait, s + s // 4, id="tglogger_floodwait")

@@ -119,7 +119,7 @@ def osremove(*paths, folders=False):
             tmp.append(path)
     for path in map(lambda i: Path(i), tmp):
         if path.is_file():
-            path.unlink()
+            path.unlink(missing_ok=True)
         elif path.is_dir() and folders:
             from shutil import rmtree
 
