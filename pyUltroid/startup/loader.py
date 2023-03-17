@@ -84,6 +84,8 @@ def load_other_plugins(addons=None, pmbot=None, manager=None, vcbot=None):
                 "git clone -q https://github.com/TeamUltroid/UltroidAddons.git addons",
                 shell=True,
             )
+
+        """
         if os.path.exists("addons/addons.txt"):
             # generally addons req already there so it won't take much time
             # subprocess.run(
@@ -93,6 +95,7 @@ def load_other_plugins(addons=None, pmbot=None, manager=None, vcbot=None):
                 f"{sys.executable} -m pip install --no-cache-dir -q -r ./addons/addons.txt",
                 shell=True,
             )
+        """
 
         _exclude = udB.get_key("EXCLUDE_ADDONS")
         _exclude = _exclude.split() if _exclude else []
@@ -131,8 +134,7 @@ def load_other_plugins(addons=None, pmbot=None, manager=None, vcbot=None):
                     "git clone https://github.com/TeamUltroid/VcBot vcbot", shell=True
                 )
             try:
-                if not os.path.exists("vcbot/downloads"):
-                    os.mkdir("vcbot/downloads")
+                os.makedirs("vcbot/downloads", exist_ok=True)
                 Loader(path="vcbot", key="VCBot").load(after_load=_after_load)
             except FileNotFoundError as e:
                 LOGS.error(f"{e} Skipping VCBot Installation.")

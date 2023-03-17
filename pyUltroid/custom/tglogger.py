@@ -35,7 +35,7 @@ class TGLogHandler(StreamHandler):
         try:
             self.is_active = True
             await asyncio.sleep(3)
-            await self.handle_logs(self.logs_db.copy())
+            await self.handle_logs(self.log_db.copy())
         finally:
             await asyncio.sleep(8)
             self.is_active = False

@@ -13,7 +13,6 @@
     crf: -c=28
     codec: -x264
     speed: -s=superfast
-    *audio_cmd: -a="-c:a copy"
     others: -r > to fix resolution and fps
 """
 
@@ -23,7 +22,6 @@ from os.path import getsize
 from pathlib import Path
 from re import findall
 from time import time
-from traceback import format_exc
 
 from telethon.errors.rpcerrorlist import MessageNotModifiedError, MessageIdInvalidError
 
@@ -61,17 +59,17 @@ def fix_resolution(width, height):
         return m4(round(width / _div)), _height
 
 
-@ultroid_cmd(pattern="compress ?(.*)")
+@ultroid_cmd(pattern="compress( (.*)|$)")
 async def og_compressor(e):
     args = getFlags(e.text, merge_args=True)
     vido = await e.get_reply_message()
     xxx = await e.eor("Checking...")
 
     # _ext = "mkv"
+    _audio = "-c:a copy"
     codec = "libx264" if "x264" in args.kwargs else "libx265"
     args.kwargs.pop("x264", 0)
     crf = args.kwargs.pop("c", 28 if codec == "libx265" else 36)
-    _audio = args.kwargs.pop("a", "-c:a copy")
     speed = args.kwargs.pop("s", "ultrafast")
 
     if not vido and bool(args.args):
@@ -146,7 +144,7 @@ async def og_compressor(e):
         await asyncio.sleep(slp_time)
         filetext = await asyncread(progress)
         with open(progress, "a") as f:
-            f.truncate(0)
+            f.truncate(300)
         frames = findall("frame=(\\d+)", filetext)
         size = findall("total_size=(\\d+)", filetext)
 
@@ -180,9 +178,9 @@ async def og_compressor(e):
             try:
                 await xxx.edit(p_text)
             except MessageNotModifiedError:
-                LOGS.warning("Compressor msg edit err..")
-                LOGS.debug(format_exc())
+                LOGS.debug("Compressor msg edit err..", exc_info=True)
             except MessageIdInvalidError:
+                await asyncio.sleep(3)
                 try:
                     proce.kill()
                 except:
@@ -191,7 +189,7 @@ async def og_compressor(e):
                 osremove(progress, out)
                 if to_delete:
                     osremove(path)
-                return LOGS.debug(f"cancelled compression: {path}")
+                return LOGS.debug(f"cancelled compression of: {path}")
 
     # Uploader
     if to_delete:

@@ -31,9 +31,9 @@ def startup_logo():
 
 def cleanup_stuff():
     hitlist = [
-        "/usr/local/lib/python3.*/site-packages/pip/_vendor/.wh.appdirs.py",
-        "/usr/local/lib/python3.*/site-packages/.wh.pip-*",
-        "/usr/local/lib/python3.*/site-packages/.wh.setuptools-*",
+        "/usr/local/lib/python3.*/site-packages/pip/_vendor/.wh*",
+        "/usr/local/lib/python3.*/site-packages/.wh.pip*",
+        "/usr/local/lib/python3.*/site-packages/.wh.setuptools*",
     ]
     for path in hitlist:
         run(f"rm -rfv {path}", shell=True)
