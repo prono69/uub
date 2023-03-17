@@ -9,12 +9,12 @@ from . import get_help
 
 __doc__ = get_help("help_fileshare")
 
-import os
+from os import remove
 
 from pyUltroid.dB.filestore_db import del_stored, get_stored_msg, list_all_stored_msgs
 from pyUltroid.fns.tools import get_file_link
 
-from . import HNDLR, asst, get_string, in_pattern, udB, ultroid_bot, ultroid_cmd
+from . import HNDLR, LOGS, asst, get_string, in_pattern, udB, ultroid_bot, ultroid_cmd
 
 
 @ultroid_cmd(pattern="store$")
@@ -64,32 +64,61 @@ async def liststored(event):
         with open("liststored.txt", "w") as f:
             f.write(msg.replace("**", "").replace("`", ""))
         await event.reply(get_string("fsh_1"), file="liststored.txt")
-        os.remove("liststored.txt")
+        remove("liststored.txt")
         return
     await event.eor(msg, link_preview=False)
 
 
-@in_pattern("filestore", owner=True)
-async def file_short(event):
+@in_pattern("files(to|ha)re$", owner=True)
+async def file_store(event):
     all_ = list_all_stored_msgs()
-    res = []
+    res, count = [], 0
     if all_:
         LOG_CHA = udB.get_key("LOG_CHANNEL")
-        for msg in all_[:50]:
+        for msg in all_:
+            if count >= 30:
+                break
             m_id = get_stored_msg(msg)
             if not m_id:
                 continue
-            message = await asst.get_messages(LOG_CHA, ids=m_id)
-            if not message:
+            try:
+                message = await asst.get_messages(LOG_CHA, ids=m_id)
+                if not message:
+                    continue
+                count += 1
+            except Exception:
+                LOGS.debug("error in inline share: ", exc_info=True)
                 continue
-            if message.media:
-                res.append(await event.builder.document(title=msg, file=message.media))
+            description = message.message[:80] if message.text else ""
+            if message.photo:
+                res.append(
+                    await event.builder.photo(
+                        text=message.text,
+                        file=message.photo,
+                    )
+                )
+            elif message.media:
+                res.append(
+                    await event.builder.document(
+                        title=message.file.name or msg,
+                        file=message.media,
+                        text=message.text,
+                        description=description,
+                    )
+                )
             elif message.text:
                 res.append(
-                    await event.builder.article(title=message.text, text=message.text)
+                    await event.builder.article(
+                        title=msg, description=description, text=message.text
+                    )
                 )
     if not res:
         title = "You have no stored file :("
         text = f"{title}\n\nRead `{HNDLR}help fileshare` to know how to store."
         return await event.answer([await event.builder.article(title=title, text=text)])
-    await event.answer(res, switch_pm="• File Store •", switch_pm_param="start")
+    await event.answer(
+        res,
+        switch_pm=f"• File Store • {len(res)}/{len(all_)})",
+        switch_pm_param="start",
+        cache_time=25,
+    )
