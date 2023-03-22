@@ -118,7 +118,7 @@ async def file_store(event):
         return await event.answer([await event.builder.article(title=title, text=text)])
     await event.answer(
         res,
-        switch_pm=f"• File Store • {len(res)}/{len(all_)})",
+        switch_pm=f"• File Store • ({len(res)}/{len(all_)})",
         switch_pm_param="start",
         cache_time=25,
     )
