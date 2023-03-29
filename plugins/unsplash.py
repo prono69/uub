@@ -34,5 +34,5 @@ async def searchunsl(ult):
     CL = [download_file(rp, f"{match}-{e}.png") for e, rp in enumerate(res)]
     imgs = [z[0] for z in (await asyncio.gather(*CL)) if z]
     await ult.respond(f"Uploaded {len(imgs)} Images!", file=imgs)
-    osremove(imgs)
+    osremove(*imgs)
     await tep.delete()

@@ -13,6 +13,7 @@ import sys
 import time
 from pathlib import Path
 from secrets import token_hex
+from shutil import rmtree
 from traceback import format_exc
 from urllib.parse import unquote
 from urllib.request import urlretrieve
@@ -110,20 +111,13 @@ def inline_mention(user, custom=None, html=False):
     return mention_text
 
 
-def osremove(*paths, folders=False):
-    tmp = []
-    for path in paths:
-        if type(path) in (list, tuple, set):
-            tmp.extend(path)
-        elif path:
-            tmp.append(path)
-    for path in map(lambda i: Path(i), tmp):
+def osremove(*files, folders=False):
+    _files = map(lambda i: Path(str(i)), files)
+    for path in _files:
         if path.is_file():
             path.unlink(missing_ok=True)
         elif path.is_dir() and folders:
-            from shutil import rmtree
-
-            rmtree(str(path))
+            rmtree(path)
 
 
 # --------------------------------------------------------------------- #

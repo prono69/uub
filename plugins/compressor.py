@@ -69,7 +69,7 @@ async def og_compressor(e):
     _audio = "-c:a copy"
     codec = "libx264" if "x264" in args.kwargs else "libx265"
     args.kwargs.pop("x264", 0)
-    crf = args.kwargs.pop("c", 28 if codec == "libx265" else 36)
+    crf = args.kwargs.pop("c", 28 if codec == "libx265" else 34)
     speed = args.kwargs.pop("s", "ultrafast")
 
     if not vido and bool(args.args):
@@ -102,7 +102,9 @@ async def og_compressor(e):
     if _isgif:
         _audio = ""
         codec = "libx264"
-    out = check_filename("resources/downloads/" + Path(path).stem + "-compressed.mp4")
+    out = check_filename(
+        "resources/downloads/" + str(Path(path).with_suffix("-compressed.mp4"))
+    )
     slp_time = 10  # if e.client._bot else 8
     minfo = media_info(path)
     total_frame = minfo.get("frames")
@@ -113,8 +115,7 @@ async def og_compressor(e):
     # total_frame = x.split(":")[1].split("\n")[0]
     text = f"`Compressing {Path(out).name} at {crf} CRF` \n"
     progress = check_filename(f"progress-{c_time}.txt")
-    with open(progress, "w+") as f:
-        pass
+    Path(progress).touch()
 
     if args.kwargs.pop("r", 0):
         if total_frame and (total_frame / minfo.get("duration")) > 31:
@@ -200,7 +201,7 @@ async def og_compressor(e):
     minfo = media_info(out)
     if minfo.get("type") == "video" and not minfo.get("has_audio"):
         o_path = Path(out)
-        out = check_filename(str(o_path.parent.joinpath(o_path.stem + ".mkv")))
+        out = check_filename(str(o_path.with_suffix(".mkv")))
         o_path.rename(out)
 
     c_size = getsize(out)
