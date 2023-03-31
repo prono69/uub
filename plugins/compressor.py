@@ -102,9 +102,7 @@ async def og_compressor(e):
     if _isgif:
         _audio = ""
         codec = "libx264"
-    out = check_filename(
-        "resources/downloads/" + str(Path(path).with_suffix("-compressed.mp4"))
-    )
+    out = check_filename("resources/downloads/" + Path(path).stem + "-compressed.mp4")
     slp_time = 10  # if e.client._bot else 8
     minfo = media_info(path)
     total_frame = minfo.get("frames")

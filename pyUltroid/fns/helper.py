@@ -467,7 +467,7 @@ async def fast_download(download_url, filename=None, progress_callback=None):
             total_size = int(response.headers.get("content-length", 0)) or None
             downloaded_size = 0
             start_time = time.time()
-            async for chunk in response.content.iter_chunked(384 * 1024):
+            async for chunk in response.content.iter_chunked(256 * 1024):
                 if chunk:
                     await asyncwrite(filename, chunk, mode="ab+")
                     downloaded_size += len(chunk)

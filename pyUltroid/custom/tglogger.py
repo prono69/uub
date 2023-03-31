@@ -142,15 +142,20 @@ class TGLogHandler(StreamHandler):
     async def handle_error(self, resp):
         error = resp.get("parameters", {})
         if not error:
-            if resp.get("error_code") in (401, 400) and resp.get(
-                "description"
-            ).startswith(("Unauthorized", "Bad Request: message is not modified")):
+            description = resp.get("description")
+            if resp.get("error_code") in (401, 400) and description.startswith(
+                ("Unauthorized", "Bad Request: message is not modified")
+            ):
                 return  # same message content
-            elif resp.get("error_code") == 400 and "MESSAGE_ID_INVALID" in resp.get(
-                "description"
+            elif resp.get("error_code") == 400 and any(
+                i in description
+                for i in (
+                    "MESSAGE_ID_INVALID",
+                    "Bad Request: message to edit not found",
+                )
             ):
                 self.message_id = None
-                return  # message was deleted
+                return  # deleted message
             print(f"Errors while updating TG logs: {resp}")
             return
         elif s := error.get("retry_after"):

@@ -22,12 +22,12 @@ from pyUltroid import asst, udB, ultroid_bot
 def init_scheduler():
     try:
         from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
-        schd = AsyncIOScheduler()
+    except ImportError:
+        return None
+    else:
+        schd = AsyncIOScheduler(timezone="Asia/Kolkata")
         schd.start()
         return schd
-    except ImportError:
-        pass
 
 
 scheduler = init_scheduler()
