@@ -13,7 +13,7 @@ import sys
 import time
 from pathlib import Path
 from secrets import token_hex
-from shutil import rmtree
+from shutil import rmtree, which
 from traceback import format_exc
 from urllib.parse import unquote
 from urllib.request import urlretrieve
@@ -288,12 +288,11 @@ def gen_chlog(repo, diff):
 
 async def bash(cmd, run_code=0):
     """run any command in subprocess and get output or error"""
-    Shell = os.environ.get("SHELL", "/bin/bash")
     process = await asyncio.create_subprocess_shell(
         cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
-        executable=Shell,
+        executable=which("bash"),
     )
     stdout, stderr = await process.communicate()
     err = stderr.decode(errors="replace").strip() or None
