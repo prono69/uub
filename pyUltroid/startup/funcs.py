@@ -536,8 +536,7 @@ async def ready():
             spam_sent = None
             LOGS.error(ef)
 
-    await WasItRestart(udB)
-    await fetch_ann()
+    await asyncio.gather(WasItRestart(udB), fetch_ann())
     # if spam_sent and not spam_sent.media:
     # udB.set_key("LAST_UPDATE_LOG_SPAM", spam_sent.id)
 

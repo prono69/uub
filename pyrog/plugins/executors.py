@@ -2,12 +2,14 @@ import asyncio
 import os
 import sys
 import time
+import traceback
 from io import BytesIO, StringIO
 from getpass import getuser
 from shutil import which
 
 from pyrogram import Client, filters
 from pyrogram.errors import MessageNotModified
+from pyrogram.enums import ParseMode
 
 from pyUltroid import LOGS, udB
 from ..helper import _HANDLERS, _AUTH_USERS
@@ -63,8 +65,8 @@ async def _eval(client, m):
         evaluation = "Success"
 
     if len(cmd + evaluation) < 4050:
-        final_output = f"**>**  ```{cmd}``` \n\n**>>**  ```{evaluation.strip()}```"
-        await status.edit(final_output)
+        final_output = f"<b>></b>  <code>{cmd}</code> \n\n<b>>></b>  <code>{evaluation.strip()}</code>"
+        return await status.edit(final_output, parse_mode=ParseMode.HTML)
 
     # output greater than 4096 chars..
     final_output = f">  {cmd} \n\n>>  {evaluation.strip()}"
@@ -72,7 +74,8 @@ async def _eval(client, m):
         out_file.name = "pyro_eval.txt"
         await m.reply_document(
             document=out_file,
-            caption=f"```{cmd[:1024]}```",
+            caption=f"<code>{cmd[:1024]}</code>",
+            parse_mode=ParseMode.HTML,
             disable_notification=True,
         )
     await status.delete()
@@ -105,23 +108,24 @@ async def _terminal(client, m):
         return await m.reply_text("`Give some cmd too..`", quote=True)
 
     msg = await m.reply_text("`Processing ...`", quote=True)
-    OUT = f"**{getuser()} ~** \n```{cmd}``` \n\n"
+    OUT = f"**{getuser()} ~** \n`{cmd}` \n\n"
     stdout, stderr = await bash(cmd)
     err, out = "", ""
     if stderr:
-        err = f"**error ~** \n```{stderr}``` \n\n"
-    out = f"**result ~** \n```{stdout if stdout else 'Success'}```"
+        err = f"**error ~** \n`{stderr}` \n\n"
+    out = f"**result ~** \n`{stdout if stdout else 'Success'}`"
     OUT += err + out
     if len(OUT) < 4096:
         return await msg.edit(OUT)
 
     # output greater than 4096..
-    OUT = OUT.replace("```", "").replace("**", "").replace("__", "")
+    OUT = OUT.replace("`", "").replace("**", "").replace("__", "")
     with BytesIO(OUT.encode()) as out_file:
         out_file.name = "pyro_bash.txt"
         await m.reply_document(
             document=out_file,
-            caption=f"```{cmd[:1024]}```",
+            caption=f"<code>{cmd[:1024]}</code>",
             disable_notification=True,
+            parse_mode=ParseMode.HTML,
         )
     await msg.delete()
