@@ -42,7 +42,9 @@ def get_clients():
     var = "PYROGRAM_CLIENTS"
     stuff = environ.get(var)
     if not stuff:
-        LOGS.warning("Pyro env wasn't found, Skipping Pyro Run")
+        LOGS.warning(
+            "'PYROGRAM_CLIENTS' ENV wasn't found, Skipping PyroGram Initialisation."
+        )
         return True
     data = literal_eval(stuff)
     del environ[var]

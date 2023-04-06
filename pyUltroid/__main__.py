@@ -17,7 +17,6 @@ def main():
     from pyrog import _init_pyrog
     from .fns.helper import bash, time_formatter, updater
     from .startup.funcs import (
-        WasItRestart,
         autopilot,
         customize,
         fetch_ann,
@@ -84,15 +83,12 @@ def main():
         ultroid_bot.run_in_loop(plug(plugin_channels))
 
     # add job to scheduler
-    # from pyUltroid.custom.functions import scheduler
-
-    # if scheduler:
     # scheduler.add_job(fetch_ann, "interval", minutes=12 * 60)
 
-    # Edit Restarting Message (if It's restarting)
-    ultroid_bot.run_in_loop(WasItRestart(udB))
+    # Edit Restarting Message (If it's restarting)
+    # ultroid_bot.run_in_loop(WasItRestart(udB))
 
-    # Send/Ignore Deploy Message..
+    # Send/Ignore Deploy Message and Edit Restarting Message..
     if not udB.get_key("LOG_OFF"):
         ultroid_bot.run_in_loop(ready())
 
@@ -114,14 +110,17 @@ async def init_shutdown():
         tasks.append(ultroid_bot.disconnect())
     if not BOT_MODE:
         msgs = (
-            ("#restart", "Restarting Bot")
+            ("#restart", "Restarting Ultroid Bot.")
             if udB.get_key("_RESTART")
-            else ("#exiting", "Shutting Down")
+            else ("#exiting", "Shutting Down Ultroid.")
         )
-        await asst.send_message(
-            udB.get_key("TAG_LOG"),
-            f"{msgs[0]}\n#ultroid\n\n`{msgs[1]}..`",
-        )
+        try:
+            await asst.send_message(
+                udB.get_key("TAG_LOG"),
+                f"{msgs[0]}\n#ultroid\n\n`{msgs[1]}..`",
+            )
+        except Exception:
+            pass
         tasks.append(asst.disconnect())
     await asyncio.sleep(5)
     await asyncio.gather(*tasks, return_exceptions=True)
@@ -132,7 +131,7 @@ def shutdown_or_restart():
     sys.stdout.flush()
     if not udB.get_key("_RESTART"):
         sys.exit(0)
-    time.sleep(8)
+    time.sleep(6)
     python = sys.executable
     os.execl(python, python, "-m", "pyUltroid")
 

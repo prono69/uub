@@ -473,6 +473,24 @@ async def fetch_ann():
         LOGS.exception(er)
 
 
+async def WasItRestart(udb):
+    key = udb.get_key("_RESTART")
+    if not key:
+        return
+    from .. import asst, ultroid_bot
+
+    try:
+        data = key.split("_")
+        who = asst if data[0] == "bot" else ultroid_bot
+        await who.edit_message(
+            int(data[1]), int(data[2]), "__Restarted Successfully.__"
+        )
+    except Exception as er:
+        LOGS.exception("Restart Message Edit Error")
+    finally:
+        udb.del_key("_RESTART")
+
+
 async def ready():
     from .. import asst, udB, ultroid_bot
 
@@ -511,33 +529,17 @@ async def ready():
             spam_sent = None
             LOGS.error(g)
     except Exception as el:
-        LOGS.info(el)
+        LOGS.error(el)
         try:
             spam_sent = await ultroid_bot.send_message(chat_id, MSG)
         except Exception as ef:
             spam_sent = None
             LOGS.error(ef)
 
+    await WasItRestart(udB)
+    await fetch_ann()
     # if spam_sent and not spam_sent.media:
     # udB.set_key("LAST_UPDATE_LOG_SPAM", spam_sent.id)
-    await fetch_ann()
-
-
-async def WasItRestart(udb):
-    key = udb.get_key("_RESTART")
-    if not key:
-        return
-    from .. import asst, ultroid_bot
-
-    try:
-        data = key.split("_")
-        who = asst if data[0] == "bot" else ultroid_bot
-        await who.edit_message(
-            int(data[1]), int(data[2]), "__Restarted Successfully.__"
-        )
-    except Exception as er:
-        LOGS.exception("Restart Message Edit Error")
-    udb.del_key("_RESTART")
 
 
 def _version_changes(udb):
