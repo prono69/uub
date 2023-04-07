@@ -131,12 +131,12 @@ class pyroDL:
         return 1
 
     async def handle_error(self, error):
-        if self.event and self.show_progress:
+        if "MessageIdInvalidError:" in error:
+            LOGS.debug(f"Cancelled Downloading: '{self.filename}'")
+        elif self.event and self.show_progress:
             try:
                 msg = f"__**Error While Downloading :**__ \n>  ```{self.filename}``` \n>  `{error}`"
                 await self.event.edit(msg)
-            except MessageIdInvalidError:
-                return True
             except Exception as exc:
                 LOGS.exception(exc)
 
@@ -165,16 +165,21 @@ class pyroDL:
             self.client = app(self.dc)
             self.updateAttrs(kwargs)
             await self.get_message()
-            dlx = await self.tg_downloader()
+            dl_path = await self.tg_downloader()
+            if self.event and getattr(self.event, "is_cancelled", False):
+                raise DownloadError("MessageIdInvalidError: Event Message was deleted..")
+        except (DownloadError, Exception) as exc:
+            await self.handle_error(exc)
+        else:
             if self.auto_edit and self.show_progress:
                 return await self.event.edit(
-                    f"Successfully Downloaded \n`{dlx}` \nin {self.dl_time}",
+                    f"Successfully Downloaded \n`{dl_path}` \nin {self.dl_time}",
                 )
-            return dlx
-        except (DownloadError, Exception) as exc:
-            is_cancelled = await self.handle_error(exc)
-            if is_cancelled == True:
-                setattr(self.event, "is_cancelled", True)
+            return dl_path
+        finally:
+            if self.event and self.show_progress:
+                ids = str(self.event.chat_id) + "_" + str(self.event.id)
+                PROGRESS_LOG.pop(ids, None)
 
     async def tg_downloader(self):
         args = {"message": self.msg, "file_name": self.filename}
@@ -199,10 +204,6 @@ class pyroDL:
         except Exception as exc:
             LOGS.exception("PyroDL error")
             raise DownloadError(exc)
-        finally:
-            if self.event and self.show_progress:
-                ids = str(self.event.chat_id) + "_" + str(self.event.id)
-                PROGRESS_LOG.pop(ids, None)
 
     @staticmethod
     async def delTask(task):
@@ -290,15 +291,16 @@ class pyroUL:
                 out = await ulfunc()
                 await asyncio.sleep(0.5)
                 self.post_upload()
+                if self.event and getattr(self.event, "is_cancelled", False):
+                    # Process Cancelled aka Event Message Deleted..
+                    return LOGS.debug(f"Cancelled Uploading: '{self.file}'")
                 if self.return_obj:
-                    return out  # (for single file)
+                    return out  # for single file
                 await self.finalize(out)
                 await self.handle_edits()
                 await asyncio.sleep(self.sleeptime)
             except (UploadError, Exception) as exc:
-                cancelled = await self.handle_error(exc)
-                if cancelled is True:
-                    setattr(self.event, "is_cancelled", True)
+                await self.handle_error(exc)
                 await asyncio.sleep(self.sleeptime)
                 continue
         await self.do_final_edit()
@@ -365,7 +367,7 @@ class pyroUL:
             client = self.event.client if self.event else ultroid_bot
             file = await client.get_messages(out.chat.id, ids=out.id)
             if not (file and file.media):
-                raise UploadError("Media not found // Error occurred in Uploading..")
+                raise UploadError("Uploaded Media not found...")
             copy = await file.copy(
                 self.copy_to,
                 caption=self.caption,
@@ -392,8 +394,6 @@ class pyroUL:
             try:
                 msg = f"__**Error While Uploading :**__ \n>  ```{self.file}``` \n>  `{error}`"
                 await self.event.edit(msg)
-            except MessageIdInvalidError:
-                return True
             except Exception as exc:
                 LOGS.exception(exc)
 
