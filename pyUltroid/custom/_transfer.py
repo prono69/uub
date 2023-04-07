@@ -58,10 +58,10 @@ async def pyro_progress(
 ):
     unique_id = str(message.chat_id) + "_" + str(message.id)
     if client and getattr(message, "is_cancelled", False):
-        await client.stop_transmission()
         LOGS.debug(
-            f"Cancelled Transfer: {unique_id} | Completed: {humanbytes(current)}/{humanbytes(total)}"
+            f"Cancelling Transfer: {unique_id} | Completed: {humanbytes(current)}/{humanbytes(total)}"
         )
+        await client.stop_transmission()
     last_update = PROGRESS_LOG.get(unique_id)
     now = time()
     if last_update and current != total:
@@ -132,8 +132,8 @@ class pyroDL:
         return 1
 
     async def handle_error(self, error):
-        if error.args and "MessageIdInvalidError:" in error.args:
-            LOGS.debug(f"Stopped Downloading {self.filename}")
+        if "MessageIdInvalidError" in str(error):
+            LOGS.debug(f"Stopped Downloading - {self.filename}")
         elif self.event and self.show_progress:
             try:
                 msg = f"__**Error While Downloading :**__ \n>  ```{self.filename}``` \n>  `{error}`"
@@ -294,7 +294,7 @@ class pyroUL:
                 self.post_upload()
                 if self.event and getattr(self.event, "is_cancelled", False):
                     # Process Cancelled aka Event Message Deleted..
-                    return LOGS.debug(f"Stopped Uploading {self.file}")
+                    return LOGS.debug(f"Stopped Uploading - {self.file}")
                 if self.return_obj:
                     return out  # for single file
                 await self.finalize(out)
