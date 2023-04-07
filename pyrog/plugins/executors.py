@@ -108,7 +108,7 @@ async def _terminal(client, m):
         return await m.reply_text("`Give some cmd too..`", quote=True)
 
     msg = await m.reply_text("`Processing ...`", quote=True)
-    OUT = f"**{getuser()} ~** \n`{cmd}` \n\n"
+    OUT = f"**{getuser()} ~** `{cmd}` \n\n"
     stdout, stderr = await bash(cmd)
     err, out = "", ""
     if stderr:
