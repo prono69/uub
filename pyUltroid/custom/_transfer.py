@@ -57,14 +57,14 @@ async def pyro_progress(
     client=None,
     edit_delay=8,
 ):
+    unique_id = str(message.chat_id) + "_" + str(message.id)
     if client and getattr(message, "is_cancelled", False):
-        LOGS.debug(f"Cancelling Transfer..")
+        LOGS.debug(f"Cancelling Transfer: {unique_id}")
         await client.stop_transmission()
-    jost = str(message.chat_id) + "_" + str(message.id)
-    plog = PROGRESS_LOG.get(jost)
+    last_update = PROGRESS_LOG.get(unique_id)
     now = time()
-    if plog and current != total:
-        if (now - plog) < edit_delay:
+    if last_update and current != total:
+        if (now - last_update) < edit_delay:
             return
     diff = now - started_at
     percentage = current * 100 / total
@@ -83,10 +83,12 @@ async def pyro_progress(
         time_formatter(time_to_completion),
     )
     try:
-        PROGRESS_LOG.update({jost: now})
+        PROGRESS_LOG.update({unique_id: now})
         await message.edit(to_edit)
     except MessageNotModifiedError as exc:
         LOGS.warning(exc)
+    except MessageIdInvalidError:
+        setattr(message, "is_cancelled", True)
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -155,7 +157,6 @@ class pyroDL:
         if self.msg:
             self.filename = self.get_filename(self.msg)
         if self.show_progress:
-            self.progress = pyro_progress
             self.progress_text = f"`Downloading {self.filename}...`"
 
     async def download(self, **kwargs):
@@ -180,14 +181,14 @@ class pyroDL:
         if self._log:
             LOGS.debug(f"Downloading | [DC {self.dc}] | {self.filename}")
         if self.show_progress:
-            prog_args = (
+            progress_args = (
                 self.event,
                 self.progress_text,
                 time(),
                 self.client,
                 self.delay,
             )
-            args.update({"progress": self.progress, "progress_args": prog_args})
+            args.update({"progress": pyro_progress, "progress_args": progress_args})
         if self.schd_delete and self.is_copy:
             run_async_task(self.delTask, self.msg)
         try:
@@ -303,8 +304,6 @@ class pyroUL:
         await self.do_final_edit()
 
     def perma_attributes(self, kwargs):
-        if self.show_progress:
-            self.progress = pyro_progress
         e = self.event
         self.reply_to = getattr(e, "reply_to_msg_id", e.id) if e else None
         self.copy_to = e.chat_id if e else DUMP_CHANNEL
@@ -326,7 +325,7 @@ class pyroUL:
         if self.event and self.show_progress:
             setattr(self.event, "is_cancelled", False)
             self.progress_text = (
-                f"```{self.count}/{self.total_files} | Uploading {self.file}..```",
+                f"```{self.count}/{self.total_files} | Uploading {self.file}..```"
             )
 
     async def pre_upload(self):
@@ -603,7 +602,7 @@ class pyroUL:
             )
             args.update(
                 {
-                    "progress": self.progress,
+                    "progress": pyro_progress,
                     "progress_args": progress_args,
                 }
             )
@@ -625,12 +624,11 @@ class pyroUL:
 async def videoThumb(path, duration):
     if duration is False:
         dur = 1
+    elif duration > 1:
+        rnd_dur = choice((0.25, 0.33, 0.4, 0.45, 0.5, 0.55, 0.6, 0.66, 0.75))
+        dur = int(duration * rnd_dur)
     else:
-        if duration > 1:
-            rnd_dur = choice((0.25, 0.33, 0.4, 0.45, 0.5, 0.55, 0.6, 0.66, 0.75))
-            dur = int(duration * rnd_dur)
-        else:
-            dur = 1
+        dur = 1
     thumb_path = Path(f"resources/temp/{random_string(8)}-{dur}.jpg").absolute()
     await bash(f"ffmpeg -ss {dur} -i {shq(path)} -vframes 1 {shq(str(thumb_path))} -y")
     return str(thumb_path) if thumb_path.exists() else DEFAULT_THUMB
