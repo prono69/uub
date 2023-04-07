@@ -19,7 +19,6 @@ from random import choice
 from os.path import getsize
 from pathlib import Path
 from mimetypes import guess_extension
-
 # from mimetypes import guess_all_extensions
 
 from music_tag import load_file
@@ -59,8 +58,10 @@ async def pyro_progress(
 ):
     unique_id = str(message.chat_id) + "_" + str(message.id)
     if client and getattr(message, "is_cancelled", False):
-        LOGS.debug(f"Cancelling Transfer: {unique_id}")
         await client.stop_transmission()
+        LOGS.debug(
+            f"Cancelled Transfer: {unique_id} | Completed: {humanbytes(current)}/{humanbytes(total)}"
+        )
     last_update = PROGRESS_LOG.get(unique_id)
     now = time()
     if last_update and current != total:
@@ -131,8 +132,8 @@ class pyroDL:
         return 1
 
     async def handle_error(self, error):
-        if "MessageIdInvalidError:" in error:
-            LOGS.debug(f"Cancelled Downloading: '{self.filename}'")
+        if error.args and "MessageIdInvalidError:" in error.args:
+            LOGS.debug(f"Stopped Downloading {self.filename}")
         elif self.event and self.show_progress:
             try:
                 msg = f"__**Error While Downloading :**__ \n>  ```{self.filename}``` \n>  `{error}`"
@@ -293,7 +294,7 @@ class pyroUL:
                 self.post_upload()
                 if self.event and getattr(self.event, "is_cancelled", False):
                     # Process Cancelled aka Event Message Deleted..
-                    return LOGS.debug(f"Cancelled Uploading: '{self.file}'")
+                    return LOGS.debug(f"Stopped Uploading {self.file}")
                 if self.return_obj:
                     return out  # for single file
                 await self.finalize(out)
@@ -610,9 +611,7 @@ class pyroUL:
 
     def _handle_upload_error(self, type, error):
         LOGS.exception(f"{type} Uploader: {self.file}")
-        err = (
-            (", ".join(tuple(str(i) for i in error.args))) if error.args else "NoneType"
-        )
+        err = ", ".join(error.args) if error.args else "NoneType"
         raise UploadError(
             f"{error.__class__.__name__} while uploading {type}: `{err}`",
         )
