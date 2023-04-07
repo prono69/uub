@@ -133,9 +133,9 @@ async def delete_pm_warn_msgs(chat: int):
 if udB.get_key("PMLOG"):
 
     _alock = asyncio.Lock()
-    _chat = udB.get_key("PMLOGGROUP") or LOG_CHANNEL
 
     async def _msglogger(msg, sender):
+        _chat = udB.get_key("PMLOGGROUP") or LOG_CHANNEL
         async with _alock:
             try:
                 await msg.forward_to(_chat)
