@@ -73,7 +73,7 @@ class _BaseDatabase:
                 return "WRONGTYPE"
         if data and type(data) == str:
             try:
-                data = eval(str(data))
+                data = eval(data)
             except Exception:
                 pass
         return data
@@ -88,7 +88,8 @@ class _BaseDatabase:
                 return True
             return "Key not found"
         for key in self.keys():
-            self._cache.update({key: self.get_key(key, force=True)})
+            if not key.startswith("__"):
+                self._cache.update({key: self.get_key(key, force=True)})
 
     def get_key(self, key, *, force=False):
         if not self.to_cache:
@@ -99,13 +100,15 @@ class _BaseDatabase:
         elif force:
             if key in self.keys():
                 value = self._get_data(key=key)
-                self._cache.update({key: value})
+                if not key.startswith("__"):
+                    self._cache.update({key: value})
                 return deepcopy(value)
 
     def set_key(self, key, value, cache_only=False):
         value = self._get_data(data=value)
         if self.to_cache:
-            self._cache.update({key: value})
+            if not key.startswith("__"):
+                self._cache.update({key: value})
             if cache_only:
                 return True
         self.set(str(key), str(value))

@@ -14,15 +14,16 @@ import os
 
 from . import bash, get_string, mediainfo, ultroid_cmd
 
+try:
+    import glitch_me  # ignore :pylint
+except ImportError:
+    os.system(
+        "pip install -e git+https://github.com/1Danish-00/glitch_me.git#egg=glitch_me"
+    )
+
 
 @ultroid_cmd(pattern="glitch$")
 async def _(e):
-    try:
-        import glitch_me  # ignore :pylint
-    except ModuleNotFoundError:
-        await bash(
-            "pip install -e git+https://github.com/1Danish-00/glitch_me.git#egg=glitch_me"
-        )
     reply = await e.get_reply_message()
     if not reply or not reply.media:
         return await e.eor(get_string("cvt_3"))

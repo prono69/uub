@@ -19,6 +19,7 @@ from random import choice
 from os.path import getsize
 from pathlib import Path
 from mimetypes import guess_extension
+
 # from mimetypes import guess_all_extensions
 
 from music_tag import load_file
@@ -168,7 +169,9 @@ class pyroDL:
             await self.get_message()
             dl_path = await self.tg_downloader()
             if self.event and getattr(self.event, "is_cancelled", False):
-                raise DownloadError("MessageIdInvalidError: Event Message was deleted..")
+                raise DownloadError(
+                    "MessageIdInvalidError: Event Message was deleted.."
+                )
         except (DownloadError, Exception) as exc:
             await self.handle_error(exc)
         else:

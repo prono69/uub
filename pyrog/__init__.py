@@ -17,7 +17,7 @@ from copy import deepcopy
 from os import getcwd, environ
 
 from pyrogram import Client
-from pyUltroid import LOGS, udB
+from pyUltroid import LOGS
 from pyUltroid.configs import Var
 
 
