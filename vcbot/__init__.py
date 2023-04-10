@@ -17,7 +17,6 @@
 
 
 import asyncio
-import os
 import re
 import traceback
 from time import time
@@ -25,10 +24,15 @@ from traceback import format_exc
 
 from pytgcalls import GroupCallFactory
 from pytgcalls.exceptions import GroupCallNotFoundError
+from telethon import events
+from telethon.tl import functions, types
+from telethon.utils import get_display_name
 from telethon.errors.rpcerrorlist import (
     ParticipantJoinMissingError,
     ChatSendMediaForbiddenError,
 )
+
+from strings import get_string
 from pyUltroid import HNDLR, LOGS, asst, udB, vcClient
 from pyUltroid._misc._decorators import compile_pattern
 from pyUltroid.fns.helper import (
@@ -36,6 +40,7 @@ from pyUltroid.fns.helper import (
     downloader,
     inline_mention,
     mediainfo,
+    osremove,
     time_formatter,
 )
 from pyUltroid.fns.admins import admin_check
@@ -45,27 +50,26 @@ from pyUltroid._misc import owner_and_sudos, sudoers
 from pyUltroid._misc._assistant import in_pattern
 from pyUltroid._misc._wrappers import eod, eor
 from pyUltroid.version import __version__ as UltVer
-from telethon import events
-from telethon.tl import functions, types
-from telethon.utils import get_display_name
 
 try:
     from yt_dlp import YoutubeDL
 except ImportError:
     YoutubeDL = None
-    LOGS.error("'yt-dlp' not found!")
+    LOGS.error("VCBOT: 'yt-dlp' not found!")
 
 try:
-   from youtubesearchpython import VideosSearch
+    from youtubesearchpython import VideosSearch
 except ImportError:
     VideosSearch = None
 
-from strings import get_string
 
 asstUserName = asst.me.username
 LOG_CHANNEL = udB.get_key("LOG_CHANNEL")
-ACTIVE_CALLS, VC_QUEUE = [], {}
-MSGID_CACHE, VIDEO_ON = {}, {}
+
+ACTIVE_CALLS = []
+VC_QUEUE = {}
+MSGID_CACHE = {}
+VIDEO_ON = {}
 CLIENTS = {}
 
 
@@ -83,7 +87,8 @@ class Player:
             self.group_call = CLIENTS[chat]
         else:
             _client = GroupCallFactory(
-                vcClient, GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON,
+                vcClient,
+                GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON,
             )
             self.group_call = _client.get_group_call()
             CLIENTS.update({chat: self.group_call})
@@ -92,7 +97,7 @@ class Player:
         try:
             await vcClient(
                 functions.phone.CreateGroupCallRequest(
-                    self._chat, title="🎧 Ultroid Music 🎶"
+                    self._chat, title="Ultroid Music 🎧"
                 )
             )
         except Exception as e:
@@ -105,7 +110,7 @@ class Player:
             for chats in VIDEO_ON:
                 await VIDEO_ON[chats].stop()
             VIDEO_ON.clear()
-            await asyncio.sleep(3)
+            await asyncio.sleep(2)
         if self._video:
             for chats in list(CLIENTS):
                 if chats != self._chat:
@@ -118,7 +123,7 @@ class Player:
                 self.group_call.on_playout_ended(self.playout_ended_handler)
                 await self.group_call.join(self._chat)
             except GroupCallNotFoundError as er:
-                LOGS.info(er)
+                LOGS.exception(er)
                 dn, err = await self.make_vc_active()
                 if err:
                     return False, err
@@ -136,8 +141,7 @@ class Player:
             ACTIVE_CALLS.remove(chat)
 
     async def playout_ended_handler(self, call, source, mtype):
-        if os.path.exists(source):
-            os.remove(source)
+        osremove(source)
         await self.play_from_queue()
 
     async def play_from_queue(self):
@@ -146,38 +150,55 @@ class Player:
             await self.group_call.stop_video()
             VIDEO_ON.pop(chat_id)
         try:
-            song, title, link, thumb, from_user, pos, dur = await get_from_queue(
-                chat_id
-            )
+            (
+                song,
+                title,
+                link,
+                thumb,
+                from_user,
+                pos,
+                dur,
+                silent,
+            ) = await get_from_queue(chat_id)
             try:
                 await self.group_call.start_audio(song)
             except ParticipantJoinMissingError:
                 await self.vc_joiner()
                 await self.group_call.start_audio(song)
+            finally:
+                osremove(song, thumb)
             if MSGID_CACHE.get(chat_id):
-                await MSGID_CACHE[chat_id].delete()
+                await MSGID_CACHE[chat_id].try_delete()
                 del MSGID_CACHE[chat_id]
-            text = f"<strong>🎧 Now playing #{pos}: <a href={link}>{title}</a>\n⏰ Duration:</strong> <code>{dur}</code>\n👤 <strong>Requested by:</strong> {from_user}"
-
-            try:
-                xx = await vcClient.send_message(
-                    self._current_chat,
-                    f"<strong>🎧 Now playing #{pos}: <a href={link}>{title}</a>\n⏰ Duration:</strong> <code>{dur}</code>\n👤 <strong>Requested by:</strong> {from_user}",
-                    file=thumb,
-                    link_preview=False,
-                    parse_mode="html",
+            if not silent:
+                text = "<strong>🎧 Now playing #{}: <a href={}>{}</a>\n⏰ Duration:</strong> <code>{}</code>\n👤 <strong>Requested by:</strong> {}".format(
+                    pos, link, title, dur, from_user
                 )
-
-            except ChatSendMediaForbiddenError:
-                xx = await vcClient.send_message(
-                    self._current_chat, text, link_preview=False, parse_mode="html"
-                )
-            MSGID_CACHE.update({chat_id: xx})
-            VC_QUEUE[chat_id].pop(pos)
+                try:
+                    xx = await vcClient.send_message(
+                        self._current_chat,
+                        text[:1023],
+                        file=thumb,
+                        link_preview=False,
+                        parse_mode="html",
+                    )
+                    MSGID_CACHE.update({chat_id: xx})
+                except ChatSendMediaForbiddenError:
+                    xx = await vcClient.send_message(
+                        self._current_chat,
+                        text[:1023],
+                        link_preview=False,
+                        parse_mode="html",
+                    )
+                    MSGID_CACHE.update({chat_id: xx})
+                except BaseException as exc:
+                    LOGS.exception(exc)
+                    VC_QUEUE[chat_id].pop(pos, None)
+            VC_QUEUE[chat_id].pop(pos, None)
             if not VC_QUEUE[chat_id]:
-                VC_QUEUE.pop(chat_id)
-
+                VC_QUEUE.pop(chat_id, None)
         except (IndexError, KeyError):
+            VC_QUEUE.pop(chat_id, None)
             await self.group_call.stop()
             del CLIENTS[self._chat]
             await vcClient.send_message(
@@ -187,6 +208,7 @@ class Player:
             )
         except Exception as er:
             LOGS.exception(er)
+            VC_QUEUE.pop(chat_id, None)
             await vcClient.send_message(
                 self._current_chat,
                 f"<strong>ERROR:</strong> <code>{format_exc()}</code>",
@@ -203,7 +225,6 @@ class Player:
                 f"• Joined VC in <code>{chat_id}</code>",
                 parse_mode="html",
             )
-
             return True
         await vcClient.send_message(
             self._current_chat,
@@ -242,8 +263,8 @@ def vc_asst(dec, **kwargs):
                     return
             try:
                 await func(e)
-            except Exception:
-                LOGS.exception(Exception)
+            except Exception as exc:
+                LOGS.exception(exc)
                 await asst.send_message(
                     LOG_CHANNEL,
                     f"VC Error - <code>{UltVer}</code>\n\n<code>{e.text}</code>\n\n<code>{format_exc()}</code>",
@@ -261,7 +282,9 @@ def vc_asst(dec, **kwargs):
 # --------------------------------------------------
 
 
-def add_to_queue(chat_id, song, song_name, link, thumb, from_user, duration):
+def add_to_queue(
+    chat_id, song, song_name, link, thumb, from_user, duration, silent=False
+):
     try:
         n = sorted(list(VC_QUEUE[chat_id].keys()))
         play_at = n[-1] + 1
@@ -275,6 +298,7 @@ def add_to_queue(chat_id, song, song_name, link, thumb, from_user, duration):
             "thumb": thumb,
             "from_user": from_user,
             "duration": duration,
+            "silent": silent,
         }
     }
     if VC_QUEUE.get(chat_id):
@@ -304,16 +328,17 @@ async def get_from_queue(chat_id):
     thumb = info["thumb"]
     from_user = info["from_user"]
     duration = info["duration"]
+    silent = info.get("silent")
     if not song:
         song = await get_stream_link(link)
-    return song, title, link, thumb, from_user, play_this, duration
+    return song, title, link, thumb, from_user, play_this, duration, silent
 
 
 # --------------------------------------------------
 
 
 async def download(query):
-    if query.startswith("https://") and "youtube" not in query.lower():
+    if query.startswith("https://") and not "youtu" in query.lower():
         thumb, duration = None, "Unknown"
         title = link = query
     else:
@@ -338,7 +363,7 @@ async def get_stream_link(ytlink):
                 k = x["url"]
     return k
     """
-    stream = await bash(f'yt-dlp -g -f "best[height<=?720][width<=?1280]" {ytlink}')
+    stream = await bash(f'yt-dlp -g -f "best[height<=?480][width<=?854]" {ytlink}')
     return stream[0]
 
 
@@ -397,8 +422,8 @@ async def dl_playlist(chat, from_user, link):
 
 async def file_download(event, reply, fast_download=True):
     thumb = "https://telegra.ph/file/22bb2349da20c7524e4db.mp4"
-    title = reply.file.title or reply.file.name or f"{str(time())}.mp4"
-    file = reply.file.name or f"{str(time())}.mp4"
+    title = reply.file.title or reply.file.name or str(time()) + reply.file.ext or ""
+    file = reply.file.name or str(time()) + reply.file.ext or ""
     if fast_download:
         dl = await downloader(
             f"vcbot/downloads/{file}",
@@ -407,10 +432,9 @@ async def file_download(event, reply, fast_download=True):
             time(),
             f"Downloading {title}...",
         )
-
         dl = dl.name
     else:
-        dl = await reply.download_media()
+        dl = await reply.download_media("vcbot/downloads")
     duration = (
         time_formatter(reply.file.duration * 1000) if reply.file.duration else "🤷‍♂️"
     )

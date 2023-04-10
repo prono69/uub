@@ -26,7 +26,7 @@
 
 from pytgcalls.exceptions import NotConnectedError
 
-from . import vc_asst, Player, get_string,CLIENTS,VIDEO_ON
+from . import vc_asst, Player, get_string, CLIENTS, VIDEO_ON, VC_QUEUE
 
 
 @vc_asst("joinvc")
@@ -44,7 +44,7 @@ async def join_(event):
         await ultSongs.vc_joiner()
 
 
-@vc_asst("(leavevc|stopvc)")
+@vc_asst("(leave|stop)vc")
 async def leaver(event):
     if len(event.text.split()) > 1:
         chat = event.text.split()[1]
@@ -56,10 +56,9 @@ async def leaver(event):
         chat = event.chat_id
     ultSongs = Player(chat)
     await ultSongs.group_call.stop()
-    if CLIENTS.get(chat):
-        del CLIENTS[chat]
-    if VIDEO_ON.get(chat):
-        del VIDEO_ON[chat]
+    for loc in (VC_QUEUE, CLIENTS, VIDEO_ON):
+        # Clean VC_QUEUE as well
+        loc.pop(chat, None)
     await event.eor(get_string("vcbot_1"))
 
 
@@ -86,7 +85,7 @@ async def volume_setter(event):
     if len(event.text.split()) <= 1:
         return await event.eor(get_string("vcbot_4"))
     inp = event.text.split()
-    if inp[1].startswith(("@","-")):
+    if inp[1].startswith(("@", "-")):
         chat = inp[1]
         vol = int(inp[2])
         try:
@@ -113,7 +112,7 @@ async def skipper(event):
         try:
             chat = await event.client.parse_id(chat)
         except Exception as e:
-            return await event.eor(f"**ERROR:**\n{str(e)}")
+            return await event.eor(f"**ERROR:**\n{e}")
     else:
         chat = event.chat_id
     ultSongs = Player(chat, event)

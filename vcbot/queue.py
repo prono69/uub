@@ -41,9 +41,8 @@ async def clean_queue(event):
         try:
             chat = await event.client.parse_id(chat)
         except Exception as e:
-            return await event.eor(f"**ERROR:**\n{str(e)}")
+            return await event.eor(f"**ERROR:**\n{e}")
     else:
         chat = event.chat_id
-    if VC_QUEUE.get(chat):
-        VC_QUEUE.pop(chat)
+    VC_QUEUE.pop(chat, None)
     await event.eor(get_string("vcbot_22"), time=5)

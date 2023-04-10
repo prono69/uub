@@ -23,6 +23,7 @@
 • `{i}replay`
    Re-play the current song from the beginning.
 """
+
 from . import vc_asst, Player, get_string
 
 
@@ -33,7 +34,7 @@ async def mute(event):
         try:
             chat = await event.client.parse_id(chat)
         except Exception as e:
-            return await event.eor(f"**ERROR:**\n{str(e)}")
+            return await event.eor(f"**ERROR:**\n{e}")
     else:
         chat = event.chat_id
     ultSongs = Player(chat)
@@ -48,7 +49,7 @@ async def unmute(event):
         try:
             chat = await event.client.parse_id(chat)
         except Exception as e:
-            return await event.eor(f"**ERROR:**\n{str(e)}")
+            return await event.eor(f"**ERROR:**\n{e}")
     else:
         chat = event.chat_id
     ultSongs = Player(chat)
@@ -63,7 +64,7 @@ async def pauser(event):
         try:
             chat = await event.client.parse_id(chat)
         except Exception as e:
-            return await event.eor(f"**ERROR:**\n{str(e)}")
+            return await event.eor(f"**ERROR:**\n{e}")
     else:
         chat = event.chat_id
     ultSongs = Player(chat)
@@ -78,7 +79,7 @@ async def resumer(event):
         try:
             chat = await event.client.parse_id(chat)
         except Exception as e:
-            return await event.eor(f"**ERROR:**\n{str(e)}")
+            return await event.eor(f"**ERROR:**\n{e}")
     else:
         chat = event.chat_id
     ultSongs = Player(chat)
@@ -93,7 +94,7 @@ async def replayer(event):
         try:
             chat = await event.client.parse_id(chat)
         except Exception as e:
-            return await event.eor(f"**ERROR:**\n{str(e)}")
+            return await event.eor(f"**ERROR:**\n{e}")
     else:
         chat = event.chat_id
     ultSongs = Player(chat)

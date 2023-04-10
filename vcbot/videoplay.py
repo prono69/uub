@@ -14,9 +14,23 @@
    like `{i}videoplay @chat <input/reply>`
 
 """
-import re, asyncio
+
+import asyncio
+import re
+
 from telethon.errors.rpcerrorlist import ChatSendMediaForbiddenError
-from . import vc_asst, Player, get_string, inline_mention, is_url_ok, mediainfo, vid_download, file_download,LOGS
+
+from . import (
+    vc_asst,
+    Player,
+    get_string,
+    inline_mention,
+    is_url_ok,
+    mediainfo,
+    vid_download,
+    file_download,
+    LOGS,
+)
 
 
 @vc_asst("videoplay")
@@ -48,7 +62,7 @@ async def video_c(event):
     if reply and reply.media and mediainfo(reply.media).startswith("video"):
         song, thumb, title, link, duration = await file_download(xx, reply)
     else:
-        is_link = is_url_ok(song)
+        is_link = await is_url_ok(song)
         if is_link is False:
             return await xx.eor(f"`{song}`\n\nNot a playable link.🥱")
         if is_link is None:
@@ -77,6 +91,6 @@ async def video_c(event):
         )
     except ChatSendMediaForbiddenError:
         await xx.reply(text, link_preview=False)
-    await asyncio.sleep(1)
+    await asyncio.sleep(2)
     await ultSongs.group_call.start_video(song, with_audio=True)
     await xx.delete()

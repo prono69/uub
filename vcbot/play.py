@@ -21,10 +21,31 @@
    Stream Live YouTube
 """
 
-import re,os
+import asyncio
+import re
+
 from telethon.tl import types
-from . import vc_asst, get_string, inline_mention, add_to_queue, mediainfo, file_download, LOGS, is_url_ok, bash, download, Player, VC_QUEUE
-from telethon.errors.rpcerrorlist import ChatSendMediaForbiddenError, MessageIdInvalidError
+from telethon.utils import get_display_name
+from telethon.errors.rpcerrorlist import (
+    ChatSendMediaForbiddenError,
+    MessageIdInvalidError,
+)
+
+from . import (
+    vc_asst,
+    get_string,
+    inline_mention,
+    add_to_queue,
+    mediainfo,
+    file_download,
+    LOGS,
+    is_url_ok,
+    bash,
+    download,
+    Player,
+    VC_QUEUE,
+    osremove,
+)
 
 
 @vc_asst("play")
@@ -60,7 +81,8 @@ async def play_music_(event):
         else:
             song = input
     if not (reply or song):
-        return await xx.eor("Please specify a song name or reply to a audio file !", time=5
+        return await xx.eor(
+            "Please specify a song name or reply to a audio file !", time=5
         )
     await xx.eor(get_string("vcbot_20"), parse_mode="md")
     if reply and reply.media and mediainfo(reply.media).startswith(("audio", "video")):
@@ -92,8 +114,8 @@ async def play_music_(event):
             await xx.delete()
         except ChatSendMediaForbiddenError:
             await xx.eor(text, link_preview=False)
-        if thumb and os.path.exists(thumb):
-            os.remove(thumb)
+        if thumb:
+            osremove(thumb)
     else:
         if not (
             reply
@@ -103,21 +125,22 @@ async def play_music_(event):
             song = None
         if isinstance(link, list):
             for lin in link[1:]:
-                add_to_queue(chat, song, lin, lin, None, from_user, duration)
+                add_to_queue(chat, song, lin, lin, None, from_user, duration, False)
             link = song_name = link[0]
-        add_to_queue(chat, song, song_name, link, thumb, from_user, duration)
+        add_to_queue(chat, song, song_name, link, thumb, from_user, duration, False)
         return await xx.eor(
             f"▶ Added 🎵 <a href={link}>{song_name}</a> to queue at #{list(VC_QUEUE[chat].keys())[-1]}.",
             parse_mode="html",
         )
 
 
-@vc_asst("playfrom")
+@vc_asst("s?playfrom")
 async def play_music_(event):
     msg = await event.eor(get_string("com_1"))
+    silent = "splay" in event.text[:8]
     chat = event.chat_id
     limit = 10
-    from_user = inline_mention(await event.get_sender(), html=True)
+    from_user = inline_mention(event.sender, html=True)
     if len(event.text.split()) <= 1:
         return await msg.edit(
             "Use in Proper Format\n`.playfrom <channel username> ; <limit>`"
@@ -131,42 +154,42 @@ async def play_music_(event):
             input = await event.client.parse_id(input)
         except (IndexError, ValueError):
             pass
+
     try:
-        fromchat = (await event.client.get_entity(input)).id
+        fromchat = await event.client.get_entity(input)
     except Exception as er:
         return await msg.eor(str(er))
-    await msg.eor("`• Started Playing from Channel....`")
+    await msg.eor(f"`• Playing from {get_display_name(fromchat)}`")
     send_message = True
     ultSongs = Player(chat, event)
     count = 0
     async for song in event.client.iter_messages(
-        fromchat, limit=limit, wait_time=5, filter=types.InputMessagesFilterMusic
+        fromchat.id, limit=limit, wait_time=5, filter=types.InputMessagesFilterMusic
     ):
         count += 1
         song, thumb, song_name, link, duration = await file_download(
             msg, song, fast_download=False
         )
         song_name = f"{song_name[:30]}..."
+        await asyncio.sleep(5)
         if not ultSongs.group_call.is_connected:
             if not (await ultSongs.vc_joiner()):
                 return
             await ultSongs.group_call.start_audio(song)
-            text = "🎸 <strong>Now playing: <a href={}>{}</a>\n⏰ Duration:</strong> <code>{}</code>\n👥 <strong>Chat:</strong> <code>{}</code>\n🙋‍♂ <strong>Requested by: {}</strong>".format(
-                link, song_name, duration, chat, from_user
-            )
-            try:
-                await msg.reply(
-                    text,
-                    file=thumb,
-                    link_preview=False,
-                    parse_mode="html",
+            if not silent:
+                text = "🎸 <strong>Now playing: <a href={}>{}</a>\n⏰ Duration:</strong> <code>{}</code>\n👥 <strong>Chat:</strong> <code>{}</code>\n🙋‍♂ <strong>Requested by: {}</strong>".format(
+                    link, song_name, duration, chat, from_user
                 )
-            except ChatSendMediaForbiddenError:
-                await msg.reply(text, link_preview=False, parse_mode="html")
-            if thumb and os.path.exists(thumb):
-                os.remove(thumb)
+                try:
+                    await msg.reply(text[:1023], file=thumb, parse_mode="html")
+                except ChatSendMediaForbiddenError:
+                    await msg.reply(text[:1023], link_preview=False, parse_mode="html")
+            if thumb:
+                osremove(thumb)
         else:
-            add_to_queue(chat, song, song_name, link, thumb, from_user, duration)
+            add_to_queue(
+                chat, song, song_name, link, thumb, from_user, duration, silent
+            )
             if send_message and count == 1:
                 await msg.eor(
                     f"▶ Added 🎵 <strong><a href={link}>{song_name}</a></strong> to queue at <strong>#{list(VC_QUEUE[chat].keys())[-1]}.</strong>",
@@ -190,7 +213,7 @@ async def radio_mirchi(e):
     else:
         song = e.text.split(maxsplit=1)[1]
         chat = e.chat_id
-    if not is_url_ok(song):
+    if not await is_url_ok(song):
         return await xx.eor(f"`{song}`\n\nNot a playable link.🥱")
     ultSongs = Player(chat, e)
     if not ultSongs.group_call.is_connected and not (await ultSongs.vc_joiner()):
@@ -215,7 +238,7 @@ async def live_stream(e):
     else:
         song = e.text.split(maxsplit=1)[1]
         chat = e.chat_id
-    if not is_url_ok(song):
+    if not await is_url_ok(song):
         return await xx.eor(f"`{song}`\n\nNot a playable link.🥱")
     is_live_vid = False
     if re.search("youtu", song):

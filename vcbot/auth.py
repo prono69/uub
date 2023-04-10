@@ -28,7 +28,8 @@
 """
 
 from pyUltroid.dB.vc_sudos import add_vcsudo, del_vcsudo, get_vcsudos, is_vcsudo
-from . import vc_asst, owner_and_sudos, get_string, udB
+
+from . import inline_mention, vc_asst, owner_and_sudos, get_string, udB
 
 
 @vc_asst("addauth", from_users=owner_and_sudos(), vc_auth=False)
@@ -132,29 +133,32 @@ async def _(e):
 @vc_asst("vcaccess( (.*)|$)", from_users=owner_and_sudos(), vc_auth=False)
 async def _(e):
     xx = await e.eor("`Approving to access Voice Chat features...`")
-    input = e.pattern_match.group(1).strip()
+    input = e.pattern_match.group(2)
     if e.reply_to_msg_id:
-        userid = (await e.get_reply_message()).sender_id
-        name = (await e.client.get_entity(userid)).first_name
+        reply = await e.get_reply_message()
+        userid = reply.sender_id
+        name = reply.sender.first_name
+        mention = inline_mention(reply.sender)
     elif input:
         try:
             userid = await e.client.parse_id(input)
-            name = (await e.client.get_entity(userid)).first_name
+            ent = await e.client.get_entity(userid)
+            name = ent.first_name
+            mention = inline_mention(ent)
         except ValueError as ex:
-            return await xx.eor(f"`{str(ex)}`", time=5)
+            return await xx.eor(f"**Error:** `{str(ex)}`", time=5)
     else:
         return await xx.eor(get_string("vcbot_17"), time=3)
     if is_vcsudo(userid):
         return await xx.eor(
-            f"[{name}](tg://user?id={userid})` is already approved to use my Voice Chat Bot.`",
+            f"{mention} `is already approved to use my Voice Chat Bot.`",
             time=5,
         )
     try:
         add_vcsudo(userid)
         await xx.eor(
-            
-            f"[{name}](tg://user?id={userid})` is added to Voice Chat Bot Users.`",
+            f"{mention} `is added to Voice Chat Bot Users.`",
             time=5,
         )
     except Exception as ex:
-        return await xx.eor(f"`{ex}`", time=5)
+        return await xx.eor(f"**Error:** `{ex}`", time=5)

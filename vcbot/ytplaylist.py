@@ -14,7 +14,17 @@
 """
 
 import re
-from . import vc_asst, get_string, inline_mention, Player, dl_playlist, add_to_queue, is_url_ok, VC_QUEUE
+
+from . import (
+    vc_asst,
+    get_string,
+    inline_mention,
+    Player,
+    dl_playlist,
+    add_to_queue,
+    is_url_ok,
+    VC_QUEUE,
+)
 
 
 @vc_asst("ytplaylist")
@@ -28,14 +38,14 @@ async def live_stream(e):
         song = e.text.split(maxsplit=2)[2]
     elif input[1].startswith("@"):
         cid_moosa = (await e.client.get_entity(input[1])).id
-        chat = int(f"-100{str(cid_moosa)}")
+        chat = int("-100" + str(cid_moosa))
         song = e.text.split(maxsplit=2)[2]
     else:
         song = e.text.split(maxsplit=1)[1]
         chat = e.chat_id
     if not (re.search("youtu", song) and re.search("playlist\\?list", song)):
         return await xx.eor(get_string("vcbot_8"))
-    if not is_url_ok(song):
+    if not await is_url_ok(song):
         return await xx.eor("`Only Youtube Playlist please.`")
     await xx.edit(get_string("vcbot_7"))
     file, thumb, title, link, duration = await dl_playlist(
@@ -53,7 +63,6 @@ async def live_stream(e):
             file=thumb,
             link_preview=False,
         )
-
         await xx.delete()
         await ultSongs.group_call.start_audio(file)
     else:
