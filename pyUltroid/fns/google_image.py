@@ -901,7 +901,6 @@ class googleimagesdownload:
                     download_status = None
 
                 if download_status == "success":
-
                     # download image_thumbnails
                     if arguments["thumbnail"] or arguments["thumbnail_only"]:
                         (

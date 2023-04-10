@@ -21,7 +21,6 @@ a = r"""
 
 
 def start():
-
     clear_screen()
     check_for_py()
 

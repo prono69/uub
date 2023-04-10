@@ -34,7 +34,6 @@ __log__ = logging.getLogger(__name__)
 
 
 class RedisSession(MemorySession):
-
     session_name = None
     redis_connection = None
     hive_prefix = None

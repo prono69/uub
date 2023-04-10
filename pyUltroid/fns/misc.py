@@ -206,6 +206,7 @@ async def unsplashsearch(query, limit=None, shuf=True):
 
 # ---------------- Random User Gen ----------------
 
+
 # @xditya
 async def get_random_user_data():
     base_url = "https://randomuser.me/api/"

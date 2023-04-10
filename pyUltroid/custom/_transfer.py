@@ -47,6 +47,7 @@ DEFAULT_THUMB = str(Path.cwd().joinpath("resources/extras/ultroid.jpg"))
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+
 # Progress Bar
 async def pyro_progress(
     current,

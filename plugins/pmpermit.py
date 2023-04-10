@@ -131,7 +131,6 @@ async def delete_pm_warn_msgs(chat: int):
 
 
 if udB.get_key("PMLOG"):
-
     _alock = asyncio.Lock()
 
     async def _msglogger(msg, sender):
