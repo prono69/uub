@@ -125,12 +125,10 @@ def load_other_plugins(addons=None, pmbot=None, manager=None, vcbot=None):
 
             if os.path.exists("vcbot"):
                 if os.path.exists("vcbot/.git"):
-                    subprocess.run("cd vcbot && git pull", shell=True)
-                else:
-                    rmtree("vcbot")
-            if not os.path.exists("vcbot"):
+                    subprocess.run("cd vcbot && git pull -q --rebase", shell=True)
+            else:
                 subprocess.run(
-                    "git clone https://github.com/TeamUltroid/VcBot vcbot", shell=True
+                    "git clone https://github.com/TeamUltroid/VcBot vcbot", shell=True,
                 )
             try:
                 os.makedirs("vcbot/downloads", exist_ok=True)
