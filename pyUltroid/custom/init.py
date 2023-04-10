@@ -4,6 +4,7 @@ import asyncio
 from os import environ, system
 from pathlib import Path
 from subprocess import run, Popen
+from sys import exit
 from time import tzset
 
 from ._loop import loop, run_async_task, tasks_db
@@ -30,11 +31,10 @@ def startup_logo():
 
 
 def cleanup_stuff():
-    hitlist = [
+    hitlist = (
         "/usr/local/lib/python3.*/site-packages/pip/_vendor/.wh*",
-        "/usr/local/lib/python3.*/site-packages/.wh.pip*",
-        "/usr/local/lib/python3.*/site-packages/.wh.setuptools*",
-    ]
+        "/usr/local/lib/python3.*/site-packages/.wh*",
+    )
     for path in hitlist:
         run(f"rm -rfv {path}", shell=True)
     to_del = ("jewel", "bird", ".wget-hsts", "prvenv")
@@ -54,30 +54,15 @@ def setup_timezone():
         tzset()
 
 
-def telethon_checker():
-    # todo: various telethon checks..
-    def _layer():
-        from telethon.tl.alltlobjects import LAYER
-
-        return LAYER
-
-    if _layer() < 151:
-        run(
-            "pip3 uninstall telethon -y && pip3 install https://github.com/New-dev0/Telethon/archive/platy.zip",
-            shell=True,
-        )
-
-
 def startup_tasks():
     if not Path("plugins").is_dir():
         print("Plugins Folder does not exists!")
-        quit(0)
+        exit(0)
     startup_logo()
     cleanup_stuff()
     setup_timezone()
     if load_dotenv and Path(".env").is_file():
         load_dotenv(override=True)
-    telethon_checker()
 
 
 startup_tasks()
@@ -113,13 +98,13 @@ async def _updater_task(data):
 
 def _host_specifics():
     if Var.HOST.lower() == "heroku":
-        LOGS.debug("Setting up heroku3 API")
+        LOGS.debug("Starting heroku3 API Setup...")
         herokuApp()
-    if r_data := environ.get("USR_STATUS_UPDATE"):  # chk doprax?
-        run_async_task(_updater_task, r_data, id="status_update")
     if environ.get("qBit") and Path("1337x").is_file():
         LOGS.info("Starting qBittorrent")
         Popen("bash 1337x &", shell=True)
+    if r_data := environ.get("USR_STATUS_UPDATE"):  # doprax
+        run_async_task(_updater_task, r_data, id="status_update")
 
 
 def delayed_startup_tasks():
@@ -136,7 +121,7 @@ def afterBoot(db):
         chk = environ.get("CHECKS")
         if not chk or (chk and chk not in db.get_key("DOPRAX")):
             print("check the 'CHECKS' Var...")
-            quit(0)
+            exit(0)
 
 
 delayed_startup_tasks()

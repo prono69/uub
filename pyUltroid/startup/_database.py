@@ -5,6 +5,7 @@
 # PLease read the GNU Affero General Public License in
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
+from ast import literal_eval
 from os import environ, system
 from copy import deepcopy
 from random import randrange
@@ -23,7 +24,7 @@ try:
     from redis import Redis
     from pymongo import MongoClient
 except ModuleNotFoundError:
-    LOGS.info("Installing redis and pymongo for database.")
+    LOGS.info("Installing Redis and pymongo for database.")
     system(f"{executable} -m pip install -q redis[hiredis] pymongo[srv]")
     from redis import Redis
     from pymongo import MongoClient
@@ -73,7 +74,7 @@ class _BaseDatabase:
                 return "WRONGTYPE"
         if data and type(data) == str:
             try:
-                data = eval(data)
+                data = literal_eval(data)
             except Exception:
                 pass
         return data

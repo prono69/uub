@@ -59,16 +59,6 @@ def timeit(func):
         return exec_time
 
 
-async def msg_link(message):
-    # todo: add as msg property
-    chat = await message.get_chat()
-    if isinstance(chat, types.User):
-        user = "tg://openmessage?user_id={user_id}&message_id={msg_id}"
-        return user.format(user_id=chat.id, msg_id=message.id)
-    # will add others types later..
-    return message.message_link
-
-
 async def cleargif(gif):
     if not gif.client._bot and gif.gif:
         try:
@@ -238,5 +228,4 @@ __all__ = [
     "run_async_task",
     "scheduler",
     "getFlags",
-    "msg_link",
 ]

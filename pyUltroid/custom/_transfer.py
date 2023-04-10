@@ -29,7 +29,7 @@ from telethon.errors import MessageNotModifiedError, MessageIdInvalidError
 
 from pyrog import app
 from .mediainfo import media_info
-from .functions import cleargif, msg_link, run_async_task
+from .functions import cleargif, run_async_task
 from pyUltroid.exceptions import UploadError, DownloadError
 from pyUltroid.fns.helper import bash, time_formatter, inline_mention, osremove
 from pyUltroid.fns.tools import check_filename, humanbytes, shq
@@ -481,7 +481,7 @@ class pyroUL:
             text = dumpCaption.format(
                 f"{self.count}/{self.total_files}",
                 get_display_name(copy.chat),
-                await msg_link(copy),
+                copy.message_link,
                 get_display_name(sndr),
                 inline_mention(sndr, custom=sndr.id),
                 str(self.file),

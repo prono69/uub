@@ -6,12 +6,15 @@
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
 import inspect
+import mimetypes
 import sys
 import time
 from logging import Logger
+from pathlib import Path
 
 from telethon import TelegramClient
 from telethon import utils as telethon_utils
+from telethon.tl.types import DocumentAttributeFilename
 from telethon.errors import (
     AccessTokenExpiredError,
     AccessTokenInvalidError,
@@ -96,10 +99,6 @@ class UltroidClient(TelegramClient):
 
     async def fast_uploader(self, file, **kwargs):
         """Upload files in a faster way"""
-
-        import os
-        from pathlib import Path
-
         start_time = time.time()
         path = Path(file)
         filename = kwargs.get("filename", path.name)
@@ -113,7 +112,7 @@ class UltroidClient(TelegramClient):
         to_delete = kwargs.get("to_delete", False)
         message = kwargs.get("message", f"Uploading {filename}...")
         by_bot = self._bot
-        size = os.path.getsize(file)
+        size = path.stat().st_size
         # Don't show progress bar when file size is less than 5MB.
         if size < 5 * 2**20:
             show_progress = False
@@ -126,11 +125,9 @@ class UltroidClient(TelegramClient):
                     and files["by_bot"] == by_bot
                 ):
                     if to_delete:
-                        try:
-                            os.remove(file)
-                        except FileNotFoundError:
-                            pass
+                        path.unlink(missing_ok=True)
                     return files["raw_file"], time.time() - start_time
+
         from pyUltroid.fns.FastTelethon import upload_file
         from pyUltroid.fns.helper import progress
 
@@ -161,10 +158,7 @@ class UltroidClient(TelegramClient):
         else:
             self._cache.update({"upload_cache": [cache]})
         if to_delete:
-            try:
-                os.remove(file)
-            except FileNotFoundError:
-                pass
+            path.unlink(missing_ok=True)
         return raw_file, time.time() - start_time
 
     async def fast_downloader(self, file, **kwargs):
@@ -177,9 +171,6 @@ class UltroidClient(TelegramClient):
         # Don't show progress bar when file size is less than 10MB.
         if file.size < 10 * 2**20:
             show_progress = False
-        import mimetypes
-
-        from telethon.tl.types import DocumentAttributeFilename
 
         from pyUltroid.fns.FastTelethon import download_file
         from pyUltroid.fns.helper import progress

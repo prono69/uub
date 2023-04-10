@@ -9,7 +9,7 @@ from asyncio import sleep
 
 from telethon.errors import MessageDeleteForbiddenError, MessageNotModifiedError
 from telethon.tl.custom import Message
-from telethon.tl.types import MessageService
+from telethon.tl.types import MessageService, User
 
 
 # edit or reply
@@ -25,7 +25,7 @@ async def eor(event, text=None, time=None, link_preview=False, edit_time=None, *
                 text,
                 link_preview=link_preview,
                 reply_to=reply_to,
-                **args
+                **args,
             )
         else:
             try:
@@ -58,23 +58,41 @@ async def _try_delete(event):
     except BaseException as er:
         from . import LOGS
 
-        LOGS.error("Error while Deleting Message..")
-        LOGS.exception(er)
+        LOGS.warning("Error while Deleting Message..", exc_info=True)
 
 
 # copy message
 async def copy_message(msg, to_chat, **kwargs):
-    if not isinstance(msg, Message) or isinstance(msg, MessageService):
+    if isinstance(msg, Message) and not msg.action:
+        try:
+            if "caption" in kwargs:
+                msg.text = kwargs.pop("caption")
+            return await msg.client.send_message(to_chat, msg, **kwargs)
+        except Exception:
+            raise
+    else:
         raise TypeError("Error: Invalid message type")
 
-    try:
-        if "caption" in kwargs:
-            msg.text = kwargs.pop("caption")
-        return await msg.client.send_message(to_chat, msg, **kwargs)
-    except Exception:
-        raise
+
+def _message_link(self):
+    if isinstance(self.chat, User):
+        fmt = "tg://openmessage?user_id={user_id}&message_id={msg_id}"
+        return fmt.format(user_id=self.chat_id, msg_id=self.id)
+    if getattr(self.chat, "username", None):
+        return f"https://t.me/{self.chat.username}/{self.id}"
+    if self.chat_id:
+        if str(self.chat_id).startswith(("-", "-100")):
+            chat = int(str(self.chat_id).replace("-100", "").replace("-", ""))
+        else:
+            chat = self.chat_id
+    elif self.chat and self.chat.id:
+        chat = self.chat.id
+    else:
+        return
+    return f"https://t.me/c/{chat}/{self.id}"
 
 
 setattr(Message, "eor", eor)
 setattr(Message, "try_delete", _try_delete)
 setattr(Message, "copy", copy_message)
+Message.message_link = property(_message_link)

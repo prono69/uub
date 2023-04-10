@@ -366,7 +366,7 @@ async def evalogger(cmd, e):
             cmd,
             get_display_name(sndr),
             inline_mention(sndr, custom=sndr.id, html=True),
-            await msg_link(e),
+            e.message_link,
             get_display_name(e.chat or await e.get_chat()),
         )
         await asst.send_message(TAG_LOG, _msg, link_preview=False, parse_mode="html")
