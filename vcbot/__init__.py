@@ -19,6 +19,7 @@
 import asyncio
 import re
 import traceback
+from pathlib import Path
 from time import time
 from traceback import format_exc
 
@@ -37,6 +38,7 @@ from pyUltroid import HNDLR, LOGS, asst, udB, vcClient
 from pyUltroid._misc._decorators import compile_pattern
 from pyUltroid.fns.helper import (
     bash,
+    check_filename,
     downloader,
     inline_mention,
     mediainfo,
@@ -66,11 +68,11 @@ except ImportError:
 asstUserName = asst.me.username
 LOG_CHANNEL = udB.get_key("LOG_CHANNEL")
 
+CLIENTS = {}
 ACTIVE_CALLS = []
 VC_QUEUE = {}
 MSGID_CACHE = {}
 VIDEO_ON = {}
-CLIENTS = {}
 
 
 def VC_AUTHS():
@@ -97,7 +99,7 @@ class Player:
         try:
             await vcClient(
                 functions.phone.CreateGroupCallRequest(
-                    self._chat, title="Ultroid Music 🎧"
+                    self._chat, title="Ultroid VCBOT 🎧"
                 )
             )
         except Exception as e:
@@ -115,7 +117,7 @@ class Player:
             for chats in list(CLIENTS):
                 if chats != self._chat:
                     await CLIENTS[chats].stop()
-                    del CLIENTS[chats]
+                    CLIENTS.pop(chats, None)
             VIDEO_ON.update({self._chat: self.group_call})
         if self._chat not in ACTIVE_CALLS:
             try:
@@ -165,11 +167,10 @@ class Player:
             except ParticipantJoinMissingError:
                 await self.vc_joiner()
                 await self.group_call.start_audio(song)
-            finally:
-                osremove(song, thumb)
+
             if MSGID_CACHE.get(chat_id):
                 await MSGID_CACHE[chat_id].try_delete()
-                del MSGID_CACHE[chat_id]
+                MSGID_CACHE.pop(chat_id, None)
             if not silent:
                 text = "<strong>🎧 Now playing #{}: <a href={}>{}</a>\n⏰ Duration:</strong> <code>{}</code>\n👤 <strong>Requested by:</strong> {}".format(
                     pos, link, title, dur, from_user
@@ -186,7 +187,7 @@ class Player:
                 except ChatSendMediaForbiddenError:
                     xx = await vcClient.send_message(
                         self._current_chat,
-                        text[:1023],
+                        text,
                         link_preview=False,
                         parse_mode="html",
                     )
@@ -198,9 +199,9 @@ class Player:
             if not VC_QUEUE[chat_id]:
                 VC_QUEUE.pop(chat_id, None)
         except (IndexError, KeyError):
-            VC_QUEUE.pop(chat_id, None)
             await self.group_call.stop()
-            del CLIENTS[self._chat]
+            VC_QUEUE.pop(chat_id, None)
+            CLIENTS.pop(self._chat, None)
             await vcClient.send_message(
                 self._current_chat,
                 f"• Successfully Left Vc : <code>{chat_id}</code> •",
@@ -214,6 +215,8 @@ class Player:
                 f"<strong>ERROR:</strong> <code>{format_exc()}</code>",
                 parse_mode="html",
             )
+        finally:
+            osremove(song, thumb)
 
     async def vc_joiner(self):
         chat_id = self._chat
@@ -422,11 +425,12 @@ async def dl_playlist(chat, from_user, link):
 
 async def file_download(event, reply, fast_download=True):
     thumb = "https://telegra.ph/file/22bb2349da20c7524e4db.mp4"
-    title = reply.file.title or reply.file.name or str(time()) + reply.file.ext or ""
-    file = reply.file.name or str(time()) + reply.file.ext or ""
+    title = reply.file.title or reply.file.name or str(time()) + (reply.file.ext or "")
+    file = reply.file.name or str(time()) + (reply.file.ext or "")
+    dl_loc = check_filename(f"vcbot/downloads/{file}")
     if fast_download:
         dl = await downloader(
-            f"vcbot/downloads/{file}",
+            dl_loc,
             reply.media.document,
             event,
             time(),
@@ -434,12 +438,12 @@ async def file_download(event, reply, fast_download=True):
         )
         dl = dl.name
     else:
-        dl = await reply.download_media("vcbot/downloads")
+        dl = await reply.download_media(dl_loc)
     duration = (
         time_formatter(reply.file.duration * 1000) if reply.file.duration else "🤷‍♂️"
     )
     if reply.document.thumbs:
-        thumb = await reply.download_media("vcbot/downloads/", thumb=-1)
+        thumb = await reply.download_media(str(Path(dl_loc).with_suffix(".jpg")), thumb=-1)
     return dl, thumb, title, reply.message_link, duration
 
 

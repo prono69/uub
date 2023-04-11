@@ -21,9 +21,8 @@ async def helper(event):
 
 @in_pattern("vchelp")
 async def wiqhshd(e):
-    builder = e.builder
     res = [
-        await builder.article(
+        await e.builder.article(
             title="Vc Help",
             text="**VCBot Help Menu**\n\n",
             buttons=Button.inline("Voice Chat Help", data="uh_VCBot_"),

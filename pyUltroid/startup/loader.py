@@ -128,7 +128,8 @@ def load_other_plugins(addons=None, pmbot=None, manager=None, vcbot=None):
                     subprocess.run("cd vcbot && git pull -q --rebase", shell=True)
             else:
                 subprocess.run(
-                    "git clone https://github.com/TeamUltroid/VcBot vcbot", shell=True,
+                    "git clone https://github.com/TeamUltroid/VcBot vcbot",
+                    shell=True,
                 )
             try:
                 os.makedirs("vcbot/downloads", exist_ok=True)

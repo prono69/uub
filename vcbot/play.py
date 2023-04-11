@@ -24,8 +24,8 @@
 import asyncio
 import re
 
-from telethon.tl import types
 from telethon.utils import get_display_name
+from telethon.tl.types import InputMessagesFilterMusic
 from telethon.errors.rpcerrorlist import (
     ChatSendMediaForbiddenError,
     MessageIdInvalidError,
@@ -114,8 +114,9 @@ async def play_music_(event):
             await xx.delete()
         except ChatSendMediaForbiddenError:
             await xx.eor(text, link_preview=False)
-        if thumb:
-            osremove(thumb)
+        finally:
+            if thumb:
+                osremove(thumb)
     else:
         if not (
             reply
@@ -164,14 +165,14 @@ async def play_music_(event):
     ultSongs = Player(chat, event)
     count = 0
     async for song in event.client.iter_messages(
-        fromchat.id, limit=limit, wait_time=5, filter=types.InputMessagesFilterMusic
+        fromchat.id, limit=limit, wait_time=5, filter=InputMessagesFilterMusic
     ):
         count += 1
         song, thumb, song_name, link, duration = await file_download(
             msg, song, fast_download=False
         )
         song_name = f"{song_name[:30]}..."
-        await asyncio.sleep(5)
+        await asyncio.sleep(2)
         if not ultSongs.group_call.is_connected:
             if not (await ultSongs.vc_joiner()):
                 return
@@ -183,9 +184,10 @@ async def play_music_(event):
                 try:
                     await msg.reply(text[:1023], file=thumb, parse_mode="html")
                 except ChatSendMediaForbiddenError:
-                    await msg.reply(text[:1023], link_preview=False, parse_mode="html")
-            if thumb:
-                osremove(thumb)
+                    await msg.reply(text, link_preview=False, parse_mode="html")
+                finally:
+                    if thumb:
+                        osremove(thumb)
         else:
             add_to_queue(
                 chat, song, song_name, link, thumb, from_user, duration, silent
@@ -226,7 +228,7 @@ async def radio_mirchi(e):
     await xx.delete()
 
 
-@vc_asst("(live|ytlive)")
+@vc_asst("(yt|)live")
 async def live_stream(e):
     xx = await e.eor(get_string("com_1"))
     if len(e.text.split()) <= 1:
@@ -258,4 +260,6 @@ async def live_stream(e):
         link_preview=False,
     )
     await xx.delete()
+    if thumb:
+        osremove(thumb)
     await ultSongs.group_call.start_audio(file)

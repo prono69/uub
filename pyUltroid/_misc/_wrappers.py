@@ -50,15 +50,16 @@ async def eod(event, text=None, **kwargs):
 
 
 # try delete
-async def _try_delete(event):
+async def _try_delete(event, log=False):
     try:
         return await event.delete()
     except MessageDeleteForbiddenError:
         pass
     except BaseException as er:
-        from . import LOGS
+        if log:
+            from . import LOGS
 
-        LOGS.warning("Error while Deleting Message..", exc_info=True)
+            LOGS.warning("Error while Deleting Message..", exc_info=True)
 
 
 # copy message
@@ -74,7 +75,7 @@ async def copy_message(msg, to_chat, **kwargs):
         raise TypeError("Error: Invalid message type")
 
 
-def _message_link(self):
+def get_message_link(self):
     if isinstance(self.chat, User):
         fmt = "tg://openmessage?user_id={user_id}&message_id={msg_id}"
         return fmt.format(user_id=self.chat_id, msg_id=self.id)
@@ -92,7 +93,8 @@ def _message_link(self):
     return f"https://t.me/c/{chat}/{self.id}"
 
 
+Message.message_link = property(get_message_link)
+
 setattr(Message, "eor", eor)
 setattr(Message, "try_delete", _try_delete)
 setattr(Message, "copy", copy_message)
-Message.message_link = property(_message_link)

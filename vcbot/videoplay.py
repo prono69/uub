@@ -20,11 +20,14 @@ import re
 
 from telethon.errors.rpcerrorlist import ChatSendMediaForbiddenError
 
+from pyUltroid.custom.mediainfo import media_info
 from . import (
     vc_asst,
+    Path,
     Player,
     get_string,
     inline_mention,
+    osremove,
     is_url_ok,
     mediainfo,
     vid_download,
@@ -91,6 +94,14 @@ async def video_c(event):
         )
     except ChatSendMediaForbiddenError:
         await xx.reply(text, link_preview=False)
+    finally:
+        if thumb:
+            osremove(thumb)
     await asyncio.sleep(2)
-    await ultSongs.group_call.start_video(song, with_audio=True)
+    with_audio = (
+        media_info(song).get("has_audio")
+        if Path(song).is_file()
+        else True
+    )
+    await ultSongs.group_call.start_video(song, with_audio=with_audio)
     await xx.delete()

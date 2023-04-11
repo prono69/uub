@@ -20,6 +20,7 @@ from . import (
     get_string,
     inline_mention,
     Player,
+    osremove,
     dl_playlist,
     add_to_queue,
     is_url_ok,
@@ -63,6 +64,8 @@ async def live_stream(e):
             file=thumb,
             link_preview=False,
         )
+        if thumb:
+            osremove(thumb)
         await xx.delete()
         await ultSongs.group_call.start_audio(file)
     else:
