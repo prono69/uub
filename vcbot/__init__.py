@@ -198,6 +198,7 @@ class Player:
             VC_QUEUE[chat_id].pop(pos, None)
             if not VC_QUEUE[chat_id]:
                 VC_QUEUE.pop(chat_id, None)
+            osremove(song, thumb)
         except (IndexError, KeyError):
             await self.group_call.stop()
             VC_QUEUE.pop(chat_id, None)
@@ -215,8 +216,6 @@ class Player:
                 f"<strong>ERROR:</strong> <code>{format_exc()}</code>",
                 parse_mode="html",
             )
-        finally:
-            osremove(song, thumb)
 
     async def vc_joiner(self):
         chat_id = self._chat
