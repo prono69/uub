@@ -13,6 +13,10 @@ test*
 /*.png
 /*.mp4
 *.log
+run
+init
+web.py
+config.env
 target/npmlist.json
 package-lock.json
 ultroid.json
@@ -22,7 +26,6 @@ resources/extras/thumbnail.jpg
 resources/auth
 resources/temp
 resources/downloads
-# resources/
 __ignore__
 addons/
 vcbot/
@@ -30,7 +33,7 @@ __pycache__/
 venv/
 node_modules/
 glitch_me/
-src/glitch-me
+src/
 .idea/
 .vscode/
 temp/
