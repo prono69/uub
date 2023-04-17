@@ -1,6 +1,6 @@
 import os
 
-from redis.exceptions import ConnectionError
+from redis.exceptions import ConnectionError, TimeoutError
 
 from pyUltroid import udB
 from pyUltroid.startup import HOSTED_ON, LOGS
@@ -13,14 +13,16 @@ def _connect_single_db(data, type, petname, cache):
         try:
             return MongoDB(key=data, _name=name, to_cache=cache)
         except Exception:
-            return LOGS.exception(f"MultiDB - Error in Connecting Mongo: {petname}")
+            return LOGS.error(
+                f"MultiDB - Error in Connecting Mongo: {petname}", exc_info=True
+            )
 
     elif type == "sql":
         name = "Sql: " + petname
         try:
             return SqlDB(url=data, _name=name, to_cache=cache)
         except Exception:
-            return LOGS.exception(f"MultiDB - Error in Connecting {petname}")
+            return LOGS.error(f"MultiDB - Error in Connecting {petname}", exc_info=True)
 
     else:
         name = "Redis: " + petname
@@ -37,8 +39,12 @@ def _connect_single_db(data, type, petname, cache):
                 retry_on_timeout=True,
                 to_cache=cache,
             )
-        except ConnectionError:
-            return LOGS.exception(f"MultiDB - Error in Connecting Redis: {petname}")
+        except (ConnectionError, TimeoutError):
+            return LOGS.error(
+                f"MultiDB - Error in Connecting Redis: {petname}", exc_info=True
+            )
+        except Exception as exc:
+            return LOGS.exception(exc)
 
 
 def _init_multi_dbs(var):
