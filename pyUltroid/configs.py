@@ -52,5 +52,5 @@ class Var:
     MONGO_URI = config("MONGO_URI", default=None)
 
     # custom
-    USER = config("USER", default="None")
+    USER = config("_USER", default=config("USER", "None"))
     HOST = config("HOST", default="None")
