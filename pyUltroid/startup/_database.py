@@ -43,10 +43,7 @@ if Var.DATABASE_URL:
 
 class _BaseDatabase:
     def __init__(self, *args, **kwargs):
-        self._cache = {
-            "__calls__": 0,
-            "__cache_calls__": 0,
-        }
+        self._cache = {}
         if not self.to_cache:
             if randrange(100) > 40:
                 self.__nocache__()
@@ -72,7 +69,6 @@ class _BaseDatabase:
     def _get_data(self, key=None, data=None):
         if key:
             try:
-                self._cache["__calls__"] += 1
                 data = self.get(str(key))
             except ResponseError:
                 return "WRONGTYPE"
@@ -97,7 +93,6 @@ class _BaseDatabase:
                 self._cache.update({key: self.get_key(key, force=True)})
 
     def get_key(self, key, *, force=False):
-        self._cache["__cache_calls__"] += 1  # just testing.
         if not self.to_cache:
             if key in self.keys():
                 return self._get_data(key=key)
