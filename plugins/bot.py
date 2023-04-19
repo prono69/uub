@@ -271,11 +271,9 @@ async def _(event):
 
 @in_pattern("alive", owner=True)
 async def inline_alive(ult):
-    pic = (
-        await random_pic(re_photo=True)
-        if udB.get_key("RANDOM_PIC")
-        else udB.get_key("ALIVE_PIC")
-    )
+    pic = udB.get_key("ALIVE_PIC")
+    if not pic and udB.get_key("RANDOM_PIC"):
+        pic = await random_pic(re_photo=True)
     if isinstance(pic, list):
         pic = choice(pic)
     uptime = time_formatter((time.time() - start_time) * 1000)
