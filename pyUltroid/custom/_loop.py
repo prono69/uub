@@ -20,10 +20,10 @@ except RuntimeError:
 
 
 def run_async_task(func, *args, **kwargs):
-    id = kwargs.pop("id", None)
-    while not id or id in tasks_db:
-        id = secrets.token_hex(nbytes=8)
+    pid = kwargs.pop("id", None)
+    while not pid or pid in tasks_db:
+        pid = secrets.token_hex(nbytes=8)
     task = loop.create_task(func(*args, **kwargs))
-    tasks_db[id] = task
-    task.add_done_callback(lambda task: tasks_db.pop(id))
-    return id
+    tasks_db[pid] = task
+    task.add_done_callback(lambda task: tasks_db.pop(pid))
+    return pid

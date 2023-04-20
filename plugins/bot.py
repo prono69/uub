@@ -291,7 +291,7 @@ async def inline_alive(ult):
     builder = ult.builder
     if pic:
         try:
-            if ".jpg" in pic:
+            if any(i in pic.lower() for i in (".jpg", ".jpeg", ".png")):
                 results = [
                     await builder.photo(
                         pic, text=als, parse_mode="html", buttons=buttons

@@ -87,7 +87,7 @@ async def _(event):
         LOGS.debug(cmd)
     xx = await event.eor(get_string("com_1"))
 
-    _preview = any(
+    is_preview = any(
         (
             carb,
             rayso,
@@ -102,7 +102,7 @@ async def _(event):
     if stderr:
         err = f"**• ERROR:** \n`{stderr}`\n\n"
     if stdout:
-        if _preview:
+        if is_preview:
             colors = (await asyncread("resources/colorlist.txt")).splitlines()
             li = await Carbon(
                 code=stdout,
@@ -145,8 +145,9 @@ async def _(event):
         out = "**• OUTPUT:**\n`Success`"
     OUT += err + out
     if len(OUT) > 4096:
-        ultd = err + out
-        with BytesIO(str.encode(ultd)) as out_file:
+        for i in ("**", "__", "`"):
+            OUT = OUT.replace(i, "")
+        with BytesIO(OUT.encode()) as out_file:
             out_file.name = "bash.txt"
             await event.client.send_file(
                 event.chat_id,
@@ -159,7 +160,7 @@ async def _(event):
             )
             await xx.delete()
     else:
-        await xx.edit(OUT, link_preview=_preview)
+        await xx.edit(OUT, link_preview=is_preview)
     if not nolog:
         await evalogger(cmd, event)
 
@@ -332,8 +333,9 @@ async def _(event):
             evaluation,
         )
     if len(final_output) > 4096:
-        final_output = evaluation
-        with BytesIO(str.encode(final_output)) as out_file:
+        for i in ("**", "__", "`"):
+            final_output = final_output.replace(i, "")
+        with BytesIO(final_output.encode()) as out_file:
             out_file.name = "eval.txt"
             await event.client.send_file(
                 event.chat_id,
