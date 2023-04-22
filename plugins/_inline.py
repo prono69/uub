@@ -43,6 +43,7 @@ helps = get_string("inline_1")
 add_ons = udB.get_key("ADDONS")
 
 zhelps = get_string("inline_3") if add_ons is False else get_string("inline_2")
+
 PLUGINS = HELP.get("Official", [])
 ADDONS = HELP.get("Addons", [])
 upage = 0
@@ -105,13 +106,15 @@ async def inline_handler(event):
     if pic:
         result = await event.builder.photo(
             file=pic,
-            link_preview=False,
             text=text,
             buttons=_main_help_menu,
         )
     else:
         result = await event.builder.article(
-            title="Ultroid Help Menu", text=text, buttons=_main_help_menu
+            title="Ultroid Help Menu",
+            text=text,
+            link_preview=False,
+            buttons=_main_help_menu,
         )
     await event.answer([result], private=True, cache_time=30, gallery=True)
 
@@ -231,7 +234,7 @@ async def uptd_plugin(event):
         await event.edit(help, buttons=buttons)
 
 
-@callback(data="doupdate", owner=True)
+@callback(data="doupdate", fullsudo=True)
 async def _(event):
     if not await updater():
         return await event.answer(get_string("inline_9"), cache_time=0, alert=True)

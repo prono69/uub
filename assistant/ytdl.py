@@ -26,7 +26,7 @@ from pyUltroid.fns.helper import (
     numerize,
     time_formatter,
 )
-from pyUltroid.fns.ytdl import dler, get_buttons, get_formats
+from pyUltroid.fns.ytdl import dler, get_buttons, get_formats, yt_helper
 from pyUltroid.fns.tools import check_filename
 
 from . import LOGS, asst, callback, in_pattern, udB
@@ -178,6 +178,7 @@ async def _(event):
         }
 
         ytdl_data = await dler(event, link, opts, True)
+
         title = ytdl_data["title"]
         if ytdl_data.get("artist"):
             artist = ytdl_data["artist"]
@@ -187,12 +188,12 @@ async def _(event):
             artist = ytdl_data["channel"]
         views = numerize(ytdl_data.get("view_count")) or 0
         thumb, _ = await fast_download(ytdl_data["thumbnail"], filename=f"{vid_id}.jpg")
-
         likes = numerize(ytdl_data.get("like_count")) or 0
         duration = ytdl_data.get("duration") or 0
-        description = ytdl_data["description"][:120]
+        description = ytdl_data["description"][:100]
         description = description or "None"
-        if not (filepath := ytHelper(vid_id, title)):
+
+        if not (filepath := yt_helper(vid_id, title)):
             return LOGS.error(f"YTDL ERROR: file not found: {vid_id}")
         size = os.path.getsize(filepath)
         from pyUltroid.custom._transfer import pyroUL
@@ -238,7 +239,7 @@ async def _(event):
         likes = numerize(ytdl_data.get("like_count")) or 0
         hi, wi = ytdl_data.get("height") or 720, ytdl_data.get("width") or 1280
         duration = ytdl_data.get("duration") or 0
-        if not (filepath := ytHelper(vid_id, title)):
+        if not (filepath := yt_helper(vid_id, title)):
             return LOGS.error(f"YTDL ERROR: file not found: {vid_id}")
         size = os.path.getsize(filepath)
         from pyUltroid.custom._transfer import pyroUL
@@ -272,26 +273,3 @@ async def ytdl_back(event):
     if not BACK_BUTTON.get(id_):
         return await event.answer("Query Expired! Search again 🔍")
     await event.edit(**BACK_BUTTON[id_])
-
-
-def ytHelper(yt_id, title):
-    exts = (
-        ".webm",
-        ".mkv",
-        ".mp4",
-        ".3gp",
-        ".mp3",
-        ".m4a",
-        ".flv",
-        ".m4v",
-        ".aac",
-        ".opus",
-        ".ogg",
-        ".wav",
-    )
-    for file in os.listdir("."):
-        for ext in exts:
-            if file.startswith(yt_id) and file.lower().endswith(ext):
-                fn = check_filename(title + "." + file.split(".", maxsplit=1)[1])
-                os.rename(file, fn)
-                return fn

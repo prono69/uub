@@ -11,18 +11,16 @@ import re
 import time
 
 from telethon import Button
+from yt_dlp import YoutubeDL
+
+from .. import LOGS, udB
+from .helper import download_file, humanbytes, osremove, run_async, time_formatter
+from pyUltroid.custom._transfer import pyroUL, pyroDL
 
 try:
     from youtubesearchpython import Playlist, VideosSearch
 except ImportError:
     Playlist, VideosSearch = None, None
-
-from yt_dlp import YoutubeDL
-
-from .. import LOGS, udB
-from .helper import download_file, humanbytes, run_async, time_formatter
-from .tools import set_attributes
-from pyUltroid.custom._transfer import pyroUL, pyroDL
 
 
 async def ytdl_progress(k, start_time, event):
@@ -61,35 +59,15 @@ async def download_yt(event, link, ytd):
         for num, file in enumerate(info["entries"]):
             num += 1
             id_ = file["id"]
-            thumb = id_ + ".jpg"
             title = file["title"]
-            await download_file(
-                file.get("thumbnail", None) or file["thumbnails"][-1]["url"], thumb
+            thumb, _ = await download_file(
+                file.get("thumbnail", None) or file["thumbnails"][-1]["url"],
+                id_ + ".jpg",
             )
-            ext = "." + ytd["outtmpl"]["default"].split(".")[-1]
-            if ext == ".m4a":
-                ext = ".mp3"
-            id = None
-            for x in glob.glob(f"{id_}*"):
-                if not x.endswith("jpg"):
-                    id = x
-            if not id:
-                return
-            ext = "." + id.split(".")[-1]
-            file = title + ext
-            try:
-                os.rename(id, file)
-            except FileNotFoundError:
-                try:
-                    os.rename(id + ext, file)
-                except FileNotFoundError as er:
-                    if os.path.exists(id):
-                        file = id
-                    else:
-                        raise er
+            if not (file := yt_helper(id_, title)):
+                return LOGS.error(f"YTDL ERROR: file not found: {id_}")
             if file.endswith(".part"):
-                os.remove(file)
-                os.remove(thumb)
+                osremove(file, thumb)
                 await event.client.send_message(
                     event.chat_id,
                     f"`[{num}/{total}]` `Invalid Video format.\nIgnoring that...`",
@@ -106,36 +84,17 @@ async def download_yt(event, link, ytd):
                 auto_edit=False,
                 reply_to=reply_to,
             )
-        try:
-            await event.delete()
-        except BaseException:
-            pass
+        await event.try_delete()
         return
 
     title = info["title"]  # [:50]
     id_ = info["id"]
-    thumb = id_ + ".jpg"
-    await download_file(
+    thumb, _ = await download_file(
         info.get("thumbnail", None) or f"https://i.ytimg.com/vi/{id_}/hqdefault.jpg",
-        thumb,
+        id_ + ".jpg",
     )
-    ext = "." + ytd["outtmpl"]["default"].split(".")[-1]
-    for _ext in [".m4a", ".mp3", ".opus"]:
-        if ext == _ext:
-            ext = _ext
-            break
-    id = None
-    for x in glob.glob(f"{id_}*"):
-        if not x.endswith("jpg"):
-            id = x
-    if not id:
-        return
-    ext = "." + id.split(".")[-1]
-    file = title + ext
-    try:
-        os.rename(id, file)
-    except FileNotFoundError:
-        os.rename(id + ext, file)
+    if not (file := yt_helper(id_, title)):
+        return LOGS.error(f"YTDL ERROR: file not found: {id_}")
     ulx = pyroUL(event=event, _path=file)
     await ulx.upload(
         delay=6,
@@ -143,12 +102,9 @@ async def download_yt(event, link, ytd):
         to_delete=True,
         auto_edit=False,
         reply_to=reply_to,
-        caption=f"`{info['title']}`",
+        caption=f"```{title}```",
     )
-    try:
-        await event.delete()
-    except BaseException:
-        pass
+    await event.try_delete()
 
 
 # ---------------YouTube Downloader Inline---------------
@@ -158,7 +114,7 @@ async def download_yt(event, link, ytd):
 def get_formats(type, id, data):
     if type == "audio":
         audio = []
-        for _quality in ["64", "128", "256", "320"]:
+        for _quality in ("64", "128", "256", "320"):
             _audio = {}
             _audio.update(
                 {
@@ -256,3 +212,25 @@ def get_videos_link(url):
         link = re.search(r"\?v=([(\w+)\-]*)", vid["link"]).group(1)
         to_return.append(f"https://youtube.com/watch?v={link}")
     return to_return
+
+
+def yt_helper(yt_id, title):
+    exts = (
+        ".webm",
+        ".mkv",
+        ".mp4",
+        ".3gp",
+        ".mp3",
+        ".m4a",
+        ".flv",
+        ".aac",
+    )
+    for file in os.listdir("."):
+        if file.startswith(yt_id):
+            if file.endswith(".part"):
+                return file
+            for ext in exts:
+                if file.lower().endswith(ext):
+                    fn = check_filename(title + "." + file.split(".", maxsplit=1)[1])
+                    os.rename(file, fn)
+                    return fn

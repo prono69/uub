@@ -429,8 +429,7 @@ async def plug(plugin_channels):
                     try:
                         load_addons(plugin)
                     except Exception as e:
-                        LOGS.info(f"Ultroid - PLUGIN_CHANNEL - ERROR - {plugin}")
-                        LOGS.exception(e)
+                        LOGS.exception(f"Ultroid - PLUGIN_CHANNEL - ERROR - {plugin}")
                         os.remove(plugin)
         except Exception as er:
             LOGS.exception(er)
