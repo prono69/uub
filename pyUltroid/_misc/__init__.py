@@ -46,7 +46,7 @@ class _SudoManager:
     @property
     def fullsudos(self):
         db = self._init_db()
-        fsudos = db.get("FULLSUDO")
+        fsudos = db.get_key("FULLSUDO")
         if not self.owner:
             self.owner = db.get_key("OWNER_ID")
         if not fsudos:

@@ -245,7 +245,7 @@ TOKEN_FILE = "resources/auths/auth_token.txt"
     re.compile(
         "sndplug_(.*)",
     ),
-    owner=True,
+    fullsudo=True,
 )
 async def send(eve):
     key, name = (eve.data_match.group(1)).decode("UTF-8").split("_")
@@ -278,7 +278,7 @@ async def send(eve):
         await eve.answer(str(er), alert=True)
 
 
-@callback("updatenow", owner=True)
+@callback("updatenow", fullsudo=True)
 async def update(eve):
     return await eve.answer("Use '.update now' to Update Ultroid.", alert=True)
 
@@ -382,7 +382,7 @@ async def changes(okk):
     re.compile(
         "pasta-(.*)",
     ),
-    owner=True,
+    fullsudo=True,
 )
 async def _(e):
     ok = (e.data_match.group(1)).decode("UTF-8")

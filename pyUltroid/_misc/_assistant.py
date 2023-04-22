@@ -16,7 +16,7 @@ from telethon.tl.types import InputWebDocument
 
 from .. import LOGS, asst, udB, ultroid_bot
 from ..fns.admins import admin_check
-from . import append_or_update, owner_and_sudos
+from . import SUDO_M, append_or_update, owner_and_sudos
 
 
 OWNER = ultroid_bot.full_name
@@ -53,6 +53,7 @@ def asst_cmd(pattern=None, load=None, owner=False, **kwargs):
         async def handler(event):
             if owner and event.sender_id not in owner_and_sudos():
                 return
+
             try:
                 await func(event)
             except Exception as er:
@@ -68,6 +69,7 @@ def asst_cmd(pattern=None, load=None, owner=False, **kwargs):
 # callback decorator for assistant
 def callback(data=None, from_users=[], admins=False, owner=False, **kwargs):
     """Assistant's callback decorator"""
+    full_sudo = kwargs.pop("fullsudo", None)
     if "me" in from_users:
         from_users.remove("me")
         from_users.append(ultroid_bot.uid)
@@ -75,11 +77,14 @@ def callback(data=None, from_users=[], admins=False, owner=False, **kwargs):
     def ultr(func):
         async def wrapper(event):
             if admins and not await admin_check(event):
-                return
+                return await event.answer()
             if from_users and event.sender_id not in from_users:
                 return await event.answer("Not for You!", alert=True)
-            if owner and event.sender_id not in owner_and_sudos():
+            if (full_sudo and event.sender_id not in SUDO_M.fullsudos) or (
+                owner and event.sender_id not in owner_and_sudos()
+            ):
                 return await event.answer(f"This is {OWNER}'s bot!!")
+
             try:
                 await func(event)
             except Exception as er:
@@ -93,22 +98,21 @@ def callback(data=None, from_users=[], admins=False, owner=False, **kwargs):
 # inline decorator for assistant
 def in_pattern(pattern=None, owner=False, **kwargs):
     """Assistant's inline decorator."""
+    full_sudo = kwargs.pop("fullsudo", None)
 
     def don(func):
         async def wrapper(event):
-            if owner and event.sender_id not in owner_and_sudos():
+            if (full_sudo and event.sender_id not in SUDO_M.fullsudos) or (
+                owner and event.sender_id not in owner_and_sudos()
+            ):
+                img = "https://graph.org/file/dde85d441fa051a0d7d1d.jpg"
                 res = [
                     await event.builder.article(
                         title="Ultroid Userbot",
                         url="https://t.me/TeamUltroid",
                         description="(c) TeamUltroid",
                         text=MSG,
-                        thumb=InputWebDocument(
-                            "https://graph.org/file/dde85d441fa051a0d7d1d.jpg",
-                            0,
-                            "image/jpeg",
-                            [],
-                        ),
+                        thumb=InputWebDocument(img, 0, "image/jpeg", []),
                         buttons=IN_BTTS,
                     )
                 ]
@@ -117,6 +121,7 @@ def in_pattern(pattern=None, owner=False, **kwargs):
                     switch_pm=f"🤖: Assistant of {OWNER}",
                     switch_pm_param="start",
                 )
+
             try:
                 await func(event)
             except (QueryIdInvalidError, ResultIdDuplicateError):
