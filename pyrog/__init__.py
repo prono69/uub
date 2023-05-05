@@ -47,7 +47,8 @@ def get_clients():
         )
         return True
     data = literal_eval(stuff)
-    del environ[var]
+    if Var.HOST.lower() == "heroku":
+        environ.pop(var, None)
     for k, v in data.items():
         _default = deepcopy(_default_client_values)
         _default.update({"name": "bot_" + str(k)})

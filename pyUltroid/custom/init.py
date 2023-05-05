@@ -4,7 +4,7 @@ import asyncio
 from os import environ, system
 from pathlib import Path
 from subprocess import run, Popen
-from sys import exit
+from sys import executable, exit
 from time import tzset
 
 from ._loop import loop, run_async_task, tasks_db
@@ -31,16 +31,16 @@ def startup_logo():
 
 
 def cleanup_stuff():
+    py_path = str(Path(executable).parents[1])
     hitlist = (
-        "/usr/local/lib/python3.*/site-packages/pip/_vendor/.wh*",
-        "/usr/local/lib/python3.*/site-packages/.wh*",
+        f"{py_path}/lib/python3.*/site-packages/pip/_vendor/.wh*",
+        f"{py_path}/lib/python3.*/site-packages/.wh*",
     )
     for path in hitlist:
         run(f"rm -rfv {path}", shell=True)
     to_del = ("jewel", "bird", ".wget-hsts", "prvenv")
     for path in map(lambda i: Path(i), to_del):
-        if path.is_file():
-            path.unlink()
+        path.unlink(missing_ok=True)
 
 
 def setup_timezone():
@@ -55,9 +55,12 @@ def setup_timezone():
 
 
 def startup_tasks():
+    """
+    # 💁🏻‍♀️
     if not Path("plugins").is_dir():
         print("Plugins Folder does not exists!")
         exit(0)
+    """
     startup_logo()
     cleanup_stuff()
     setup_timezone()
@@ -103,7 +106,7 @@ def _host_specifics():
     if environ.get("qBit") and Path("1337x").is_file():
         LOGS.info("Starting qBittorrent")
         Popen("bash 1337x &", shell=True)
-    if r_data := environ.get("USR_STATUS_UPDATE"):  # doprax
+    if r_data := environ.get("USR_STATUS_UPDATE"):  # for doprax
         run_async_task(_updater_task, r_data, id="status_update")
 
 

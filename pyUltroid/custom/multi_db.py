@@ -2,7 +2,7 @@ import os
 
 from redis.exceptions import ConnectionError, TimeoutError
 
-from pyUltroid import udB
+from pyUltroid import udB, Var
 from pyUltroid.startup import HOSTED_ON, LOGS
 from pyUltroid.startup._database import MongoDB, RedisDB, SqlDB
 
@@ -53,9 +53,10 @@ def _init_multi_dbs(var):
     co = 0
     stuff = os.getenv(var)
     if not stuff:
-        return LOGS.warning(f"Var {var} is not filled.!")
+        return LOGS.warning(f"Var {var} is not filled..")
     LOGS.info("Loading Multi DB's..")
-    del os.environ[var]
+    if Var.HOST.lower() == "heroku":
+        os.environ.pop(var, None)
     data = literal_eval(str(stuff))
     dct = {}
     for k, v in data.items():

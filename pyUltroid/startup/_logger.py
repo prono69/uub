@@ -6,6 +6,7 @@ from platform import python_version, python_version_tuple
 from telethon import __version__
 from telethon.tl.alltlobjects import LAYER
 
+from ..configs import Var
 from ._extra import _fix_logging, _ask_input
 from ..version import ultroid_version, moi_version, __version__ as __pyUltroid__
 from pyUltroid.custom.tglogger import TGLogHandler
@@ -53,7 +54,8 @@ if HOSTED_ON == "local" or environ.get("HOST") == "local":
 
 if data := environ.get("LOGGER_DATA"):
     LOG_DATA = literal_eval(data)
-    environ.pop("LOGGER_DATA")
+    if Var.HOST.lower() == "heroku":
+        environ.pop("LOGGER_DATA", None)
 
 # ----------------------------------------------------------------------------
 
@@ -121,7 +123,7 @@ if LOG_DATA.get("tglog") is True:
 logging.basicConfig(handlers=LOG_HANDLERS)
 del LOG_DATA, LOG_HANDLERS
 
-if environ.get("HOST") == "local":
+if Var.HOST.lower() == "local":
     try:
         import coloredlogs
 

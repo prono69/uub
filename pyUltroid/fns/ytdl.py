@@ -14,7 +14,14 @@ from telethon import Button
 from yt_dlp import YoutubeDL
 
 from .. import LOGS, udB
-from .helper import check_filename, download_file, humanbytes, osremove, run_async, time_formatter
+from .helper import (
+    check_filename,
+    download_file,
+    humanbytes,
+    osremove,
+    run_async,
+    time_formatter,
+)
 from pyUltroid.custom._transfer import pyroUL, pyroDL
 
 try:
@@ -82,6 +89,7 @@ async def download_yt(event, link, ytd):
                 to_delete=True,
                 caption=caption,
                 auto_edit=False,
+                delete_file=True,
                 reply_to=reply_to,
             )
         await event.try_delete()
@@ -102,6 +110,7 @@ async def download_yt(event, link, ytd):
         to_delete=True,
         auto_edit=False,
         reply_to=reply_to,
+        delete_file=True,
         caption=f"```{title}```",
     )
     await event.try_delete()

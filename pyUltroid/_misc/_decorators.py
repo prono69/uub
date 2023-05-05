@@ -97,7 +97,7 @@ def ultroid_cmd(
                     return await eod(ult, get_string("py_d2"), time=15)
 
             if isinstance(ult, MessageEdited.Event) and getattr(
-                ult.message, "edit_hide", 0
+                ult.message, "edit_hide", None
             ):
                 return
             chat = ult.chat
@@ -278,7 +278,7 @@ def ultroid_cmd(
                 ),
             )
 
-        if TAKE_EDITS:
+        if TAKE_EDITS and pattern:
             ultroid_bot.add_event_handler(
                 wrapp,
                 MessageEdited(
@@ -342,7 +342,7 @@ def ultroid_cmd(
                     blacklist_chats=blacklist_chats,
                 ),
             )
-            if TAKE_ASST_EDITS:
+            if TAKE_ASST_EDITS and pattern:
                 asst.add_event_handler(
                     wrapp,
                     MessageEdited(
