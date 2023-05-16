@@ -11,7 +11,7 @@ import os
 import re
 import sys
 import time
-from pathlib import Path
+from pathlib import Path, PurePath
 from secrets import token_hex
 from shutil import rmtree, which
 from traceback import format_exc
@@ -81,15 +81,14 @@ def run_async(function):
 
 
 def check_filename(filroid):
-    if os.path.exists(filroid):
-        no = 1
-        while True:
-            ult = "{0}_{2}{1}".format(*os.path.splitext(filroid) + (no,))
-            if os.path.exists(ult):
-                no += 1
-            else:
-                return ult
-    return filroid
+    if not isinstance(filroid, PurePath):
+        filroid = Path(filroid)
+    num = 1
+    while filroid.exists():
+        filroid = filroid.with_stem(f"{filroid.stem}_{num}")
+        num += 1
+    else:
+        return str(filroid)
 
 
 def make_mention(user, custom=None):
@@ -112,11 +111,11 @@ def inline_mention(user, custom=None, html=False):
 
 
 def osremove(*files, folders=False):
-    _files = map(lambda i: Path(str(i)), files)
-    for path in _files:
+    pure_path = lambda path: path if isinstance(path, PurePath) else Path(str(path))
+    for path in map(pure_path, files):
         if path.is_file():
             path.unlink(missing_ok=True)
-        elif path.is_dir() and folders:
+        elif folders and path.is_dir():
             rmtree(path)
 
 
@@ -194,7 +193,7 @@ async def safeinstall(event):
     sm = reply.file.name.replace("_", "-").replace("|", "-")
     dl = await reply.download_media(f"addons/{sm}")
     if event.text[9:] != "f":
-        read = open(dl).read()
+        read = await asyncread(dl)
         for dan in KEEP_SAFE().All:
             if re.search(dan, read):
                 os.remove(dl)

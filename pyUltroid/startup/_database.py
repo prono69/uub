@@ -410,7 +410,6 @@ class LocalDB(_BaseDatabase):
 
 
 def UltroidDB():
-    _er = False
     try:
         if Var.REDIS_URI or Var.REDISHOST:
             return RedisDB(
@@ -428,16 +427,13 @@ def UltroidDB():
             return MongoDB(key=Var.MONGO_URI, _name="Mongo", to_cache=True)
         elif Var.DATABASE_URL:
             return SqlDB(url=Var.DATABASE_URL, to_cache=True, _name="SQL")
+        else:
+            LOGS.critical(
+                "No DB requirement fullfilled!\nPlease install redis, mongo or sql dependencies...\nTill then using local file as database."
+            )
+            return LocalDB()
     except BaseException as err:
         LOGS.exception(err)
-        _er = True
-    if not _er:
-        LOGS.critical(
-            "No DB requirement fullfilled!\nPlease install redis, mongo or sql dependencies..."
-        )
-    if HOSTED_ON == "local":
-        LOGS.info("Using Local DB for now..")
-        return LocalDB()
     quit(0)
 
 
