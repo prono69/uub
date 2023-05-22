@@ -4,6 +4,7 @@
 # This file is a part of < https://github.com/TeamUltroid/Ultroid/ >
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
+
 """
 ✘ Commands Available -
 
@@ -25,6 +26,7 @@
   Ex: `{i}poto 10` - uploads starting 10 pfps of user.
     Upload the photo of Chat/User if Available.
 """
+
 import os
 
 from telethon.tl.functions.account import UpdateProfileRequest
@@ -83,7 +85,7 @@ async def _(ult):
     file = await ult.client.upload_file(replfile)
     try:
         if "pic" in mediainfo(reply_message.media):
-            await ult.client(UploadProfilePhotoRequest(file))
+            await ult.client(UploadProfilePhotoRequest(file=file))
         else:
             await ult.client(UploadProfilePhotoRequest(video=file))
         await eod(ok, "`My Profile Photo has Successfully Changed !`")
