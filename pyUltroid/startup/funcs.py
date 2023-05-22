@@ -10,6 +10,7 @@ import os
 import random
 import shutil
 import time
+from pathlib import Path
 from random import randint
 
 from telethon.errors import (
@@ -34,6 +35,7 @@ from telethon.tl.types import (
     InputMessagesFilterDocument,
 )
 from telethon.utils import get_peer_id
+from decouple import config, RepositoryEnv
 
 from .. import LOGS, ULTConfig
 from ..fns.helper import bash, download_file, inline_mention, updater
@@ -84,16 +86,24 @@ def update_envs():
     """Update Var. attributes to udB"""
     from .. import udB
 
-    for envs in tuple(os.environ):
-        if envs in ("LOG_CHANNEL", "BOT_TOKEN") or envs in udB.keys():
-            udB.set_key(envs, os.environ[envs])
+    env_keys = list(os.environ.keys())
+    if ".env" in os.listdir("."):
+        for keys in RepositoryEnv(config._find_file(".")).data:
+            env_keys.append(keys)
+    for key in env_keys:
+        # do not update keys in db from .env file (will toggle this if needed)
+        if key in ("LOG_CHANNEL", "BOT_TOKEN", "BOTMODE", "DUAL_MODE", "language"):
+            if value := os.environ.get(key):
+                udB.set_key(key, value)
+            else:
+                udB.set_key(key, config.config.get(key))
 
 
 async def startup_stuff():
     from .. import udB
 
-    for x in ("auth", "downloads", "temp"):
-        os.makedirs(f"resources/{x}", exist_ok=True)
+    for dirs in ("auth", "downloads", "temp"):
+        Path("resources").joinpath(dirs).mkdir(parents=True, exist_ok=True)
 
     CT = udB.get_key("CUSTOM_THUMBNAIL")
     if CT:
@@ -106,19 +116,15 @@ async def startup_stuff():
     elif CT is False:
         ULTConfig.thumb = None
 
-    GT = udB.get_key("GDRIVE_AUTH_TOKEN")
-    if GT:
-        with open("resources/auth/gdrive_creds.json", "w") as t_file:
-            t_file.write(GT)
+    if GT := udB.get_key("GDRIVE_AUTH_TOKEN"):
+        Path("resources/auth/gdrive_creds.json").write_text(GT)
 
-    if udB.get_key("AUTH_TOKEN"):
-        udB.del_key("AUTH_TOKEN")
+    udB.del_key("AUTH_TOKEN")
 
     MM = udB.get_key("MEGA_MAIL")
     MP = udB.get_key("MEGA_PASS")
     if MM and MP:
-        with open(".megarc", "w") as mega:
-            mega.write(f"[Login]\nUsername = {MM}\nPassword = {MP}")
+        Path(".megarc").write_text(f"[Login]\nUsername = {MM}\nPassword = {MP}")
 
 
 async def autobot():
@@ -406,11 +412,11 @@ async def plug(plugin_channels):
         return
     if os.path.exists("addons") and not os.path.exists("addons/.git"):
         shutil.rmtree("addons")
-    if not os.path.exists("addons"):
-        os.mkdir("addons")
+    Path("addons").mkdir(exist_ok=True)
     if not os.path.exists("addons/__init__.py"):
-        with open("addons/__init__.py", "w") as f:
-            f.write("from plugins import *\n\nbot = ultroid_bot")
+        Path("addons/__init__.py").write_text(
+            "from plugins import *\n\nbot = ultroid_bot"
+        )
     LOGS.info("• Loading Plugins from Plugin Channel(s) •")
     for chat in plugin_channels:
         # plugUnzippr = await plug_unzipper(ultroid_bot, chat)
