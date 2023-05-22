@@ -494,6 +494,8 @@ def mediainfo(media):
         elif "video" in mim:
             if "DocumentAttributeAnimated" in str(media):
                 m = "gif"
+            elif "DocumentAttributeSticker" in str(media):
+                m = "sticker video"
             elif "DocumentAttributeVideo" in str(media):
                 attrs = str(media.document.attributes[0])
                 m = "video" if "supports_streaming=True" in attrs else "video as doc"
