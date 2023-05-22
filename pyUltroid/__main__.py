@@ -48,8 +48,8 @@ def main():
 
     ultroid_bot.run_in_loop(autopilot())
 
-    # Starting Pyrogram..
-    ultroid_bot.run_in_loop(_init_pyrog())
+    # Starting Pyrogram Clients..
+    _init_pyrog()
 
     pmbot = udB.get_key("PMBOT")
     manager = udB.get_key("MANAGER")

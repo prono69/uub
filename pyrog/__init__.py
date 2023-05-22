@@ -1,15 +1,11 @@
-# this is not a Copyrighted material
-# @spemgod | @ah3h3
+# @spemgod | @ah3h3 | @moiusrname
 #
-# Obv this is just for personal use.
-# bcz telethon is slow in download and upload.
-#
-# And em, dont kang this? maybe :)
-# jk, do whatever tf u want, idc
+# This is just for personal use,
+# cz telethon is quite slow in transferring files.
 #
 # Edited on 13-05-2022 // for pyrogram v2.
 # 28-06-2022 // added asyncio.gather for faster startup.
-
+# 22-05-2023 // slower startup ~ clients starting one by one in background.
 
 import asyncio
 from ast import literal_eval
@@ -17,8 +13,10 @@ from copy import deepcopy
 from os import getcwd, environ
 
 from pyrogram import Client
+
 from pyUltroid import LOGS
 from pyUltroid.configs import Var
+from pyUltroid.custom.init import run_async_task
 
 
 PYROG_CLIENTS = {}
@@ -37,7 +35,7 @@ def app(n=None):
     return PYROG_CLIENTS.get(n, _default) if n else _default
 
 
-def get_clients():
+def setup_clients():
     # plugins = {"root": "pyrog/plugins"}
     var = "PYROGRAM_CLIENTS"
     stuff = environ.get(var)
@@ -59,21 +57,24 @@ def get_clients():
         PYROG_CLIENTS.update({int(k): Client(**_default)})
 
 
-async def start(count, client):
-    try:
-        await client.start()
-    except Exception:
-        LOGS.exception(f"Error while starting Client: {count}")
-        PYROG_CLIENTS.pop(count, None)
-
-
-async def _init_pyrog():
+async def pyro_startup():
     LOGS.info("Starting Pyrogram...")
-    if get_clients():
+    if setup_clients():
         return
-    await asyncio.gather(
-        *[start(count, client) for count, client in PYROG_CLIENTS.copy().items()]
+    for count, client in PYROG_CLIENTS.copy().items():
+        try:
+            await client.start()
+        except Exception:
+            LOGS.warning(f"Error while starting PyroGram Client: {count}")
+            LOGS.debug("", exc_info=True)
+            PYROG_CLIENTS.pop(count, None)
+        finally:
+            await asyncio.sleep(2)
+
+    LOGS.info(
+        f"{len(PYROG_CLIENTS)} Pyrogram Clients Running -> {tuple(PYROG_CLIENTS.keys())}"
     )
-    return LOGS.info(
-        f"{len(PYROG_CLIENTS)} Clients Running -> {tuple(PYROG_CLIENTS.keys())}"
-    )
+
+
+def _init_pyrog():
+    run_async_task(pyro_startup, id="pyrogram_startup")
