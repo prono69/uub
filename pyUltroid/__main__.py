@@ -49,7 +49,7 @@ def main():
     ultroid_bot.run_in_loop(autopilot())
 
     # Starting Pyrogram Clients..
-    _init_pyrog()
+    ultroid_bot.run_in_loop(_init_pyrog())
 
     pmbot = udB.get_key("PMBOT")
     manager = udB.get_key("MANAGER")
@@ -86,9 +86,7 @@ def main():
     # scheduler.add_job(fetch_ann, "interval", minutes=12 * 60)
 
     # Edit Restarting Message (If it's restarting)
-    # ultroid_bot.run_in_loop(WasItRestart(udB))
-
-    # Send/Ignore Deploy Message and Edit Restarting Message..
+    # Send/Ignore Deploy Message
     if not udB.get_key("LOG_OFF"):
         ultroid_bot.run_in_loop(ready())
 
@@ -111,7 +109,7 @@ async def init_shutdown():
     if vcClient.uid != ultroid_bot.uid and vcClient.is_connected():
         tasks.append(vcClient.disconnect())
     if not BOT_MODE:
-        msgs = (
+        msg1, msg2 = (
             ("#restart", "Restarting Ultroid Bot.")
             if udB.get_key("_RESTART")
             else ("#exiting", "Shutting Down Ultroid.")
@@ -119,7 +117,7 @@ async def init_shutdown():
         try:
             await asst.send_message(
                 udB.get_key("TAG_LOG"),
-                f"{msgs[0]}\n#ultroid\n\n`{msgs[1]}..`",
+                f"{msg1}\n#ultroid\n\n`{msg2}..`",
             )
         except Exception:
             pass

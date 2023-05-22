@@ -58,9 +58,9 @@ def setup_clients():
 
 
 async def pyro_startup():
-    LOGS.info("Starting Pyrogram...")
     if setup_clients():
         return
+    LOGS.info("Starting Pyrogram...")
     for count, client in PYROG_CLIENTS.copy().items():
         try:
             await client.start()
@@ -76,5 +76,6 @@ async def pyro_startup():
     )
 
 
-def _init_pyrog():
+async def _init_pyrog():
     run_async_task(pyro_startup, id="pyrogram_startup")
+    await asyncio.sleep(5)
