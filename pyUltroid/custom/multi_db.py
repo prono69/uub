@@ -13,16 +13,16 @@ def _connect_single_db(data, type, petname, cache):
         try:
             return MongoDB(key=data, _name=name, to_cache=cache)
         except Exception:
-            return LOGS.error(
-                f"MultiDB - Error in Connecting Mongo: {petname}", exc_info=True
-            )
+            LOGS.warning(f"MultiDB: Error while Connecting to MongoDB: {petname}")
+            return LOGS.debug("", exc_info=True)
 
     elif type == "sql":
         name = "Sql: " + petname
         try:
             return SqlDB(url=data, _name=name, to_cache=cache)
         except Exception:
-            return LOGS.error(f"MultiDB - Error in Connecting {petname}", exc_info=True)
+            LOGS.warning(f"MultiDB: Error while Connecting to SQL DB: {petname}")
+            return LOGS.debug("", exc_info=True)
 
     else:
         name = "Redis: " + petname
@@ -40,9 +40,8 @@ def _connect_single_db(data, type, petname, cache):
                 to_cache=cache,
             )
         except (ConnectionError, TimeoutError):
-            return LOGS.error(
-                f"MultiDB - Error in Connecting Redis: {petname}", exc_info=True
-            )
+            LOGS.warning(f"MultiDB: Error while Connecting to RedisDB: {petname}")
+            return LOGS.debug("", exc_info=True)
         except Exception as exc:
             return LOGS.exception(exc)
 
