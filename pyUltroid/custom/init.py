@@ -38,9 +38,8 @@ def cleanup_stuff():
     )
     for path in hitlist:
         run(f"rm -rfv {path}", shell=True)
-    to_del = ("jewel", "bird", ".wget-hsts", "prvenv")
-    for path in map(lambda i: Path(i), to_del):
-        path.unlink(missing_ok=True)
+    for file in ("jewel", "bird", ".wget-hsts", "prvenv"):
+        Path(file).unlink(missing_ok=True)
 
 
 def setup_timezone():
@@ -56,7 +55,6 @@ def setup_timezone():
 
 def startup_tasks():
     """
-    # 💁🏻‍♀️
     if not Path("plugins").is_dir():
         print("Plugins Folder does not exists!")
         exit(0)

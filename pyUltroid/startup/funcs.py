@@ -116,8 +116,8 @@ async def startup_stuff():
     elif CT is False:
         ULTConfig.thumb = None
 
-    if GT := udB.get_key("GDRIVE_AUTH_TOKEN"):
-        Path("resources/auth/gdrive_creds.json").write_text(GT)
+    # if GT := udB.get_key("GDRIVE_AUTH_TOKEN"):
+    # Path("resources/auth/gdrive_creds.json").write_text(GT)
 
     udB.del_key("AUTH_TOKEN")
 
