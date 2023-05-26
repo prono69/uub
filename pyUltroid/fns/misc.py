@@ -31,7 +31,7 @@ from ..dB import DEVLIST
 from ..dB._core import LIST
 
 from . import some_random_headers
-from .helper import async_searcher
+from .helper import async_searcher, asyncread, asyncwrite
 from .tools import check_filename, json_parser
 
 try:
@@ -173,20 +173,20 @@ async def ReTrieveFile(input_file_name):
         raise DependencyMissingError("This function needs 'aiohttp' to be installed.")
     RMBG_API = udB.get_key("RMBG_API")
     headers = {"X-API-Key": RMBG_API}
-    files = {"image_file": open(input_file_name, "rb").read()}
-    async with aiohttp.ClientSession() as ses:
-        async with ses.post(
-            "https://api.remove.bg/v1.0/removebg", headers=headers, data=files
-        ) as out:
-            contentType = out.headers.get("content-type")
-            if "image" not in contentType:
-                return False, (await out.json())
-
-            name = check_filename("ult-rmbg.png")
-            file = await aiofiles.open(name, "wb")
-            await file.write(await out.read())
-            await file.close()
-            return True, name
+    files = {"image_file": await asyncread(input_file_name, binary=True)}
+    out = await async_searcher(
+        "https://api.remove.bg/v1.0/removebg",
+        post=True,
+        object=True,
+        headers=headers,
+        data=files,
+    )
+    contentType = out.headers.get("content-type")
+    if "image" not in contentType:
+        return False, (await out.json())
+    name = check_filename("ult-rmbg.png")
+    await asyncwrite(name, await out.read(), mode="wb")
+    return True, name
 
 
 # ---------------- Unsplash Search ----------------
@@ -299,7 +299,7 @@ class Quotly:
         async def telegraph(file_):
             file = file_ + ".png"
             Image.open(file_).save(file, "PNG")
-            files = {"file": open(file, "rb").read()}
+            files = {"file": await asyncread(file, binary=True)}
             uri = (
                 "https://graph.org"
                 + (
@@ -428,9 +428,8 @@ class Quotly:
                 )
             raise er
         if request.get("ok"):
-            with open(file_name, "wb") as file:
-                image = base64.decodebytes(request["result"]["image"].encode("utf-8"))
-                file.write(image)
+            image = base64.decodebytes(request["result"]["image"].encode("utf-8"))
+            await asyncwrite(file_name, image, mode="wb")
             return file_name
         raise Exception(str(request))
 
