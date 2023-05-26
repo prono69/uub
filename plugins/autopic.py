@@ -5,18 +5,15 @@
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
 
-
-import asyncio
-from random import choice, shuffle
-
 from telethon.tl.functions.photos import UploadProfilePhotoRequest
 
 from pyUltroid.fns.helper import download_file
-from pyUltroid.fns.tools import get_google_images
+from pyUltroid.fns.misc import unsplashsearch
 
 from . import (
     LOGS,
     osremove,
+    check_filename,
     get_help,
     get_string,
     scheduler,
@@ -28,61 +25,68 @@ from . import (
 
 __doc__ = get_help("help_autopic")
 
+autopic_links = []
+
+
+async def autopic_func():
+    global autopic_links
+    if not (search := udB.get_key("AUTOPIC")):
+        return
+    if not autopic_links:
+        autopic_links = await unsplashsearch(search, limit=None, shuf=True)
+        if not autopic_links:
+            return LOGS.error(f"Autopic Error: Found No Photos for {search}")
+    img = autopic_links.pop(0)
+    path = check_filename("resources/downloads/autopic.jpg")
+    try:
+        await download_file(img, path)
+        tg_file = await ultroid_bot.upload_file(path)
+        await ultroid_bot(UploadProfilePhotoRequest(file=tg_file))
+    except Exception as exc:
+        LOGS.warning(f"autopic error: {exc}, Link: {img}")
+    finally:
+        osremove(path)
+
 
 @ultroid_cmd(pattern="autopic( (.*)|$)")
 async def autopic(e):
-    search = e.pattern_match.group(1).strip()
-    if udB.get_key("AUTOPIC") and not search:
+    global autopic_links
+    search = e.pattern_match.group(2)
+    if udB.get_key("AUTOPIC") and (not search or search == "stop"):
         udB.del_key("AUTOPIC")
+        autopic_links.clear()
+        if scheduler:
+            scheduler.remove_job("autopic")
         return await e.eor(get_string("autopic_5"))
+
     if not search:
-        return await e.eor(get_string("autopic_1"), time=5)
-    e = await e.eor(get_string("com_1"))
-    gi = googleimagesdownload()
-    args = {
-        "keywords": search,
-        "limit": 50,
-        "format": "jpg",
-        "output_directory": "./resources/downloads/",
-    }
-    try:
-        pth = await gi.download(args)
-        ok = pth[0][search]
-    except Exception as er:
-        LOGS.exception(er)
-        return await e.eor(str(er))
-    if not ok:
-        return await e.eor(get_string("autopic_2").format(search), time=5)
-    await e.eor(get_string("autopic_3").format(search))
+        return await e.eor(get_string("autopic_1"), time=6)
+
+    if not scheduler:
+        return await e.eor("`APScheduler is missing, Can't Use Autopic`", time=6)
+
+    eris = await e.eor(get_string("com_1"))
+    autopic_links = await unsplashsearch(search, limit=None, shuf=True)
+    if not autopic_links:
+        return await eris.eor(get_string("autopic_2").format(search), time=10)
+
     udB.set_key("AUTOPIC", search)
-    SLEEP_TIME = udB.get_key("SLEEP_TIME") or 1221
-    while True:
-        for lie in ok:
-            if udB.get_key("AUTOPIC") != search:
-                return
-            file = await e.client.upload_file(lie)
-            await e.client(UploadProfilePhotoRequest(file))
-            await asyncio.sleep(SLEEP_TIME)
-        shuffle(ok)
-
-
-if search := udB.get_key("AUTOPIC"):
-    images = {}
+    await eris.edit(get_string("autopic_3").format(search))
     sleep = udB.get_key("SLEEP_TIME") or 1221
+    scheduler.add_job(
+        autopic_func,
+        trigger="interval",
+        seconds=sleep,
+        id="autopic",
+        jitter=60,
+    )
 
-    async def autopic_func():
-        search = udB.get_key("AUTOPIC")
-        if images.get(search) is None:
-            images[search] = await get_google_images(search)
-        if not images.get(search):
-            return
-        img = choice(images[search])
-        filee = await download_file(img["original"], "resources/downloads/autopic.jpg")
-        file = await ultroid_bot.upload_file(filee)
-        await ultroid_bot(UploadProfilePhotoRequest(file))
-        osremove(filee)
 
+if udB.get_key("AUTOPIC"):
+    sleep = udB.get_key("SLEEP_TIME") or 1221
     if scheduler:
-        scheduler.add_job(autopic_func, "interval", seconds=sleep, id="autopic")
+        scheduler.add_job(
+            autopic_func, "interval", seconds=sleep, id="autopic", jitter=60
+        )
     else:
         LOGS.error(f"autopic: 'Apscheduler' not installed.")
