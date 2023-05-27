@@ -42,7 +42,7 @@ async def genLinks(search):
     links = await unsplashsearch(search, limit=None, shuf=True)
     for url in links:
         parsed_data = parse_qs(urlparse(url).query)
-        if not is_cropped(parsed_data)
+        if not is_cropped(parsed_data):
             autopic_links.add(url)
 
 
@@ -92,7 +92,11 @@ async def autopic(e):
     await eris.edit(get_string("autopic_3").format(search))
     sleep = udB.get_key("SLEEP_TIME") or 1221
     scheduler.add_job(
-        autopic_func, trigger="interval", seconds=sleep, id="autopic", jitter=60,
+        autopic_func,
+        trigger="interval",
+        seconds=sleep,
+        id="autopic",
+        jitter=60,
     )
 
 
@@ -100,7 +104,11 @@ if udB.get_key("AUTOPIC"):
     sleep = udB.get_key("SLEEP_TIME") or 1221
     if scheduler:
         scheduler.add_job(
-            autopic_func, "interval", seconds=sleep, id="autopic", jitter=60,
+            autopic_func,
+            "interval",
+            seconds=sleep,
+            id="autopic",
+            jitter=60,
         )
     else:
         LOGS.error(f"autopic: 'Apscheduler' not installed.")

@@ -60,10 +60,9 @@ async def download_yt(event, link, ytd):
     find_file = lambda v_id: [
         i
         for i in os.listdir(".")
-        if i.startswith(v_id)
-        and not i.endswith((".jpg", ".jpeg", ".png", ".webp"))
+        if i.startswith(v_id) and not i.endswith((".jpg", ".jpeg", ".png", ".webp"))
     ]
-    reply_to = event.reply_to_msg_id or event    
+    reply_to = event.reply_to_msg_id or event
     info = await dler(event, link, ytd, download=True)
     if not info:
         return
@@ -87,7 +86,8 @@ async def download_yt(event, link, ytd):
                 continue
 
             thumb, _ = await download_file(
-                file.get("thumbnail", file["thumbnails"][-1]["url"]), f"{vid_id}.jpg",
+                file.get("thumbnail", file["thumbnails"][-1]["url"]),
+                f"{vid_id}.jpg",
             )
             from_ = info["extractor"].split(":")[0]
             caption = f"`[{num}/{total}]` `{title}`\n\n`from {from_}`"
@@ -116,7 +116,8 @@ async def download_yt(event, link, ytd):
         return await event.edit(f"`Invalid Video format detected....`")
 
     thumb, _ = await download_file(
-        info.get("thumbnail", f"https://i.ytimg.com/vi/{vid_id}/hqdefault.jpg"), f"{vid_id}.jpg",
+        info.get("thumbnail", f"https://i.ytimg.com/vi/{vid_id}/hqdefault.jpg"),
+        f"{vid_id}.jpg",
     )
     ulx = pyroUL(event=event, _path=file)
     await ulx.upload(

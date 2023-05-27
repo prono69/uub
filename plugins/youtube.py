@@ -36,7 +36,7 @@ async def download_from_youtube_(event):
     def is_valid_url(url):
         result = urlparse(x)
         return all([result.scheme, result.netloc])
- 
+
     ytd = {
         "prefer_ffmpeg": True,
         "addmetadata": True,

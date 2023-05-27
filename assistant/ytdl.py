@@ -162,8 +162,7 @@ async def _(event):
     find_file = lambda v_id: [
         i
         for i in os.listdir(".")
-        if i.startswith(v_id)
-        and not i.endswith((".jpg", ".jpeg", ".png", ".webp"))
+        if i.startswith(v_id) and not i.endswith((".jpg", ".jpeg", ".png", ".webp"))
     ]
     if lets_split[0] == "audio":
         opts = {
@@ -198,7 +197,9 @@ async def _(event):
 
         views = numerize(ytdl_data.get("view_count")) or 0
         thumb, _ = await download_file(
-            ytdl_data.get("thumbnail", f"https://i.ytimg.com/vi/{vid_id}/hqdefault.jpg"),
+            ytdl_data.get(
+                "thumbnail", f"https://i.ytimg.com/vi/{vid_id}/hqdefault.jpg"
+            ),
             filename=f"{vid_id}.jpg",
         )
         likes = numerize(ytdl_data.get("like_count")) or 0
@@ -243,7 +244,9 @@ async def _(event):
             artist = ytdl_data["channel"]
         views = numerize(ytdl_data.get("view_count")) or 0
         thumb, _ = await download_file(
-            ytdl_data.get("thumbnail", f"https://i.ytimg.com/vi/{vid_id}/hqdefault.jpg"),
+            ytdl_data.get(
+                "thumbnail", f"https://i.ytimg.com/vi/{vid_id}/hqdefault.jpg"
+            ),
             filename=f"{vid_id}.jpg",
         )
 
