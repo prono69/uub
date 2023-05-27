@@ -14,15 +14,15 @@ from telethon import Button
 from yt_dlp import YoutubeDL
 
 from .. import LOGS, udB
+from pyUltroid.custom._transfer import pyroUL
 from .helper import (
-    check_filename,
     download_file,
     humanbytes,
     osremove,
     run_async,
     time_formatter,
 )
-from pyUltroid.custom._transfer import pyroUL, pyroDL
+
 
 try:
     from youtubesearchpython import Playlist, VideosSearch
@@ -57,34 +57,42 @@ def get_yt_link(query):
 
 
 async def download_yt(event, link, ytd):
-    reply_to = event.reply_to_msg_id or event
+    find_file = lambda v_id: [
+        i
+        for i in os.listdir(".")
+        if i.startswith(v_id)
+        and not i.endswith((".jpg", ".jpeg", ".png", ".webp"))
+    ]
+    reply_to = event.reply_to_msg_id or event    
     info = await dler(event, link, ytd, download=True)
     if not info:
         return
-    if info.get("_type", None) == "playlist":
+    if info.get("_type") == "playlist":
         total = info["playlist_count"]
         for num, file in enumerate(info["entries"]):
             num += 1
-            id_ = file["id"]
+            vid_id = file["id"]
             title = file["title"]
-            thumb, _ = await download_file(
-                file.get("thumbnail", None) or file["thumbnails"][-1]["url"],
-                id_ + ".jpg",
-            )
-            if not (file := yt_helper(id_, title)):
-                return LOGS.error(f"YTDL ERROR: file not found: {id_}")
-            if file.endswith(".part"):
-                osremove(file, thumb)
-                await event.client.send_message(
-                    event.chat_id,
+            path = find_file(vid_id)
+            if not path:
+                return LOGS.warning(f"YTDL ERROR: file not found: {vid_id}")
+
+            path = path[0]
+            if path.endswith(".part"):
+                osremove(path)
+                LOGS.warning(f"Ytdl error for {vid_id}: found file ending in .part")
+                await event.respond(
                     f"`[{num}/{total}]` `Invalid Video format.\nIgnoring that...`",
                 )
-                return
+                continue
+
+            thumb, _ = await download_file(
+                file.get("thumbnail", file["thumbnails"][-1]["url"]), f"{vid_id}.jpg",
+            )
             from_ = info["extractor"].split(":")[0]
             caption = f"`[{num}/{total}]` `{title}`\n\n`from {from_}`"
-            ulx = pyroUL(event=event, _path=file)
+            ulx = pyroUL(event=event, _path=path)
             await ulx.upload(
-                delay=6,
                 thumb=thumb,
                 to_delete=True,
                 caption=caption,
@@ -92,20 +100,26 @@ async def download_yt(event, link, ytd):
                 delete_file=True,
                 reply_to=reply_to,
             )
-        await event.try_delete()
-        return
+        return await event.try_delete()
 
-    title = info["title"]  # [:50]
-    id_ = info["id"]
+    # single file
+    title = info["title"]
+    vid_id = info["id"]
+    file = find_file(vid_id)
+    if not file:
+        return LOGS.warning(f"YTDL ERROR: file not found: {vid_id}")
+
+    file = file[0]
+    if file.endswith(".part"):
+        osremove(file)
+        LOGS.warning(f"Ytdl error for {vid_id}: found file ending in .part")
+        return await event.edit(f"`Invalid Video format detected....`")
+
     thumb, _ = await download_file(
-        info.get("thumbnail", None) or f"https://i.ytimg.com/vi/{id_}/hqdefault.jpg",
-        id_ + ".jpg",
+        info.get("thumbnail", f"https://i.ytimg.com/vi/{vid_id}/hqdefault.jpg"), f"{vid_id}.jpg",
     )
-    if not (file := yt_helper(id_, title)):
-        return LOGS.error(f"YTDL ERROR: file not found: {id_}")
     ulx = pyroUL(event=event, _path=file)
     await ulx.upload(
-        delay=6,
         thumb=thumb,
         to_delete=True,
         auto_edit=False,
@@ -181,12 +195,14 @@ def get_buttons(listt):
     return buttons
 
 
-async def dler(event, url, opts: dict = {}, download=False):
+async def dler(url, opts: dict = {}, download=False, info=False):
     await event.edit("`Getting Data...`")
     if "quiet" not in opts:
         opts["quiet"] = True
     opts["username"] = udB.get_key("YT_USERNAME")
     opts["password"] = udB.get_key("YT_PASSWORD")
+    opts["logtostderr"] = False
+    opts["overwrites"] = True
     if download:
         await ytdownload(url, opts)
     try:
@@ -221,25 +237,3 @@ def get_videos_link(url):
         link = re.search(r"\?v=([(\w+)\-]*)", vid["link"]).group(1)
         to_return.append(f"https://youtube.com/watch?v={link}")
     return to_return
-
-
-def yt_helper(yt_id, title):
-    exts = (
-        ".webm",
-        ".mkv",
-        ".mp4",
-        ".3gp",
-        ".mp3",
-        ".m4a",
-        ".flv",
-        ".aac",
-    )
-    for file in os.listdir("."):
-        if file.startswith(yt_id):
-            if file.endswith(".part"):
-                return file
-            for ext in exts:
-                if file.lower().endswith(ext):
-                    fn = check_filename(title + "." + file.split(".", maxsplit=1)[1])
-                    os.rename(file, fn)
-                    return fn

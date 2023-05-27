@@ -184,8 +184,9 @@ async def ReTrieveFile(input_file_name):
     contentType = out.headers.get("content-type")
     if "image" not in contentType:
         return False, (await out.json())
+    content = await out.read()
     name = check_filename("ult-rmbg.png")
-    await asyncwrite(name, await out.read(), mode="wb")
+    await asyncwrite(name, content, mode="wb+")
     return True, name
 
 
@@ -429,7 +430,7 @@ class Quotly:
             raise er
         if request.get("ok"):
             image = base64.decodebytes(request["result"]["image"].encode("utf-8"))
-            await asyncwrite(file_name, image, mode="wb")
+            await asyncwrite(file_name, image, mode="wb+")
             return file_name
         raise Exception(str(request))
 

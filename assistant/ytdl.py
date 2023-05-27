@@ -5,9 +5,9 @@
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
 
+import asyncio
 import os
 import re
-from asyncio import sleep
 
 try:
     from PIL import Image
@@ -15,26 +15,24 @@ except ImportError:
     Image = None
 
 from telethon import Button
-from telethon.errors.rpcerrorlist import FilePartLengthInvalidError, MediaEmptyError
-from telethon.tl.types import DocumentAttributeAudio, DocumentAttributeVideo
-from telethon.tl.types import InputWebDocument as wb
+from telethon.tl.types import InputWebDocument
 
 from pyUltroid.fns.helper import (
     bash,
-    fast_download,
+    download_file,
     humanbytes,
     numerize,
     time_formatter,
 )
-from pyUltroid.fns.ytdl import dler, get_buttons, get_formats, yt_helper
-from pyUltroid.fns.tools import check_filename
+from pyUltroid.custom._transfer import pyroUL
+from pyUltroid.fns.ytdl import dler, get_buttons, get_formats
 
 from . import LOGS, asst, callback, in_pattern, udB
 
 try:
     from youtubesearchpython import VideosSearch
 except ImportError:
-    LOGS.info("'youtubesearchpython' not installed!")
+    LOGS.info("'youtubesearchpython' is not installed. Some plugins will not work!")
     VideosSearch = None
 
 
@@ -50,7 +48,7 @@ async def _(event):
     except IndexError:
         fuk = event.builder.article(
             title="Search Something",
-            thumb=wb(ytt, 0, "image/jpeg", []),
+            thumb=InputWebDocument(ytt, 0, "image/jpeg", []),
             text="**YᴏᴜTᴜʙᴇ Sᴇᴀʀᴄʜ**\n\nYou didn't search anything",
             buttons=Button.switch_inline(
                 "Sᴇᴀʀᴄʜ Aɢᴀɪɴ",
@@ -61,10 +59,9 @@ async def _(event):
         await event.answer([fuk])
         return
     results = []
-    search = VideosSearch(string, limit=50)
-    nub = search.result()
-    nibba = nub["result"]
-    for v in nibba:
+    func = lambda s: VideosSearch(s, limit=30).result()
+    nub = await asyncio.to_thread(func, string)
+    for v in nub["result"]:
         ids = v["id"]
         link = _yt_base_url + ids
         title = v["title"]
@@ -86,7 +83,7 @@ async def _(event):
         text += f"「 Publisher: {publisher} 」\n"
         text += f"「 Published on: {published_on} 」`"
         desc = f"{title}\n{duration}"
-        file = wb(thumb, 0, "image/jpeg", [])
+        file = InputWebDocument(thumb, 0, "image/jpeg", [])
         buttons = [
             [
                 Button.inline("Audio", data=f"ytdl:audio:{ids}"),
@@ -154,10 +151,20 @@ async def _(event):
     vid_id = lets_split[2]
     link = _yt_base_url + vid_id
     format = lets_split[1]
+
+    """
     try:
         ext = lets_split[3]
     except IndexError:
         ext = "mp3"
+    """
+
+    find_file = lambda v_id: [
+        i
+        for i in os.listdir(".")
+        if i.startswith(v_id)
+        and not i.endswith((".jpg", ".jpeg", ".png", ".webp"))
+    ]
     if lets_split[0] == "audio":
         opts = {
             "format": "bestaudio",
@@ -165,12 +172,10 @@ async def _(event):
             "key": "FFmpegMetadata",
             "prefer_ffmpeg": True,
             "geo_bypass": True,
-            "outtmpl": f"%(id)s.{ext}",
-            "logtostderr": False,
+            "outtmpl": f"%(id)s",
             "postprocessors": [
                 {
                     "key": "FFmpegExtractAudio",
-                    "preferredcodec": ext,
                     "preferredquality": format,
                 },
                 {"key": "FFmpegMetadata"},
@@ -178,7 +183,11 @@ async def _(event):
         }
 
         ytdl_data = await dler(event, link, opts, True)
+        filepath = find_file(vid_id)
+        if not filepath:
+            return LOGS.warning(f"YTDL ERROR: audio file not found: {vid_id}")
 
+        filepath = filepath[0]
         title = ytdl_data["title"]
         if ytdl_data.get("artist"):
             artist = ytdl_data["artist"]
@@ -186,20 +195,20 @@ async def _(event):
             artist = ytdl_data["creator"]
         elif ytdl_data.get("channel"):
             artist = ytdl_data["channel"]
+
         views = numerize(ytdl_data.get("view_count")) or 0
-        thumb, _ = await fast_download(ytdl_data["thumbnail"], filename=f"{vid_id}.jpg")
+        thumb, _ = await download_file(
+            ytdl_data.get("thumbnail", f"https://i.ytimg.com/vi/{vid_id}/hqdefault.jpg"),
+            filename=f"{vid_id}.jpg",
+        )
         likes = numerize(ytdl_data.get("like_count")) or 0
         duration = ytdl_data.get("duration") or 0
         description = ytdl_data["description"][:100]
         description = description or "None"
-
-        if not (filepath := yt_helper(vid_id, title)):
-            return LOGS.error(f"YTDL ERROR: file not found: {vid_id}")
         size = os.path.getsize(filepath)
-        from pyUltroid.custom._transfer import pyroUL
 
-        ytaud = pyroUL(event=event, _path=filepath)
-        yt_file = await ytaud.upload(
+        yt_audio = pyroUL(event=event, _path=filepath)
+        yt_file = await yt_audio.upload(
             thumb=thumb,
             auto_edit=False,
             return_obj=True,
@@ -207,6 +216,7 @@ async def _(event):
             delete_file=True,
             progress_text=f"`Uploading {filepath} ...`",
         )
+
     elif lets_split[0] == "video":
         opts = {
             "format": str(format),
@@ -214,12 +224,16 @@ async def _(event):
             "key": "FFmpegMetadata",
             "prefer_ffmpeg": True,
             "geo_bypass": True,
-            "outtmpl": f"%(id)s.{ext}",
-            "logtostderr": False,
+            "outtmpl": f"%(id)s",
             "postprocessors": [{"key": "FFmpegMetadata"}],
         }
 
         ytdl_data = await dler(event, link, opts, True)
+        filepath = find_file(vid_id)
+        if not filepath:
+            return LOGS.warning(f"YTDL ERROR: video file not found: {vid_id}")
+
+        filepath = filepath[0]
         title = ytdl_data["title"]
         if ytdl_data.get("artist"):
             artist = ytdl_data["artist"]
@@ -228,24 +242,26 @@ async def _(event):
         elif ytdl_data.get("channel"):
             artist = ytdl_data["channel"]
         views = numerize(ytdl_data.get("view_count")) or 0
-        thumb, _ = await fast_download(ytdl_data["thumbnail"], filename=f"{vid_id}.jpg")
+        thumb, _ = await download_file(
+            ytdl_data.get("thumbnail", f"https://i.ytimg.com/vi/{vid_id}/hqdefault.jpg"),
+            filename=f"{vid_id}.jpg",
+        )
 
         try:
-            Image.open(thumb).save(thumb, "JPEG")
+            if Image:
+                Image.open(thumb).save(thumb, "JPEG")
         except Exception as er:
-            LOGS.exception(er)
+            LOGS.exception("err in saving thumbnail..")
             thumb = None
-        description = ytdl_data["description"][:120]
-        likes = numerize(ytdl_data.get("like_count")) or 0
-        hi, wi = ytdl_data.get("height") or 720, ytdl_data.get("width") or 1280
-        duration = ytdl_data.get("duration") or 0
-        if not (filepath := yt_helper(vid_id, title)):
-            return LOGS.error(f"YTDL ERROR: file not found: {vid_id}")
-        size = os.path.getsize(filepath)
-        from pyUltroid.custom._transfer import pyroUL
 
-        ytvid = pyroUL(event=event, _path=filepath)
-        yt_file = await ytvid.upload(
+        description = ytdl_data["description"][:100]
+        likes = numerize(ytdl_data.get("like_count")) or 0
+        # hi, wi = ytdl_data.get("height") or 720, ytdl_data.get("width") or 1280
+        duration = ytdl_data.get("duration") or 0
+        size = os.path.getsize(filepath)
+
+        yt_video = pyroUL(event=event, _path=filepath)
+        yt_file = await yt_video.upload(
             thumb=thumb,
             auto_edit=False,
             return_obj=True,
@@ -253,8 +269,8 @@ async def _(event):
             delete_file=True,
             progress_text=f"`Uploading {filepath} ...`",
         )
-    await sleep(1)
-    description = description if description != "" else "None"
+
+    description = description or "None"
     text = f"**Title: [{title}]({_yt_base_url}{vid_id})**\n\n"
     text += f"`📝 Description: {description}\n\n"
     text += f"「 Duration: {time_formatter(int(duration)*1000)} 」\n"
@@ -264,6 +280,7 @@ async def _(event):
     # text += f"「 Size: {humanbytes(size)} 」`"
     button = Button.switch_inline("Search More", query="yt ", same_peer=True)
     msg_to_edit = await asst.get_messages(yt_file.chat.id, ids=yt_file.id)
+    await asyncio.sleep(0.6)
     await event.edit(text, file=msg_to_edit.media, buttons=button)
 
 

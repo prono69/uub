@@ -5,6 +5,9 @@
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
 
+from urllib.parse import urlparse
+from urllib.parse import parse_qs
+
 from telethon.tl.functions.photos import UploadProfilePhotoRequest
 
 from pyUltroid.fns.helper import download_file
@@ -25,7 +28,22 @@ from . import (
 
 __doc__ = get_help("help_autopic")
 
-autopic_links = []
+autopic_links = set()
+
+
+async def genLinks(search):
+    def is_cropped(data):
+        for i in ("h", "w"):
+            if value := data.get(i):
+                if int(value[0]) < 480:
+                    return True
+
+    global autopic_links
+    links = await unsplashsearch(search, limit=None, shuf=True)
+    for url in links:
+        parsed_data = parse_qs(urlparse(url).query)
+        if not is_cropped(parsed_data)
+            autopic_links.add(url)
 
 
 async def autopic_func():
@@ -33,10 +51,10 @@ async def autopic_func():
     if not (search := udB.get_key("AUTOPIC")):
         return
     if not autopic_links:
-        autopic_links = await unsplashsearch(search, limit=None, shuf=True)
+        await genLinks(search)
         if not autopic_links:
             return LOGS.error(f"Autopic Error: Found No Photos for {search}")
-    img = autopic_links.pop(0)
+    img = autopic_links.pop()
     path = check_filename("resources/downloads/autopic.jpg")
     try:
         await download_file(img, path)
@@ -66,7 +84,7 @@ async def autopic(e):
         return await e.eor("`APScheduler is missing, Can't Use Autopic`", time=6)
 
     eris = await e.eor(get_string("com_1"))
-    autopic_links = await unsplashsearch(search, limit=None, shuf=True)
+    await genLinks(search)
     if not autopic_links:
         return await eris.eor(get_string("autopic_2").format(search), time=10)
 
@@ -74,11 +92,7 @@ async def autopic(e):
     await eris.edit(get_string("autopic_3").format(search))
     sleep = udB.get_key("SLEEP_TIME") or 1221
     scheduler.add_job(
-        autopic_func,
-        trigger="interval",
-        seconds=sleep,
-        id="autopic",
-        jitter=60,
+        autopic_func, trigger="interval", seconds=sleep, id="autopic", jitter=60,
     )
 
 
@@ -86,7 +100,7 @@ if udB.get_key("AUTOPIC"):
     sleep = udB.get_key("SLEEP_TIME") or 1221
     if scheduler:
         scheduler.add_job(
-            autopic_func, "interval", seconds=sleep, id="autopic", jitter=60
+            autopic_func, "interval", seconds=sleep, id="autopic", jitter=60,
         )
     else:
         LOGS.error(f"autopic: 'Apscheduler' not installed.")

@@ -183,13 +183,16 @@ def _parse_eval(value=None):
             pass
     elif isinstance(value, dict):
         try:
-            return json_parser(value, indent=1)
+            return json_parser(value, indent=4)
         except Exception:
             pass
     elif isinstance(value, list):
         newlist = "["
         for index, child in enumerate(value):
-            newlist += "\n  " + str(_parse_eval(child))
+            if type(child) == str:
+                newlist += f'\n  "{_parse_eval(child)}"'
+            else:
+                newlist += f"\n  {_parse_eval(child)}"
             if index < len(value) - 1:
                 newlist += ","
         newlist += "\n]"
