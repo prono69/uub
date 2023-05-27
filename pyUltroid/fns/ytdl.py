@@ -196,7 +196,7 @@ def get_buttons(listt):
     return buttons
 
 
-async def dler(url, opts: dict = {}, download=False, info=False):
+async def dler(event, url, opts: dict = {}, download=False, info=False):
     await event.edit("`Getting Data...`")
     if "quiet" not in opts:
         opts["quiet"] = True
