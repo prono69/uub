@@ -88,7 +88,7 @@ async def download_yt(event, link, ytd):
 
             default_ext = ".mkv" if file.get("height") else ".mp3"
             newpath = check_filename(
-                title + (os.path.splitext(filepath[0])[1] or deafult_ext).lower()
+                title + (os.path.splitext(filepath[0])[1] or default_ext).lower()
             )
             os.rename(filepath[0], newpath)
             filepath = newpath
@@ -123,7 +123,7 @@ async def download_yt(event, link, ytd):
 
     default_ext = ".mkv" if info.get("height") else ".mp3"
     newpath = check_filename(
-        title + (os.path.splitext(filepath[0])[1] or deafult_ext).lower()
+        title + (os.path.splitext(filepath[0])[1] or default_ext).lower()
     )
     os.rename(filepath[0], newpath)
     filepath = newpath

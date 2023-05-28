@@ -208,7 +208,7 @@ async def _(event):
             ytdl_data.get(
                 "thumbnail", f"https://i.ytimg.com/vi/{vid_id}/hqdefault.jpg"
             ),
-            filename=f"{vid_id}.jpg",
+            f"{vid_id}.jpg",
         )
         likes = numerize(ytdl_data.get("like_count")) or 0
         duration = ytdl_data.get("duration") or 0
@@ -260,14 +260,14 @@ async def _(event):
             ytdl_data.get(
                 "thumbnail", f"https://i.ytimg.com/vi/{vid_id}/hqdefault.jpg"
             ),
-            filename=f"{vid_id}.jpg",
+            f"{vid_id}.jpg",
         )
 
         try:
             if Image:
                 Image.open(thumb).save(thumb, "JPEG")
         except Exception as er:
-            LOGS.exception("err in saving thumbnail..")
+            LOGS.exception("YTDL Error in saving thumbnail..")
             thumb = None
 
         description = (ytdl_data["description"] or "None")[:100]
