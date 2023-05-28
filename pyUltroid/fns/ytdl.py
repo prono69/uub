@@ -16,13 +16,13 @@ from yt_dlp import YoutubeDL
 from .. import LOGS, udB
 from pyUltroid.custom._transfer import pyroUL
 from .helper import (
+    check_filename,
     download_file,
     humanbytes,
     osremove,
     run_async,
     time_formatter,
 )
-
 
 try:
     from youtubesearchpython import Playlist, VideosSearch
@@ -60,7 +60,7 @@ async def download_yt(event, link, ytd):
     find_file = lambda v_id: [
         i
         for i in os.listdir(".")
-        if i.startswith(v_id) and not i.endswith((".jpg", ".jpeg", ".png", ".webp"))
+        if i.startswith(v_id) and not i.endswith((".jpg", ".jpeg", ".png"))
     ]
     reply_to = event.reply_to_msg_id or event
     info = await dler(event, link, ytd, download=True)
@@ -72,26 +72,33 @@ async def download_yt(event, link, ytd):
             num += 1
             vid_id = file["id"]
             title = file["title"]
-            path = find_file(vid_id)
-            if not path:
-                return LOGS.warning(f"YTDL ERROR: file not found: {vid_id}")
+            filepath = find_file(vid_id)
+            if not filepath:
+                return LOGS.warning(f"YTDL ERROR: file not found - {vid_id}")
 
-            path = path[0]
-            if path.endswith(".part"):
-                osremove(path)
-                LOGS.warning(f"Ytdl error for {vid_id}: found file ending in .part")
+            if filepath[0].lower().endswith((".part", ".temp")):
+                osremove(filepath[0])
+                LOGS.warning(
+                    f"YTDL Error: {vid_id} - found file ending in .part or .temp"
+                )
                 await event.respond(
-                    f"`[{num}/{total}]` `Invalid Video format.\nIgnoring that...`",
+                    f"`[{num}/{total}]` \n`Error: Invalid Video format.\nIgnoring that...`"
                 )
                 continue
 
+            default_ext = ".mkv" if file.get("height") else ".mp3"
+            newpath = check_filename(
+                title + (os.path.splitext(filepath[0])[1] or deafult_ext).lower()
+            )
+            os.rename(filepath[0], newpath)
+            filepath = newpath
             thumb, _ = await download_file(
                 file.get("thumbnail", file["thumbnails"][-1]["url"]),
                 f"{vid_id}.jpg",
             )
             from_ = info["extractor"].split(":")[0]
             caption = f"`[{num}/{total}]` `{title}`\n\n`from {from_}`"
-            ulx = pyroUL(event=event, _path=path)
+            ulx = pyroUL(event=event, _path=filepath)
             await ulx.upload(
                 thumb=thumb,
                 to_delete=True,
@@ -105,21 +112,27 @@ async def download_yt(event, link, ytd):
     # single file
     title = info["title"]
     vid_id = info["id"]
-    file = find_file(vid_id)
-    if not file:
-        return LOGS.warning(f"YTDL ERROR: file not found: {vid_id}")
+    filepath = find_file(vid_id)
+    if not filepath:
+        return LOGS.warning(f"YTDL ERROR: file not found - {vid_id}")
 
-    file = file[0]
-    if file.endswith(".part"):
-        osremove(file)
-        LOGS.warning(f"Ytdl error for {vid_id}: found file ending in .part")
-        return await event.edit(f"`Invalid Video format detected....`")
+    if filepath[0].lower().endswith((".part", ".temp")):
+        osremove(filepath[0])
+        LOGS.warning(f"YTDL Error: {vid_id} - found file ending in .part or .temp")
+        return await event.edit(f"`Error: Invalid format detected...`")
+
+    default_ext = ".mkv" if info.get("height") else ".mp3"
+    newpath = check_filename(
+        title + (os.path.splitext(filepath[0])[1] or deafult_ext).lower()
+    )
+    os.rename(filepath[0], newpath)
+    filepath = newpath
 
     thumb, _ = await download_file(
         info.get("thumbnail", f"https://i.ytimg.com/vi/{vid_id}/hqdefault.jpg"),
         f"{vid_id}.jpg",
     )
-    ulx = pyroUL(event=event, _path=file)
+    ulx = pyroUL(event=event, _path=filepath)
     await ulx.upload(
         thumb=thumb,
         to_delete=True,
@@ -204,6 +217,12 @@ async def dler(event, url, opts: dict = {}, download=False, info=False):
     opts["password"] = udB.get_key("YT_PASSWORD")
     opts["logtostderr"] = False
     opts["overwrites"] = True
+    opts["geo_bypass"] = True
+    opts["prefer_ffmpeg"] = True
+    opts["addmetadata"] = True
+    if more_opts := udB.get_key("__YTDL_OPTS", force=True):
+        if type(more_opts) == dict:
+            opts |= more_opts
     if download:
         await ytdownload(url, opts)
     try:

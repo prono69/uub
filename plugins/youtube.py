@@ -34,15 +34,10 @@ from . import get_string, ultroid_cmd
 )
 async def download_from_youtube_(event):
     def is_valid_url(url):
-        result = urlparse(x)
+        result = urlparse(url)
         return all([result.scheme, result.netloc])
 
-    ytd = {
-        "prefer_ffmpeg": True,
-        "addmetadata": True,
-        "geo_bypass": True,
-        "nocheckcertificate": True,
-    }
+    ytd = {"nocheckcertificate": True}
     opt = event.pattern_match.group(1).strip()
     xx = await event.eor(get_string("com_1"))
     if opt == "a":

@@ -190,7 +190,7 @@ def _parse_eval(value=None):
         newlist = "["
         for index, child in enumerate(value):
             if type(child) == str:
-                newlist += f'\n  "{_parse_eval(child)}"'
+                newlist += f"\n  '{_parse_eval(child)}'"
             else:
                 newlist += f"\n  {_parse_eval(child)}"
             if index < len(value) - 1:

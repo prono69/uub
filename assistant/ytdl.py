@@ -19,7 +19,9 @@ from telethon.tl.types import InputWebDocument
 
 from pyUltroid.fns.helper import (
     bash,
+    check_filename,
     download_file,
+    osremove,
     humanbytes,
     numerize,
     time_formatter,
@@ -135,7 +137,6 @@ async def _(e):
         if _buttons
         else "`Error downloading from YouTube.\nTry Restarting your bot.`"
     )
-
     await e.edit(_text, buttons=_buttons)
 
 
@@ -151,13 +152,10 @@ async def _(event):
     vid_id = lets_split[2]
     link = _yt_base_url + vid_id
     format = lets_split[1]
-
-    """
     try:
         ext = lets_split[3]
     except IndexError:
         ext = "mp3"
-    """
 
     find_file = lambda v_id: [
         i
@@ -167,14 +165,12 @@ async def _(event):
     if lets_split[0] == "audio":
         opts = {
             "format": "bestaudio",
-            "addmetadata": True,
             "key": "FFmpegMetadata",
-            "prefer_ffmpeg": True,
-            "geo_bypass": True,
             "outtmpl": f"%(id)s",
             "postprocessors": [
                 {
                     "key": "FFmpegExtractAudio",
+                    "preferredcodec": ext,
                     "preferredquality": format,
                 },
                 {"key": "FFmpegMetadata"},
@@ -186,8 +182,20 @@ async def _(event):
         if not filepath:
             return LOGS.warning(f"YTDL ERROR: audio file not found: {vid_id}")
 
-        filepath = filepath[0]
+        if filepath[0].lower().endswith((".part", ".temp")):
+            osremove(filepath[0])
+            LOGS.warning(
+                f"Ytdl error for {vid_id}: found file ending in .part or .temp"
+            )
+            return await event.edit("`Error: Invalid Audio format...`")
+
         title = ytdl_data["title"]
+        newpath = check_filename(
+            title + (os.path.splitext(filepath[0])[1] or ".mp3").lower()
+        )
+        os.rename(filepath[0], newpath)
+        filepath = newpath
+
         if ytdl_data.get("artist"):
             artist = ytdl_data["artist"]
         elif ytdl_data.get("creator"):
@@ -204,9 +212,7 @@ async def _(event):
         )
         likes = numerize(ytdl_data.get("like_count")) or 0
         duration = ytdl_data.get("duration") or 0
-        description = ytdl_data["description"][:100]
-        description = description or "None"
-        size = os.path.getsize(filepath)
+        description = (ytdl_data["description"] or "None")[:100]
 
         yt_audio = pyroUL(event=event, _path=filepath)
         yt_file = await yt_audio.upload(
@@ -221,10 +227,7 @@ async def _(event):
     elif lets_split[0] == "video":
         opts = {
             "format": str(format),
-            "addmetadata": True,
             "key": "FFmpegMetadata",
-            "prefer_ffmpeg": True,
-            "geo_bypass": True,
             "outtmpl": f"%(id)s",
             "postprocessors": [{"key": "FFmpegMetadata"}],
         }
@@ -232,10 +235,20 @@ async def _(event):
         ytdl_data = await dler(event, link, opts, True)
         filepath = find_file(vid_id)
         if not filepath:
-            return LOGS.warning(f"YTDL ERROR: video file not found: {vid_id}")
+            return LOGS.warning(f"YTDL ERROR: video file not found - {vid_id}")
 
-        filepath = filepath[0]
+        if filepath[0].lower().endswith((".part", ".temp")):
+            osremove(filepath[0])
+            LOGS.warning(f"YTDL Error: {vid_id} - found file ending in .part or .temp")
+            return await event.edit("`Error: Invalid Video format...`")
+
         title = ytdl_data["title"]
+        newpath = check_filename(
+            title + (os.path.splitext(filepath[0])[1] or ".mkv").lower()
+        )
+        os.rename(filepath[0], newpath)
+        filepath = newpath
+
         if ytdl_data.get("artist"):
             artist = ytdl_data["artist"]
         elif ytdl_data.get("creator"):
@@ -257,11 +270,11 @@ async def _(event):
             LOGS.exception("err in saving thumbnail..")
             thumb = None
 
-        description = ytdl_data["description"][:100]
+        description = (ytdl_data["description"] or "None")[:100]
         likes = numerize(ytdl_data.get("like_count")) or 0
-        # hi, wi = ytdl_data.get("height") or 720, ytdl_data.get("width") or 1280
         duration = ytdl_data.get("duration") or 0
-        size = os.path.getsize(filepath)
+        # hi, wi = ytdl_data.get("height") or 720, ytdl_data.get("width") or 1280
+        # size = os.path.getsize(filepath)
 
         yt_video = pyroUL(event=event, _path=filepath)
         yt_file = await yt_video.upload(
@@ -273,7 +286,6 @@ async def _(event):
             progress_text=f"`Uploading {filepath} ...`",
         )
 
-    description = description or "None"
     text = f"**Title: [{title}]({_yt_base_url}{vid_id})**\n\n"
     text += f"`📝 Description: {description}\n\n"
     text += f"「 Duration: {time_formatter(int(duration)*1000)} 」\n"
@@ -283,7 +295,7 @@ async def _(event):
     # text += f"「 Size: {humanbytes(size)} 」`"
     button = Button.switch_inline("Search More", query="yt ", same_peer=True)
     msg_to_edit = await asst.get_messages(yt_file.chat.id, ids=yt_file.id)
-    await asyncio.sleep(0.6)
+    await asyncio.sleep(1)
     await event.edit(text, file=msg_to_edit.media, buttons=button)
 
 
