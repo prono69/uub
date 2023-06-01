@@ -31,7 +31,7 @@ __doc__ = get_help("help_autopic")
 autopic_links = set()
 
 
-async def genLinks(search):
+async def gen_unsplash_imgs(search):
     def is_cropped(data):
         for i in ("h", "w"):
             if value := data.get(i):
@@ -39,7 +39,7 @@ async def genLinks(search):
                     return True
 
     global autopic_links
-    links = await unsplashsearch(search, limit=None, shuf=True)
+    links = await unsplashsearch(search, limit=20, shuf=True)
     for url in links:
         parsed_data = parse_qs(urlparse(url).query)
         if not is_cropped(parsed_data):
@@ -51,7 +51,7 @@ async def autopic_func():
     if not (search := udB.get_key("AUTOPIC")):
         return
     if not autopic_links:
-        await genLinks(search)
+        await gen_unsplash_imgs(search)
         if not autopic_links:
             return LOGS.error(f"Autopic Error: Found No Photos for {search}")
     img = autopic_links.pop()
@@ -61,7 +61,7 @@ async def autopic_func():
         tg_file = await ultroid_bot.upload_file(path)
         await ultroid_bot(UploadProfilePhotoRequest(file=tg_file))
     except Exception as exc:
-        LOGS.warning(f"autopic error: {exc}, Link: {img}")
+        LOGS.warning(f"autopic error in {img}: {exc}")
     finally:
         osremove(path)
 
@@ -84,7 +84,7 @@ async def autopic(e):
         return await e.eor("`APScheduler is missing, Can't Use Autopic`", time=6)
 
     eris = await e.eor(get_string("com_1"))
-    await genLinks(search)
+    await gen_unsplash_imgs(search)
     if not autopic_links:
         return await eris.eor(get_string("autopic_2").format(search), time=10)
 
