@@ -13,7 +13,7 @@ import random
 import string
 from logging import WARNING
 from traceback import format_exc
-from random import choice, choices, randrange, shuffle
+from secrets import choice as schoice
 
 from pyUltroid.exceptions import DependencyMissingError
 
@@ -70,7 +70,7 @@ except ImportError:
 async def randomchannel(
     tochat, channel, range1, range2, caption=None, client=ultroid_bot
 ):
-    do = randrange(range1, range2)
+    do = random.randrange(range1, range2)
     async for x in client.iter_messages(channel, add_offset=do, limit=1):
         caption = caption or x.text
         try:
@@ -132,7 +132,7 @@ async def google_search(query):
     headers = {
         "Cache-Control": "no-cache",
         "Connection": "keep-alive",
-        "User-Agent": choice(some_random_headers),
+        "User-Agent": random.choice(some_random_headers),
     }
     con = await async_searcher(_base + "/search?q=" + query, headers=headers)
     soup = BeautifulSoup(con, "html.parser")
@@ -452,9 +452,18 @@ def rotate_image(image, angle):
     return cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
 
 
-def random_string(length=3):
+def random_string(length=12, numbers=False, symbols=False):
     """Generate random string of 'n' Length"""
-    return "".join(choices(string.ascii_uppercase, k=length))
+    _all = list(string.ascii_letters)
+    if numbers:
+        _all.extend(list(string.digits))
+    if symbols:
+        _all.extend(list(string.punctuation))
+    for _ in range(length // 3):
+        random.shuffle(_all)
+    rnd_str = "".join(schoice(_all) for _ in range(length + 12))
+    return "".join(random.sample(rnd_str, length))
+    # return "".join(choices(string.ascii_uppercase, k=length))
 
 
 setattr(random, "random_string", random_string)

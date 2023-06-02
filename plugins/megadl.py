@@ -12,13 +12,14 @@
   It Downloads and Upload Files from mega.nz Links.
 """
 
-from os import makedirs
+from pathlib import Path
 from time import time
 
 from . import (
     HNDLR,
     LOGS,
     bash,
+    check_filename,
     get_all_files,
     get_string,
     time_formatter,
@@ -30,16 +31,16 @@ from . import (
 @ultroid_cmd(pattern="megadl( (.*)|$)")
 async def megadl(e):
     link = e.pattern_match.group(2)
-    final_msg = "**Downloaded {total} files in {time}!** \n\n**Directory:** `{dir}`"
-    tmp_dir = f"mega/{random_string(8).lower()}"
-    makedirs(tmp_dir)
+    tmp_dir = check_filename(f"mega/{random_string(9).lower()}")
+    Path(tmp_dir).mkdir(parents=True)
     xx = await e.eor(f"{get_string('com_1')}\nTo Check Progress: `{HNDLR}ls {tmp_dir}`")
 
     s_time = time()
-    x, y = await bash(f"megadl {link} --path {tmp_dir}")
-    if y:
-        LOGS.warning(y)
+    out, err = await bash(f"megadl {link} --path {tmp_dir}")
+    if err:
+        LOGS.warning(err)
 
     time_taken = time_formatter((time() - s_time) * 1000)
     total_files = len(get_all_files(tmp_dir))
+    final_msg = "**Downloaded {total} files in {time}!** \n\n**Directory:** `{dir}`"
     await xx.reply(final_msg.format(total=total_files, time=time_taken, dir=tmp_dir))

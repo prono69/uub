@@ -15,10 +15,10 @@ from math import floor
 from time import time
 from io import BytesIO
 from PIL import Image, ImageFilter
-from random import choice
-from os.path import getsize
+from random import choice, choices
 from pathlib import Path
 from mimetypes import guess_extension
+from string import ascii_lowercase
 
 # from mimetypes import guess_all_extensions
 
@@ -33,7 +33,6 @@ from .functions import cleargif, run_async_task
 from pyUltroid.exceptions import UploadError, DownloadError
 from pyUltroid.fns.helper import bash, time_formatter, inline_mention, osremove
 from pyUltroid.fns.tools import check_filename, humanbytes, shq
-from pyUltroid.fns.misc import random_string
 from pyUltroid.startup import LOGS
 from pyUltroid import asst, udB, ultroid_bot
 
@@ -413,7 +412,7 @@ class pyroUL:
 
     @staticmethod
     def size_checks(path):
-        size = getsize(path)
+        size = Path(path).stat().st_size
         if size == 0:
             raise UploadError("File Size = 0 B ...")
         elif size > 2097152000:
@@ -422,7 +421,7 @@ class pyroUL:
     async def get_metadata(self):
         self.metadata = media_info(self.file)
         type = self.metadata.get("type").lower()
-        if type == "image" and getsize(self.file) > 3 * 1024 * 1024:
+        if type == "image" and Path(self.file).stat().st_size > 3 * 1024 * 1024:
             self.metadata["type"] = "document"
             type = "document"
         if not (self.force_document or hasattr(self, "thumb")):
@@ -632,13 +631,15 @@ async def videoThumb(path, duration):
         dur = int(duration * rnd_dur)
     else:
         dur = 1
-    thumb_path = Path(f"resources/temp/{random_string(8)}-{dur}.jpg").absolute()
+    rnds = "".join(choices(ascii_lowercase, k=8))
+    thumb_path = Path(check_filename(f"resources/temp/{rnds}-{dur}.jpg")).absolute()
     await bash(f"ffmpeg -ss {dur} -i {shq(path)} -vframes 1 {shq(str(thumb_path))} -y")
     return str(thumb_path) if thumb_path.exists() else DEFAULT_THUMB
 
 
 async def audioThumb(path):
-    thumby = Path(f"resources/temp/{random_string(8).lower()}.jpg")
+    rnds = "".join(choices(ascii_lowercase, k=8))
+    thumby = Path(check_filename(f"resources/temp/{rnds}.jpg"))
     try:
         if not (album_art := load_file(path).get("artwork")):
             return LOGS.error(f"no artwork found: {path}")

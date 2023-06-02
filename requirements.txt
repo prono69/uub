@@ -67,3 +67,6 @@ spotdl
 uvloop
 imgur_python
 aiofiles
+aiodns
+
+# flask, gunicorn, openai, praw or asyncpraw

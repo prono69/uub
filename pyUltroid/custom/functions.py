@@ -2,8 +2,7 @@ import asyncio
 from ast import literal_eval
 from functools import wraps
 from pathlib import Path
-from random import sample, shuffle, choice, randrange
-from secrets import choice as schoice
+from random import choice, randrange
 import string
 from time import perf_counter
 
@@ -15,6 +14,7 @@ from telethon.tl.types import InputMessagesFilterPhotos
 from ._loop import loop, run_async_task
 from pyUltroid.startup import LOGS, HOSTED_ON
 from pyUltroid.fns.helper import async_searcher, osremove, asyncread, asyncwrite
+from pyUltroid.fns.misc import random_string
 from pyUltroid import asst, udB, ultroid_bot
 
 
@@ -67,18 +67,6 @@ async def cleargif(gif):
             return LOGS.exception("'cleargif' exception")
 
 
-def rnd_str(length=12, digits=True, symbols=False):
-    lst = list(string.ascii_letters)
-    if digits:
-        lst.extend(list(string.digits))
-    if symbols:
-        lst.extend(list(string.punctuation))
-
-    [shuffle(lst) for _ in range(length // 2)]
-    rnd = "".join(schoice(lst) for _ in range(length + 10))
-    return "".join(sample(rnd, length))
-
-
 async def get_imgbb_link(path, **kwargs):
     api = udB.get_key("IMGBB_API")
     if not api or not Path(path).is_file():
@@ -92,14 +80,14 @@ async def get_imgbb_link(path, **kwargs):
         data={
             "key": api,
             "image": image_data,
-            "name": kwargs.get("title", rnd_str(10, digits=False)),
+            "name": kwargs.get("title", random_string(length=9)),
             "expiration": str(kwargs.get("expire", 0)),
         },
         re_json=True,
     )
     if post.get("status") == 200:
         flink = post["data"]["url"] if kwargs.get("hq") else post["data"]["display_url"]
-        if kwargs.get("preview"):
+        if "preview" in kwargs:
             await asst.send_message(udB.get_key("TAG_LOG"), flink, link_preview=True)
             await asyncio.sleep(3)
         return flink
@@ -222,7 +210,6 @@ __all__ = [
     "timeit",
     "cleargif",
     "osremove",
-    "rnd_str",
     "get_imgbb_link",
     "random_pic",
     "run_async_task",
