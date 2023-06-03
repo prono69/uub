@@ -32,7 +32,7 @@ from .mediainfo import media_info
 from .functions import cleargif, run_async_task
 from pyUltroid.exceptions import UploadError, DownloadError
 from pyUltroid.fns.helper import bash, time_formatter, inline_mention, osremove
-from pyUltroid.fns.tools import check_filename, humanbytes, shq
+from pyUltroid.fns.tools import check_filename, humanbytes, shquote
 from pyUltroid.startup import LOGS
 from pyUltroid import asst, udB, ultroid_bot
 
@@ -633,7 +633,9 @@ async def videoThumb(path, duration):
         dur = 1
     rnds = "".join(choices(ascii_lowercase, k=8))
     thumb_path = Path(check_filename(f"resources/temp/{rnds}-{dur}.jpg")).absolute()
-    await bash(f"ffmpeg -ss {dur} -i {shq(path)} -vframes 1 {shq(str(thumb_path))} -y")
+    await bash(
+        f"ffmpeg -ss {dur} -i {shquote(path)} -vframes 1 {shquote(str(thumb_path))} -y"
+    )
     return str(thumb_path) if thumb_path.exists() else DEFAULT_THUMB
 
 

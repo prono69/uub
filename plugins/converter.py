@@ -38,7 +38,7 @@ from . import (
     get_paste,
     get_string,
     getFlags,
-    shq,
+    shquote,
     udB,
     ultroid_cmd,
     uploader,
@@ -88,7 +88,7 @@ async def imak(event):
             file = await event.client.download_media(reply.media)
 
     inp = check_filename(inp)
-    await bash(f"mv {shq(file)} {shq(inp)}")
+    await bash(f"mv {shquote(file)} {shquote(inp)}")
     if not os.path.exists(inp) or (os.path.exists(inp) and not os.path.getsize(inp)):
         os.rename(file, inp)
     ul = pyroUL(event=xx, _path=inp)

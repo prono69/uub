@@ -85,7 +85,7 @@ from . import (
     json_parser,
     mediainfo,
     osremove,
-    shq,
+    shquote,
     ultroid_cmd,
 )
 
@@ -212,7 +212,7 @@ async def _(e):
         audio, _ = await e.client.fast_downloader(reply.document)
         await msg.edit("`Creating video note...`")
         await bash(
-            f"ffmpeg -i {shq(thumb)} -i {shq(audio.name)} -preset ultrafast -c:a libmp3lame -ab 64 circle.mp4 -y"
+            f"ffmpeg -i {shquote(thumb)} -i {shquote(audio.name)} -preset ultrafast -c:a libmp3lame -ab 64 circle.mp4 -y"
         )
         await msg.edit("`Uploading...`")
         data = await metadata("circle.mp4")

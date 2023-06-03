@@ -36,7 +36,7 @@ from . import (
     humanbytes,
     mediainfo,
     media_info,
-    shq,
+    shquote,
     time_formatter,
     ultroid_cmd,
     osremove,
@@ -109,7 +109,7 @@ async def og_compressor(e):
     c_time = time()
     edit_count = 0
 
-    # x, y = await bash(f'''mediainfo --fullscan {shq(path)} | grep "Frame count"''')
+    # x, y = await bash(f'''mediainfo --fullscan {shquote(path)} | grep "Frame count"''')
     # total_frame = x.split(":")[1].split("\n")[0]
     text = f"`Compressing {Path(out).name} at {crf} CRF` \n"
     progress = check_filename(f"progress-{c_time}.txt")
@@ -124,10 +124,10 @@ async def og_compressor(e):
 
     proce = await asyncio.create_subprocess_shell(
         FFMPEG_CMD.format(
-            progress_file=shq(progress),
-            input_file=shq(path),
+            progress_file=shquote(progress),
+            input_file=shquote(path),
             crf=str(crf),
-            output_file=shq(out),
+            output_file=shquote(out),
             codec=codec,
             speed=speed,
             audio_cmd=_audio,

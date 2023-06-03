@@ -31,7 +31,7 @@ from . import (
     get_string,
     is_url_ok,
     mediainfo,
-    shq,
+    shquote,
     ultroid_cmd,
 )
 
@@ -84,7 +84,7 @@ async def mi(e):
     else:
         return await msg.eor(get_string("cvt_3"), time=5)
 
-    out, er = await bash(f"mediainfo {shq(naam)}")
+    out, er = await bash(f"mediainfo {shquote(naam)}")
     if er:
         LOGS.info(er)
         out = extra or str(er)
@@ -142,7 +142,7 @@ async def rotate_(ult):
         media = await reply.download_media()
         file = f"{media}.mp4"
         await bash(
-            f"ffmpeg -i {shq(media)} -c copy -metadata:s:v:0 rotate={match} {shq(file)} -y"
+            f"ffmpeg -i {shquote(media)} -c copy -metadata:s:v:0 rotate={match} {shquote(file)} -y"
         )
     else:
         return await msg.edit("`Unsupported Media..\nReply to Photo/Video`")

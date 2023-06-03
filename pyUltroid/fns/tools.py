@@ -14,7 +14,7 @@ import ssl
 from random import choice, shuffle
 from io import BytesIO
 from json.decoder import JSONDecodeError
-from shlex import quote as shq
+from shlex import quote as shquote
 from traceback import format_exc
 
 import requests
@@ -132,18 +132,18 @@ async def is_url_ok(url: str):
 
 
 async def metadata(file):
-    _ = media_info(file)
-    if type(_) == dict:
-        if _["type"] in ("video", "gif"):
-            if not _["bitrate"]:
-                _["bitrate"] = 320
-            if not _["width"]:
-                _["width"] = 1280
-            if not _["height"]:
-                _["height"] = 720
-        return _
+    data = media_info(file)
+    if type(data) == dict:
+        if data["type"] in ("video", "gif"):
+            if not data["bitrate"]:
+                data["bitrate"] = 320
+            if not data["width"]:
+                data["width"] = 1280
+            if not data["height"]:
+                data["height"] = 720
+        return data
 
-    out, _ = await bash(f"mediainfo {shq(file)} --Output=JSON")
+    out, _ = await bash(f"mediainfo {shquote(file)} --Output=JSON")
     if _ and _.endswith("NOT_FOUND"):
         raise DependencyMissingError(
             f"'{_}' is not installed!\nInstall it to use this command."
@@ -731,7 +731,9 @@ class TgConverter:
                 f"lottie_convert.py --webp-quality 100 --webp-skip-frames 100 '{file}' '{out_path}'"
             )
         else:
-            er, out = await bash(f"lottie_convert.py {shq(file)} {shq(out_path)}")
+            er, out = await bash(
+                f"lottie_convert.py {shquote(file)} {shquote(out_path)}"
+            )
         if er and throw:
             raise LottieException(er)
         if remove:
@@ -742,7 +744,7 @@ class TgConverter:
     @staticmethod
     async def animated_to_gif(file, out_path="gif.gif"):
         """Convert animated sticker to gif."""
-        await bash(f"lottie_convert.py {shq(file)} {shq(out_path)}")
+        await bash(f"lottie_convert.py {shquote(file)} {shquote(out_path)}")
         return out_path
 
     @staticmethod
@@ -777,10 +779,10 @@ class TgConverter:
             )
         if output.endswith(".gif"):
             await bash(
-                f"ffmpeg -i {shq(input_)} -an -sn -c:v copy {shq(output)}.mp4 -y"
+                f"ffmpeg -i {shquote(input_)} -an -sn -c:v copy {shquote(output)}.mp4 -y"
             )
         else:
-            await bash(f"ffmpeg -i {shq(input_)} {shq(output)} -y")
+            await bash(f"ffmpeg -i {shquote(input_)} {shquote(output)} -y")
         if remove:
             os.remove(input_)
         if os.path.exists(output):
@@ -799,7 +801,7 @@ class TgConverter:
             if w > h:
                 h, w = -1, 512
         await bash(
-            f'ffmpeg -i {shq(file)} -preset fast -an -to 00:00:03 -crf 30 -bufsize 256k -b:v {_["bitrate"]} -vf "scale={w}:{h},fps=30" -c:v libvpx-vp9 {shq(name)} -y'
+            f'ffmpeg -i {shquote(file)} -preset fast -an -to 00:00:03 -crf 30 -bufsize 256k -b:v {_["bitrate"]} -vf "scale={w}:{h},fps=30" -c:v libvpx-vp9 {shquote(name)} -y'
         )
         if remove:
             os.remove(file)
