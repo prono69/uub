@@ -93,10 +93,11 @@ The Ultroid Userbot
 in_alive = "{}\n\n🌀 <b>Ultroid Version -><b> <code>{}</code>\n🌀 <b>PyUltroid -></b> <code>{}</code>\n🌀 <b>Python -></b> <code>{}</code>\n🌀 <b>Uptime -></b> <code>{}</code>\n🌀 <b>Branch -></b>[ {} ]\n\n• <b>Join @TeamUltroid</b>"
 
 _BRANCH = os.getenv("BRANCH", "main")
-if not Repo:
-    _REPO = "https://github.com/TeamUltroid/Ultroid.git"
-else:
-    _REPO = Repo().remotes[0].config_reader.get("url").replace(".git", "")
+_REPO = (
+    Repo().remotes[0].config_reader.get("url")
+    if Repo
+    else "https://github.com/TeamUltroid/Ultroid.git"
+)
 
 
 @callback("alive")
@@ -129,8 +130,8 @@ async def lol(ult):
         pic = choice(pic)
     uptime = time_formatter((time.time() - start_time) * 1000)
     header = udB.get_key("ALIVE_TEXT") or get_string("bot_1")
-    rep = _REPO.replace(".git", f"/tree/{_BRANCH}")
-    kk = f" `[{_BRANCH}]({rep})` "
+    repo = _REPO.replace(".git", f"/tree/{_BRANCH}")
+    kk = f" `[{_BRANCH}]({repo})` "
     if inline:
         kk = f"<a href={rep}>{_BRANCH}</a>"
         parse = "html"
@@ -260,7 +261,7 @@ async def _(event):
             backgroundColor=choice(ATRA_COL),
         )
         await event.reply("**Ultroid Logs.**", file=file)
-    elif opt in ["open", "o"]:
+    elif opt in ("open", "o"):
         long = -800 if opt == "o" else -4000
         file = (await asyncread(file))[long:]
         return await event.eor(f"`{file}`")
@@ -278,12 +279,15 @@ async def inline_alive(ult):
         pic = choice(pic)
     uptime = time_formatter((time.time() - start_time) * 1000)
     header = udB.get_key("ALIVE_TEXT") or get_string("bot_1")
-    y = os.getenv("BRANCH") or "main"
-    xx = Repo().remotes[0].config_reader.get("url")
-    rep = xx.replace(".git", f"/tree/{y}")
-    kk = f"<a href={rep}>{y}</a>"
+    repo = _REPO.replace(".git", f"/tree/{_BRANCH}")
+    kk = f"<a href={repo}>{_BRANCH}</a>"
     als = in_alive.format(
-        header, f"{ultroid_version} [{HOSTED_ON}]", UltVer, pyver(), uptime, kk
+        header,
+        f"{ultroid_version} [{HOSTED_ON}]",
+        UltVer,
+        pyver(),
+        uptime,
+        kk,
     )
 
     if _e := udB.get_key("ALIVE_EMOJI"):
@@ -345,7 +349,6 @@ async def _(e):
         """
 
     m = await updater()
-    branch = os.getenv("BRANCH") or "main"
     if m:
         pic = await random_pic(re_photo=True) if udB.get_key("RANDOM_PIC") else ULTPIC()
         x = await asst.send_file(
@@ -357,13 +360,14 @@ async def _(e):
         )
         Link = x.message_link
         await xx.edit(
-            f'<strong><a href="{Link}">[ChangeLogs]</a></strong>',
+            f"<strong><a href='{Link}'>[ChangeLogs]</a></strong>",
             parse_mode="html",
             link_preview=False,
         )
     else:
+        repo = _REPO.replace(".git", f"/tree/{_BRANCH}")
         await xx.edit(
-            f'<code>Your BOT is </code><strong>up-to-date</strong><code> with </code><strong><a href="https://github.com/TeamUltroid/Ultroid/tree/{branch}">[{branch}]</a></strong>',
+            f"<code>Your BOT is </code><strong>up-to-date</strong><code> with </code><strong><a href='{repo}'>[{_BRANCH}]</a></strong>",
             parse_mode="html",
             link_preview=False,
         )
