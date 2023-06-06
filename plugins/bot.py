@@ -112,7 +112,7 @@ async def alive(event):
 async def lol(ult):
     match = ult.pattern_match.group(1).strip()
     inline = None
-    if match in ["inline", "i"]:
+    if match in ("inline", "i"):
         try:
             res = await ult.client.inline_query(asst.me.username, "alive")
             return await res[0].click(ult.chat_id)
@@ -122,8 +122,8 @@ async def lol(ult):
             LOGS.exception(er)
         inline = True
     pic = (
-        await random_pic(re_photo=True)
-        if udB.get_key("RANDOM_PIC")
+        await random_pic.get()
+        if random_pic.ok
         else udB.get_key("ALIVE_PIC")
     )
     if isinstance(pic, list):
@@ -273,8 +273,8 @@ async def _(event):
 @in_pattern("alive", owner=True)
 async def inline_alive(ult):
     pic = udB.get_key("ALIVE_PIC")
-    if not pic and udB.get_key("RANDOM_PIC"):
-        pic = await random_pic(re_photo=True)
+    if not pic and random_pic.ok:
+        pic = await random_pic.get()
     if isinstance(pic, list):
         pic = choice(pic)
     uptime = time_formatter((time.time() - start_time) * 1000)
@@ -350,7 +350,7 @@ async def _(e):
 
     m = await updater()
     if m:
-        pic = await random_pic(re_photo=True) if udB.get_key("RANDOM_PIC") else ULTPIC()
+        pic = await random_pic.get() if random_pic.ok else ULTPIC()
         x = await asst.send_file(
             udB.get_key("LOG_CHANNEL"),
             pic,
@@ -376,7 +376,7 @@ async def _(e):
 @callback("updtavail", owner=True)
 async def updava(event):
     await event.delete()
-    pic = await random_pic(re_photo=True) if udB.get_key("RANDOM_PIC") else ULTPIC
+    pic = await random_pic.get() if random_pic.ok else ULTPIC
     await asst.send_file(
         udB.get_key("LOG_CHANNEL"),
         pic,

@@ -248,7 +248,7 @@ async def heroku_logs(event):
         thumb="resources/extras/ultroid.jpg",
         caption="**Ultroid Heroku Logs.**",
     )
-    os.remove(filename)
+    osremove(filename)
     await xx.delete()
 
 
@@ -262,10 +262,6 @@ async def def_logs(ult, file):
         thumb=ULTConfig.thumb,
         caption="**Ultroid Logs.**",
     )
-
-
-async def updateme_requirements():
-    await bash(f"{sys.executable} -m pip install --no-cache-dir -r requirements.txt")
 
 
 @run_async

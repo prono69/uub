@@ -822,8 +822,8 @@ async def in_pm_ans(event):
     mime_type, res = None, None
     cont = None
     try:
-        if not PMPIC and (rnd_pics := udB.get_key("RANDOM_PIC")):
-            _pmpic = choice(rnd_pics)
+        if not PMPIC and random_pic.ok:
+            _pmpic = await random_pic.get()
         else:
             _pmpic = PMPIC
         ext = _pmpic.split(".")[-1].lower()

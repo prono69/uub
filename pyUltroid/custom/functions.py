@@ -24,10 +24,10 @@ def init_scheduler():
         from apscheduler.schedulers.asyncio import AsyncIOScheduler
     except ImportError:
         return None
-    else:
-        schd = AsyncIOScheduler(timezone="Asia/Kolkata")
-        schd.start()
-        return schd
+
+    schd = AsyncIOScheduler(timezone="Asia/Kolkata")
+    schd.start()
+    return schd
 
 
 scheduler = init_scheduler()
@@ -64,16 +64,16 @@ async def cleargif(gif):
         try:
             await gif.client(SaveGifRequest(id=get_input_document(gif), unsave=True))
         except Exception as ex:
-            return LOGS.exception("'cleargif' exception")
+            return LOGS.warning(f"error in cleargif: {ex}", exc_info=True)
 
 
 async def get_imgbb_link(path, **kwargs):
     api = udB.get_key("IMGBB_API")
-    if not api or not Path(path).is_file():
+    if not (api and Path(path).is_file()):
         return
     image_data = await asyncread(path, binary=True)
     if kwargs.get("delete"):
-        Path(path).unlink()
+        osremove(path)
     post = await async_searcher(
         "https://api.imgbb.com/1/upload",
         post=True,
@@ -94,42 +94,59 @@ async def get_imgbb_link(path, **kwargs):
     else:
         from pyUltroid.fns.tools import json_parser
 
-        return LOGS.error(json_parser(post, indent=2))
+        return LOGS.error(json_parser(post, indent=4))
 
 
-async def random_pic(re_photo=False, old_media=False, custom=False):
-    u = udB.get_key("RANDOM_PIC")
-    items = list()
-    if custom:
-        return udB.get_key(custom)
-    if re_photo:
-        if not old_media:
-            udB.set_key("RANDOM_PIC", u[1:])
-        return u[0]
-    elif len(u) >= 12:
-        return
+class RandomPhotoHandler:
+    def __init__(self):
+        self.ok = bool(udB.get_key("__RANDOM_PIC", force=True))
+        self.photos_to_store = 20
+        self.sources = (("r_wallpapers", 9547, 29000), ("Anime_hot_wallpapers", 5, 11500))
 
-    channels = [("r_wallpapers", 9547, 26500), ("Anime_hot_wallpapers", 5, 8500)]
-    for _ in range(15 - len(u)):
-        chn = choice(channels)
-        async for x in ultroid_bot.iter_messages(
-            chn[0],
-            limit=1,
-            filter=InputMessagesFilterPhotos,
-            offset_id=randrange(chn[1], chn[2]),
-        ):
-            txt = chn[0] + "_" + str(x.id)
-            await asyncio.sleep(randrange(30))
-            dlx = await x.download_media()
-            if link := await get_imgbb_link(
-                dlx, expire=24 * 8 * 60 * 60, title=txt, delete=True
+    async def get(self, clear=True):
+        photos = udB.get_key("__RANDOM_PIC", force=True) or []
+        if not photos:
+            run_async_task(self._save_images, id="random_pic")
+            return None
+        pic = choice(photos)
+        if clear:
+            photos.remove(pic)
+            udB.set_key("__RANDOM_PIC", photos)
+            run_async_task(self._save_images, id="random_pic")
+        return pic
+
+    async def _save_images(self):
+        pics = udB.get_key("__RANDOM_PIC", force=True)
+        if len(pics) >= self.photos_to_store:
+            return
+
+        for _ in range(self.photos_to_store - len(pics)):
+            chat, min_id, max_id = choice(self.sources)
+            async for msg in ultroid_bot.iter_messages(
+                chat,
+                limit=1,
+                filter=InputMessagesFilterPhotos,
+                offset_id=randrange(min_id, max_id),
             ):
-                await asst.send_message(
-                    int(udB.get_key("TAG_LOG")), link, link_preview=True
+                pic_name = chat + "_" + str(msg.id)
+                await asyncio.sleep(randrange(10, 35))
+                path = await msg.download_media()
+                imgbb_link = await get_imgbb_link(
+                    path,
+                    expire=24 * 10 * 60 * 60,
+                    title=pic_name,
+                    delete=True,
                 )
-                items.append(link)
+                pics.append(imgbb_link)
+                await asst.send_message(
+                    udB.get_key("TAG_LOG"),
+                    link,
+                    link_preview=True,
+                )
+        udB.set_key("__RANDOM_PIC", pics)
 
-    udB.set_key("RANDOM_PIC", u + items)
+
+random_pic = RandomPhotoHandler()
 
 
 class getFlags:
