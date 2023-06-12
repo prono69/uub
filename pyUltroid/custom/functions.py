@@ -88,8 +88,13 @@ async def get_imgbb_link(path, **kwargs):
     if post.get("status") == 200:
         flink = post["data"]["url"] if kwargs.get("hq") else post["data"]["display_url"]
         if "preview" in kwargs:
-            await asst.send_message(udB.get_key("TAG_LOG"), flink, link_preview=True)
-            await asyncio.sleep(3)
+            try:
+                await asst.send_message(
+                    udB.get_key("TAG_LOG"), flink, link_preview=True
+                )
+                await asyncio.sleep(3)
+            except Exception as exc:
+                LOGS.warning("ImgBB preview error:", exc_info=True)
         return flink
     else:
         from pyUltroid.fns.tools import json_parser
@@ -101,7 +106,10 @@ class RandomPhotoHandler:
     def __init__(self):
         self.ok = bool(udB.get_key("__RANDOM_PIC", force=True))
         self.photos_to_store = 20
-        self.sources = (("r_wallpapers", 9547, 29000), ("Anime_hot_wallpapers", 5, 11500))
+        self.sources = (
+            ("r_wallpapers", 9547, 29000),
+            ("Anime_hot_wallpapers", 5, 11500),
+        )
 
     async def get(self, clear=True):
         photos = udB.get_key("__RANDOM_PIC", force=True) or []
@@ -133,16 +141,12 @@ class RandomPhotoHandler:
                 path = await msg.download_media()
                 imgbb_link = await get_imgbb_link(
                     path,
-                    expire=24 * 10 * 60 * 60,
+                    expire=10 * 86400,
                     title=pic_name,
                     delete=True,
+                    preview=True,
                 )
                 pics.append(imgbb_link)
-                await asst.send_message(
-                    udB.get_key("TAG_LOG"),
-                    link,
-                    link_preview=True,
-                )
         udB.set_key("__RANDOM_PIC", pics)
 
 

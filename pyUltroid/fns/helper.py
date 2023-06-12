@@ -116,7 +116,7 @@ def osremove(*files, folders=False):
         if path.is_file():
             path.unlink(missing_ok=True)
         elif folders and path.is_dir():
-            rmtree(path)
+            rmtree(path, ignore_errors=True)
 
 
 # --------------------------------------------------------------------- #
