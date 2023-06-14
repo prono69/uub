@@ -8,7 +8,6 @@
 from ast import literal_eval
 from os import environ, system
 from copy import deepcopy
-from random import randrange
 from sys import executable
 
 from redis.exceptions import ResponseError
@@ -44,10 +43,7 @@ if Var.DATABASE_URL:
 class _BaseDatabase:
     def __init__(self, *args, **kwargs):
         self._cache = {}
-        if not self.to_cache:
-            if randrange(100) > 40:
-                self.__nocache__()
-        else:
+        if self.to_cache:
             self.re_cache()
 
     def ping(self):
@@ -72,6 +68,8 @@ class _BaseDatabase:
                 data = self.get(str(key))
             except ResponseError:
                 return "WRONGTYPE"
+            except Exception:
+                return LOGS.debug("Error getting key from DB", exc_info=True)
         if data and type(data) == str:
             try:
                 data = literal_eval(data)
@@ -125,22 +123,19 @@ class _BaseDatabase:
         if not (data := self.get_key(key)):
             return "Key doesn't exists!"
         value = self._get_data(data=value)
-        if type(data) == set:
-            data.add(value)
+        if type(data) == list:
+            data.append(value)
         elif type(data) == dict:
             data = data | value
-        elif type(data) == list:
-            data.append(value)
+        elif type(data) == set:
+            data.add(value)
         elif type(data) == tuple:
             lst = list(data)
             lst.append(value)
             data = tuple(lst)
         else:
-            data += " " + str(value)
+            data = f" {value}"
         return self.set_key(key, data)
-
-    def __nocache__(self):
-        self.del_key("__nocache__")
 
 
 # ---------------------------------------------------------------------------------------------
@@ -353,6 +348,9 @@ class RedisDB(_BaseDatabase):
     @property
     def name(self):
         return self._name
+
+    def ping(self):
+        return self.db.ping()
 
     def __repr__(self):
         info = f"-cached_keys: {len(self._cache)}" if self.to_cache else ""

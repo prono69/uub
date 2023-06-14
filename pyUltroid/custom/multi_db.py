@@ -1,4 +1,5 @@
 import os
+from random import randrange
 
 from redis.exceptions import ConnectionError, TimeoutError
 
@@ -49,41 +50,48 @@ def _connect_single_db(data, type, petname, cache):
 def _init_multi_dbs(var):
     from ast import literal_eval
 
-    co = 0
     stuff = os.getenv(var)
     if not stuff:
         return LOGS.warning(f"Var {var} is not filled..")
+
     LOGS.info("Loading Multi DB's..")
     if Var.HOST.lower() == "heroku":
         os.environ.pop(var, None)
-    data = literal_eval(str(stuff))
-    dct = {}
-    for k, v in data.items():
-        co += 1
+    count = 0
+    multi_db = {}
+    all_dbs = literal_eval(stuff)
+    for name, data in all_dbs.items():
+        count += 1
         to_cache = False
-        key = "udB" + str(co)
-        if type(v) in (tuple, list):
-            to_cache = v[1] is True
-            v = v[0]
-
-        if v == "self":
-            dct[co] = f"{k} -> self"
-            globals()[key] = udB
-
+        redis_instance = "udB" + str(count)
+        if type(data) in (tuple, list):
+            to_cache = data[1] == True
+            data = data[0]
+        if data == "self":
+            multi_db[count] = f"{name} -> self"
+            globals()[redis_instance] = udB
+            continue
+        if "redislabs" in data:
+            db_type = "redis"
+        elif "mongodb" in data:
+            db_type = "mongo"
         else:
-            if "redislabs" in v:
-                _type = "redis"
-            elif "mongodb" in v:
-                _type = "mongo"
-            else:
-                _type = "sql"
+            db_type = "sql"
 
-            if cx := _connect_single_db(v, _type, k, to_cache):
-                dct[co] = f"{k} -> {_type}"
-                globals()[key] = cx
+        if DB := _connect_single_db(data, db_type, name, to_cache):
+            try:
+                if randrange(100) > 75:
+                    DB.del_key("__nocache__")
+            except Exception as exc:
+                LOGS.warning(f"MultiDB: Error in {name}")
+                LOGS.debug(exc, exc_info=True)
+                continue
 
-    if dct:
+            multi_db[count] = f"{name} -> {db_type}"
+            globals()[redis_instance] = DB
+
+    if multi_db:
         from pyUltroid.fns.tools import json_parser
 
-        LOGS.debug(json_parser(dct, indent=2))
+        LOGS.debug(json_parser(multi_db, indent=2))
         LOGS.info("Loaded all DB's!")
