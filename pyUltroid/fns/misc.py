@@ -454,6 +454,7 @@ def rotate_image(image, angle):
 
 def random_string(length=12, numbers=False, symbols=False):
     """Generate random string of 'n' Length"""
+    # return "".join(choices(string.ascii_uppercase, k=length))
     _all = list(string.ascii_letters)
     if numbers:
         _all.extend(list(string.digits))
@@ -463,7 +464,6 @@ def random_string(length=12, numbers=False, symbols=False):
         random.shuffle(_all)
     rnd_str = "".join(schoice(_all) for _ in range(length + 12))
     return "".join(random.sample(rnd_str, length))
-    # return "".join(choices(string.ascii_uppercase, k=length))
 
 
 setattr(random, "random_string", random_string)

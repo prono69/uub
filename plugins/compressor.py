@@ -17,8 +17,7 @@
 """
 
 import asyncio
-import math
-from os.path import getsize
+from math import floor
 from pathlib import Path
 from re import findall
 from time import time
@@ -29,6 +28,7 @@ from pyUltroid.custom._transfer import pyroDL, pyroUL
 from . import (
     LOGS,
     asyncread,
+    asyncwrite,
     bash,
     check_filename,
     get_string,
@@ -47,145 +47,147 @@ FFMPEG_CMD = "ffmpeg -hide_banner -loglevel error -progress {progress_file} -i {
 
 
 def fix_resolution(width, height):
-    m4 = lambda n: n - (n % 4)
-    if width - height >= 0:
-        _height = 720  # adjusted for landscape
-        if height > _height:
-            _div = height / _height
-            return m4(round(width / _div)), _height
-    _height = 1280
-    if height > _height:
-        _div = height / _height
-        return m4(round(width / _div)), _height
+    fix_by4 = lambda n: n - (n % 4)
+    # for landscape or portrait
+    new_height = 720 if width >= height else 1280
+    if height > new_height:
+        width = fix_by4(round(width / (height / new_height)))
+        height = new_height
+    else:
+        width, height = fix_by4(width), fix_by4(height)
+    return width, height
 
 
 @ultroid_cmd(pattern="compress( (.*)|$)")
 async def og_compressor(e):
     args = getFlags(e.text, merge_args=True)
     vido = await e.get_reply_message()
-    xxx = await e.eor("Checking...")
+    msg = await e.eor("Checking...")
 
     # _ext = "mkv"
-    _audio = "-c:a copy"
-    codec = "libx264" if "x264" in args.kwargs else "libx265"
-    args.kwargs.pop("x264", 0)
-    crf = args.kwargs.pop("c", 28 if codec == "libx265" else 34)
-    speed = args.kwargs.pop("s", "ultrafast")
+    _audio_cmd = "-c:a copy"
+    _codec = "libx264" if args.kwargs.pop("x264", 0) else "libx265"
+    _crf = args.kwargs.pop("c", 28 if _codec == "libx265" else 35)
+    _speed = args.kwargs.pop("s", "ultrafast")
 
     if not vido and bool(args.args):
-        path = args.args[0]
-        if not Path(path).is_file():
-            return await xxx.edit("Path not found")
-        _isgif = Path(path).suffix.lower() == ".gif"
+        path = Path(args.args[0])
+        if not path.is_file():
+            return await msg.edit("`Path not found...`")
         to_delete, reply_to = False, e.id
-        o_size = getsize(path)
-        await xxx.edit(f"`Found Path {path}\n\nNow Compressing...`")
+        await msg.edit(f"`Found Path {str(path)}\n\nNow Compressing...`")
 
-    elif (vido and vido.media) and any(
-        mediainfo(vido.media).startswith(i) for i in ("video", "gif")
-    ):
-        await xxx.edit(get_string("audiotools_5"))
-        dlx = pyroDL(event=xxx, source=vido)
-        _isgif = "gif" in mediainfo(vido.media)
+    elif (vido and vido.media) and mediainfo(vido.media).startswith(("video", "gif")):
+        await msg.edit(get_string("audiotools_5"))
+        dlx = pyroDL(event=msg, source=vido)
         path = await dlx.download(_log=False, auto_edit=False, **args.kwargs)
         if isinstance(path, Exception):
-            return await xxx.edit("#Error in downloading file: {path}")
+            return await msg.edit("#Error in downloading file: `{path}`")
+        path = Path(path)
         to_delete, reply_to = True, vido.id
-        o_size = getsize(path)
-        await xxx.edit(
-            f"`Downloaded {path} of {humanbytes(o_size)} in {dlx.dl_time}... \n\nNow Compressing...`"
+        await msg.edit(
+            f"`Downloaded {str(path)} in {dlx.dl_time}... \n\nNow Compressing...`"
         )
-    else:
-        return await xxx.eor(get_string("audiotools_8"), time=8)
 
-    _others = ""
-    if _isgif:
-        _audio = ""
-        codec = "libx264"
-    out = check_filename("resources/downloads/" + Path(path).stem + "-compressed.mp4")
-    slp_time = 10  # if e.client._bot else 8
-    minfo = media_info(path)
+    else:
+        return await msg.eor(get_string("audiotools_8"), time=8)
+
+    _other_cmd = ""
+    old_edit_text = ""
+    og_size = path.stat().st_size
+    edit_sleep_time = 8.5  # if e.client._bot else 8
+    out_path = check_filename("resources/downloads/" + path.stem + "-compressed.mp4")
+    minfo = media_info(str(path))
     total_frame = minfo.get("frames")
-    c_time = time()
-    edit_count = 0
+    if minfo.get("type") == "gif" or path.suffix.lower() == ".gif":
+        _audio_cmd = ""
+        _codec = "libx264"
 
     # x, y = await bash(f'''mediainfo --fullscan {shquote(path)} | grep "Frame count"''')
     # total_frame = x.split(":")[1].split("\n")[0]
-    text = f"`Compressing {Path(out).name} at {crf} CRF` \n"
-    progress = check_filename(f"progress-{c_time}.txt")
-    Path(progress).touch()
 
+    progress_file = f"progress-{time()}.txt"
+    Path(progress_file).touch()
     if args.kwargs.pop("r", 0):
         if total_frame and (total_frame / minfo.get("duration")) > 31:
-            _others += "-r 30"
-            total_frame = minfo.get("duration") * 30
-        if res := fix_resolution(minfo.get("width"), minfo.get("height")):
-            _others += f" -vf scale=w={res[0]}:h={res[1]}"
+            _other_cmd += "-r 30 "
+            total_frame = round(minfo.get("duration") * 30.5)
+        width, height = fix_resolution(minfo.get("width"), minfo.get("height"))
+        _other_cmd += f"-vf scale=w={width}:h={height}"
 
-    proce = await asyncio.create_subprocess_shell(
+    pre_time = time()
+    ffmpeg = await asyncio.create_subprocess_shell(
         FFMPEG_CMD.format(
-            progress_file=shquote(progress),
-            input_file=shquote(path),
-            crf=str(crf),
-            output_file=shquote(out),
-            codec=codec,
-            speed=speed,
-            audio_cmd=_audio,
-            other_cmds=_others,
+            progress_file=shquote(progress_file),
+            input_file=shquote(str(path)),
+            crf=str(_crf),
+            output_file=shquote(out_path),
+            codec=_codec,
+            speed=_speed,
+            audio_cmd=_audio_cmd,
+            other_cmds=_other_cmd,
         ),
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
 
     # Starting Compress!
-    while type(proce.returncode) != int:
+    sleep_time_count = 0
+    while type(ffmpeg.returncode) != int:
         speed = 0
-        await asyncio.sleep(slp_time)
-        filetext = await asyncread(progress)
-        with open(progress, "a") as f:
-            f.truncate(300)
-        frames = findall("frame=(\\d+)", filetext)
-        size = findall("total_size=(\\d+)", filetext)
+        await asyncio.sleep(edit_sleep_time)
+        sleep_time_count += edit_sleep_time
+        filetext = await asyncread(progress_file)
+        await asyncwrite(progress_file, filetext[-350:], mode="w")
+        compressed_frames = findall("frame=(\\d+)", filetext)
+        compressed_size = findall("total_size=(\\d+)", filetext)
+        del filetext
 
-        size = int(size[-1]) if size else 0
-        elapse = int(frames[-1]) if frames else 0
-        e_size = f"**Done ~**  `{humanbytes(size)}` \n"
-        del filetext, size
-
-        if total_frame and elapse:
-            per = elapse * 100 / total_frame
-            time_diff = time() - c_time
-            speed = round(elapse / time_diff, 2)
+        edit_text = [f"`Compressing {Path(out_path).name} at {_crf} CRF` "]
+        if total_frame and compressed_frames:
+            compressed_size = int(compressed_size[-1]) if compressed_size else 0
+            compressed_frames = int(compressed_frames[-1]) if compressed_frames else 0
+            compressed_percent = compressed_frames * 100 / total_frame
+            time_diff = time() - pre_time
+            speed = round(compressed_frames / time_diff, 2)
             if int(speed) != 0:
-                some_eta = ((total_frame - elapse) / speed) * 1000
-                progress_str = "`[{0}{1}] {2}%` \n\n".format(
-                    "".join("●" for i in range(math.floor(per / 5))),
-                    "".join("" for i in range(20 - math.floor(per / 5))),
-                    round(per, 2),
+                some_eta = ((total_frame - compressed_frames) / speed) * 1000
+                edit_text.append(
+                    "`[{0}{1}] {2}%` \n".format(
+                        "".join("●" for i in range(floor(compressed_percent / 5))),
+                        "".join("" for i in range(20 - floor(compressed_percent / 5))),
+                        round(compressed_percent, 2),
+                    )
                 )
-                eta = f"**ETA ~**  `{time_formatter(some_eta)}`"
-                p_text = text + progress_str + e_size + eta
-        else:
-            edit_count += slp_time
-            p_text = (
-                f"{text}\n` ~ Missing Frame Count..` \n\n"
-                f"{e_size}**Elapsed ~**  `{time_formatter(edit_count * 1000)}`"
+                edit_text.append(f"**Done ~**  `{humanbytes(compressed_size)}` ")
+                edit_text.append(f"**ETA ~**  `{time_formatter(some_eta)}`")
+        if len(edit_text) <= 1:
+            compressed_size = humanbytes(
+                int(compressed_size[-1])
+                if compressed_size
+                else Path(out_path).stat().st_size
             )
-            slp_time = 15
+            edit_text = (
+                f"{edit_text}\n` ~ Missing Frame Counts..` \n\n"
+                f"{compressed_size}**Elapsed ~**  `{time_formatter(sleep_time_count * 1000)}`"
+            )
+            edit_sleep_time = 15
 
-        if int(speed) > 0 or edit_count > 0:
+        edit_text = "\n".join(edit_text)
+        if int(speed) > 0 and old_edit_text != edit_text:
             try:
-                await xxx.edit(p_text)
+                await msg.edit(edit_text)
+                old_edit_text = edit_text
             except MessageNotModifiedError:
-                LOGS.debug("Compressor msg edit err..", exc_info=True)
+                LOGS.debug("Error in Compressor progress..", exc_info=True)
             except MessageIdInvalidError:
                 await asyncio.sleep(3)
                 try:
-                    proce.kill()
+                    ffmpeg.kill()
                 except:
                     pass
-                await asyncio.sleep(6)
-                osremove(progress, out)
+                await asyncio.sleep(5)
+                osremove(progress_file, out_path)
                 if to_delete:
                     osremove(path)
                 return LOGS.debug(f"cancelled compression of: {path}")
@@ -193,30 +195,31 @@ async def og_compressor(e):
     # Uploader
     if to_delete:
         osremove(path)
-    osremove(progress)
-    difff = time_formatter((time() - c_time) * 1000)
+    osremove(progress_file)
+    time_diff = time_formatter((time() - pre_time) * 1000)
 
-    minfo = media_info(out)
+    minfo = media_info(out_path)
     if minfo.get("type") == "video" and not minfo.get("has_audio"):
-        o_path = Path(out)
-        out = check_filename(str(o_path.with_suffix(".mkv")))
-        o_path.rename(out)
+        o_path = Path(out_path)
+        out_path = check_filename(o_path.with_suffix(".mkv"))
+        o_path.rename(out_path)
 
-    c_size = getsize(out)
-    await xxx.edit(
-        f"`Compressed {humanbytes(o_size)} to {humanbytes(c_size)} in {difff}\nTrying to Upload...`"
+    compress_size = Path(out_path).stat().st_size
+    await msg.edit(
+        f"`Compressed {humanbytes(og_size)} to {humanbytes(compress_size)} in {time_diff}\nTrying to Upload...`"
     )
-    differ = 100 - ((c_size / o_size) * 100)
+    size_diff = 100 - ((compress_size / og_size) * 100)
 
-    edtext = f"{minfo.get('height')}p"
+    edit_text = f"{minfo.get('width')}x{minfo.get('height')}p"
     if frames := minfo.get("frames"):
-        edtext += f"@{round(frames / minfo.get('duration'))}fps"
+        edit_text += f" ~ {round(frames / minfo.get('duration'))}fps"
     caption = (
-        f"**Compressed from** `{humanbytes(o_size)}` **to** `{humanbytes(c_size)}` **in** `{difff}`"
-        f"\n\n**Codec:** `{codec}` • `{edtext}`\n"
-        f"**Compression Ratio:** `{differ:.2f}%`"
+        f"**Compressed from** `{humanbytes(og_size)}` **to** `{humanbytes(compress_size)}` **in** `{time_diff}`\n\n"
+        f"**Codec:** `{_codec}`\n"
+        f"**Resolution:** `{edit_text}`\n"
+        f"**Compression Ratio:** `{size_diff:.2f}%`"
     )
-    x = pyroUL(event=xxx, _path=out)
+    x = pyroUL(event=msg, _path=out_path)
     await x.upload(
         caption=caption,
         delete_file=True,

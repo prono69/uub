@@ -105,6 +105,7 @@ async def get_imgbb_link(path, **kwargs):
 class RandomPhotoHandler:
     def __init__(self):
         self.ok = bool(udB.get_key("__RANDOM_PIC", force=True))
+        self.running = False
         self.photos_to_store = 20
         self.sources = (
             ("r_wallpapers", 9547, 29000),
@@ -120,10 +121,12 @@ class RandomPhotoHandler:
         if clear:
             photos.remove(pic)
             udB.set_key("__RANDOM_PIC", photos)
-            run_async_task(self._save_images, id="random_pic")
+            if not self.running:
+                run_async_task(self._save_images, id="random_pic")
         return pic
 
     async def _save_images(self):
+        self.running = True
         pics = udB.get_key("__RANDOM_PIC", force=True)
         if len(pics) >= self.photos_to_store:
             return
@@ -148,6 +151,7 @@ class RandomPhotoHandler:
                 )
                 pics.append(imgbb_link)
         udB.set_key("__RANDOM_PIC", pics)
+        self.running = False
 
 
 random_pic = RandomPhotoHandler()

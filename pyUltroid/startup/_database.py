@@ -114,7 +114,7 @@ class _BaseDatabase:
         return True
 
     def rename(self, key1, key2):
-        if val := self.get_key(key1, force=True):
+        if val := self.get_key(key1):
             self.del_key(key1)
             return self.set_key(key2, val)
         return False
