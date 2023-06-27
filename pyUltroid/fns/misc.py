@@ -40,11 +40,6 @@ except ImportError:
     aiohttp = None
 
 try:
-    import aiofiles
-except ImportError:
-    aiofiles = None
-
-try:
     from PIL import Image
 except ImportError:
     Image = None

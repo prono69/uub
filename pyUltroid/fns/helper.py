@@ -15,8 +15,9 @@ from pathlib import Path, PurePath
 from secrets import token_hex
 from shutil import rmtree, which
 from traceback import format_exc
-from urllib.parse import unquote
-from urllib.request import urlretrieve
+from urllib.parse import urlsplit, unquote_plus
+
+# from urllib.request import urlretrieve
 
 try:
     from aiohttp import ClientSession as aiohttp_client
@@ -26,11 +27,6 @@ except ImportError:
         import requests
     except ImportError:
         requests = None
-
-try:
-    import aiofiles
-except ImportError:
-    aiofiles = None
 
 try:
     import heroku3
@@ -85,7 +81,8 @@ def check_filename(filroid):
         filroid = Path(filroid)
     num = 1
     while filroid.exists():
-        filroid = filroid.with_stem(f"{filroid.stem}_{num}")
+        og_stem = filroid.stem.rstrip(f"_{num - 1}") if num != 1 else filroid.stem
+        filroid = filroid.with_stem(f"{og_stem}_{num}")
         num += 1
     else:
         return str(filroid)
@@ -122,24 +119,19 @@ def osremove(*files, folders=False):
 # --------------------------------------------------------------------- #
 
 
-async def asyncread(file, binary=False):
+@run_async
+def asyncread(file, binary=False):
     if not Path(file).is_file():
         return
     read_type = "rb" if binary else "r+"
-    if aiofiles:
-        async with aiofiles.open(file, read_type) as f:
-            return await f.read()
     with open(file, read_type) as f:
         return f.read()
 
 
-async def asyncwrite(file, data, mode):
-    if aiofiles:
-        async with aiofiles.open(file, mode) as f:
-            await f.write(data)
-    else:
-        with open(file, mode) as f:
-            f.write(data)
+@run_async
+def asyncwrite(file, data, mode):
+    with open(file, mode) as f:
+        f.write(data)
 
 
 # ----------------- Load \\ Unloader ---------------- #
@@ -444,20 +436,28 @@ async def download_file(link, name, validate=False):
     return await async_searcher(link, evaluate=_download)
 
 
+def _get_filename_from_url(url, folder):
+    if path := urlsplit(link).path:
+        filename = Path(path).name
+        filename = unquote_plus(filename)
+        if len(filename) > 60:
+            filename = str(Path(filename).with_stem(filename[:60]))
+    else:
+        filename = token_hex(nbytes=7)
+
+    if folder:
+        filename = str(Path(folder).joinpath(filename))
+    return check_filename(filename)
+
+
 async def fast_download(download_url, filename=None, progress_callback=None):
+    if not filename:
+        filename = _get_filename_from_url(download_url, folder="resources/downloads/")
     if not aiohttp_client:
         return await download_file(download_url, filename)[0], None
 
     async with aiohttp_client() as session:
         async with session.get(download_url, timeout=None) as response:
-            if not filename:
-                try:
-                    filename = "resources/downloads/" + unquote(
-                        download_url.rpartition("/")[-1]
-                    )
-                except:
-                    filename = "resources/downloads/" + token_hex(nbytes=6)
-            filename = check_filename(filename)
             total_size = int(response.headers.get("content-length", 0)) or None
             downloaded_size = 0
             start_time = time.time()
