@@ -437,7 +437,7 @@ async def download_file(link, name, validate=False):
 
 
 def _get_filename_from_url(url, folder):
-    if path := urlsplit(link).path:
+    if path := urlsplit(url).path:
         filename = Path(path).name
         filename = unquote_plus(filename)
         if len(filename) > 60:
