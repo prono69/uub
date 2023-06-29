@@ -62,11 +62,7 @@ wikipedia
 pyrogram
 pymediainfo
 music_tag
-pygithub
-spotdl
 uvloop
-imgur_python
-aiofiles
 aiodns
 
-# flask, gunicorn, openai, praw or asyncpraw
+# Extras - spotdl, pygithub, imgur_python, openai, flask, gunicorn
