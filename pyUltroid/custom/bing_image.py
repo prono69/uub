@@ -34,7 +34,6 @@ class BingScrapper:
         self.page_counter = 0
         self.hide_nsfw = "on" if bool(hide_nsfw) else "off"
         self.url_args = self._filter_to_args(filter)
-        self.output_path = check_filename(f"resources/downloads/bing-{query}")
         self.headers = {
             "User-Agent": choice(some_random_headers),
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -119,9 +118,10 @@ class BingScrapper:
         return links[: self.limit]
 
     async def download(self):
-        Path(self.output_path).mkdir(parents=True, exist_ok=True)
+        self.output_path = check_filename(f"resources/downloads/bing-{self.query}")
+        Path(self.output_path).mkdir(parents=True)
         url_list = await self.get_links()
-        dl_list = [url_list] if len(url_list) <= 5 else split_list(url_list, 5)
+        dl_list = [url_list] if len(url_list) <= 6 else split_list(url_list, 6)
         for collection in dl_list:
             await asyncio.gather(
                 *[self.save_image(url) for url in collection],

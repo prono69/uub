@@ -35,7 +35,7 @@ from . import get_string, ultroid_cmd
 async def download_from_youtube_(event):
     def is_valid_url(url):
         result = urlparse(url)
-        return all([result.scheme, result.netloc])
+        return bool(result.scheme and result.netloc)
 
     ytd = {"nocheckcertificate": True}
     opt = event.pattern_match.group(1).strip()

@@ -440,13 +440,13 @@ def _get_filename_from_url(url, folder):
     if path := urlsplit(url).path:
         filename = Path(path).name
         filename = unquote_plus(filename)
-        if len(filename) > 60:
-            filename = str(Path(filename).with_stem(filename[:60]))
+        if len(filename) > 63:
+            filename = Path(filename).with_stem(filename[:63])
     else:
-        filename = token_hex(nbytes=7)
+        filename = token_hex(nbytes=8)
 
     if folder:
-        filename = str(Path(folder).joinpath(filename))
+        filename = Path(folder).joinpath(filename)
     return check_filename(filename)
 
 
@@ -549,7 +549,7 @@ def numerize(number):
     if not number:
         return None
     unit = ""
-    for unit in ["", "K", "M", "B", "T"]:
+    for unit in ("", "K", "M", "B", "T"):
         if number < 1000:
             break
         number /= 1000

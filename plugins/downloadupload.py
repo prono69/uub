@@ -14,6 +14,7 @@ import glob
 import os
 import time
 from datetime import datetime as dt
+from urllib.parse import urlparse
 
 from aiohttp.client_exceptions import InvalidURL
 from telethon.errors.rpcerrorlist import MessageNotModifiedError
@@ -27,7 +28,6 @@ from . import (
     ULTConfig,
     check_filename,
     downloader,
-    eor,
     fast_download,
     get_all_files,
     get_string,
@@ -38,38 +38,30 @@ from . import (
 )
 
 
+async def _url_downloader(link, filename, event):
+    start = time.time()
+    task = lambda d, t: asyncio.create_task(
+        progress(d, t, event, start, f"Downloading from {link}")
+    )
+    return await fast_download(link, filename, progress_callback=task)
+
+
 @ultroid_cmd(
     pattern="download( (.*)|$)",
 )
-async def down(event):
+async def downlomder(event):
     matched = event.pattern_match.group(1).strip()
     msg = await event.eor(get_string("udl_4"))
     if not matched:
-        return await eor(msg, get_string("udl_5"), time=5)
+        return await msg.eor(get_string("udl_5"), time=5)
+    filename = None
+    if "|" in matched:
+        link, filename = map(lambda i: i.strip(), matched.split("|"))
     try:
-        splited = matched.split(" | ")
-        link = splited[0]
-        filename = splited[1]
-    except IndexError:
-        filename = None
-    s_time = time.time()
-    try:
-        filename, d = await fast_download(
-            link,
-            filename,
-            progress_callback=lambda d, t: asyncio.get_event_loop().create_task(
-                progress(
-                    d,
-                    t,
-                    msg,
-                    s_time,
-                    f"Downloading from {link}",
-                )
-            ),
-        )
+        filename, d = await _url_downloader(link, filename, msg)
     except InvalidURL:
         return await msg.eor("`Invalid URL provided :(`", time=5)
-    await msg.eor(f"`{filename}` `downloaded in {time_formatter(d*1000)}.`")
+    await msg.edit(f"Downloaded to `{filename}` \nin {time_formatter(d*1000)}.")
 
 
 @ultroid_cmd(
@@ -118,14 +110,8 @@ async def download(event):
         file_name = await event.client.download_media(
             ok,
             d,
-            progress_callback=lambda d, t: asyncio.get_event_loop().create_task(
-                progress(
-                    d,
-                    t,
-                    xx,
-                    k,
-                    get_string("com_5"),
-                ),
+            progress_callback=lambda d, t: asyncio.create_task(
+                progress(d, t, xx, k, get_string("com_5"))
             ),
         )
     e = dt.now()
@@ -148,7 +134,7 @@ async def pyro_dl(event):
 @ultroid_cmd(
     pattern="ul( (.*)|$)",
 )
-async def _(event):
+async def umplomder(event):
     msg = await event.eor(get_string("com_1"))
     match = event.pattern_match.group(1)
     if match:
@@ -237,13 +223,30 @@ async def _(event):
     await msg.try_delete()
 
 
+def is_valid_url(url):
+    result = urlparse(url)
+    return bool(result.scheme and result.netloc)
+
+
 @ultroid_cmd(pattern="xul(?: |$)(.*)")
 async def pyro_ul(e):
     msg = await e.eor(get_string("com_1"))
     args = getFlags(e.text, merge_args=True)
-    match = args.args
+    match, kwargs = args.args, args.kwargs
     if not match or match[0] == ".env":
-        return await msg.edit("Give some path.")
+        return await msg.edit("`Give some path/URL..`")
 
-    dlx = pyroUL(event=msg, _path=match[0])
-    await dlx.upload(**args.kwargs)
+    ul_path = match[0]
+    if is_valid_url(ul_path):
+        await msg.edit("`Starting URL Download..`")
+        await asyncio.sleep(2)
+        path, d = await _url_downloader(ul_path, None, msg)
+        await msg.edit(
+            f"`Downloaded to {path} \nin {time_formatter(d*1000)}, Uploading now..`"
+        )
+        await asyncio.sleep(1.5)
+        ul_path = path
+        kwargs["delete_file"] = True
+
+    ulx = pyroUL(event=msg, _path=ul_path)
+    await ulx.upload(**kwargs)
