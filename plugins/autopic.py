@@ -28,14 +28,15 @@ __doc__ = get_help("help_autopic")
 
 
 async def get_or_fetch_image(autopic_dir):
-    iterdir = lambda p: list(Path(p).iterdir())
+    iterdir = lambda p: list(p.iterdir())
+    autopic_dir = Path(autopic_dir)
     if not (autopic_dir.is_dir() and (pics := iterdir(autopic_dir))):
-        query = Path(autopic_dir).name.lstrip("bing-")
+        query = autopic_dir.name.lstrip("bing-")
         bing = BingScrapper(query=query, limit=200, filter="photo")
         autopic_dir = await bing.download()
-        udB.set_key("AUTOPIC", str(autopic_dir.parent))
+        udB.set_key("AUTOPIC", str(autopic_dir))
         pics = iterdir(autopic_dir)
-    return choice(pics)
+    return str(choice(pics))
 
 
 async def autopic_func():
