@@ -1,5 +1,5 @@
 # PyroGram Download and Upload.
-# Written by (@ah3h3,  @spemgod) for fast upload and downloads.
+# Written by @moiusrname for fast upload and downloads.
 #
 # Edited on 21-07-2022:
 #  - created class pyroUL
@@ -421,9 +421,15 @@ class pyroUL:
     async def get_metadata(self):
         self.metadata = media_info(self.file)
         type = self.metadata.get("type").lower()
-        if type == "image" and Path(self.file).stat().st_size > 3 * 1024 * 1024:
-            self.metadata["type"] = "document"
-            type = "document"
+        if type == "image":
+            path = Path(self.file)
+            if path.stat().st_size > 3 * 1024 * 1024:
+                self.metadata["type"] = "document"
+                type = "document"
+            exts = ".jpg .jpeg .exif .gif .bmp .png .webp .jpe .tiff".split()
+            if not (path.suffix and path.suffix.lower() in exts):
+                path = path.rename(path.with_suffix(".jpg"))
+                self.file = str(path.absolute())
         if not (self.force_document or hasattr(self, "thumb")):
             self.thumb = None
             if type == "video":

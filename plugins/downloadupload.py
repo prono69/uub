@@ -54,9 +54,10 @@ async def downlomder(event):
     msg = await event.eor(get_string("udl_4"))
     if not matched:
         return await msg.eor(get_string("udl_5"), time=5)
-    filename = None
     if "|" in matched:
         link, filename = map(lambda i: i.strip(), matched.split("|"))
+    else:
+        link, filename = matched, None
     try:
         filename, d = await _url_downloader(link, filename, msg)
     except InvalidURL:
