@@ -240,13 +240,11 @@ async def pyro_ul(e):
     if is_valid_url(ul_path):
         await msg.edit("`Starting URL Download..`")
         await asyncio.sleep(2)
-        path, d = await _url_downloader(ul_path, None, msg)
-        await msg.edit(
-            f"`Downloaded to {path} \nin {time_formatter(d*1000)}, Uploading now..`"
-        )
-        await asyncio.sleep(1.5)
+        path, _ = await _url_downloader(ul_path, None, msg)
+        await msg.edit(f"`Downloaded to {path} \nUploading now..`")
+        await asyncio.sleep(2)
         ul_path = path
-        kwargs["delete_file"] = True
+        # kwargs["delete_file"] = True
 
     ulx = pyroUL(event=msg, _path=ul_path)
     await ulx.upload(**kwargs)

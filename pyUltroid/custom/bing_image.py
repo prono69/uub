@@ -88,7 +88,11 @@ class BingScrapper:
                 timeout=aiohttp.ClientTimeout(total=10),
                 evaluate=partial(self._handle_request, filename),
             )
-        except (asyncio.TimeoutError, aiohttp.ClientResponseError):
+        except (
+            asyncio.TimeoutError,
+            aiohttp.ClientResponseError,
+            aiohttp.ClientConnectorCertificateError,
+        ):
             pass
         except Exception as exc:
             LOGS.debug(f"Bing: Error in downloading {link}", exc_info=True)

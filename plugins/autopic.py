@@ -26,31 +26,25 @@ from . import (
 
 __doc__ = get_help("help_autopic")
 
-AUTOPIC_DIR = ""
 
-
-async def get_or_fetch_image(query):
-    global AUTOPIC_DIR
+async def get_or_fetch_image(autopic_dir):
     iterdir = lambda p: list(Path(p).iterdir())
-    pics = None
-    if AUTOPIC_DIR:
-        pics = iterdir(AUTOPIC_DIR)
-    if not (AUTOPIC_DIR or pics):
+    if not (autopic_dir.is_dir() and (pics := iterdir(autopic_dir))):
+        query = Path(autopic_dir).name.lstrip("bing-")
         bing = BingScrapper(query=query, limit=200, filter="photo")
-        AUTOPIC_DIR = await bing.download()
-        pics = iterdir(AUTOPIC_DIR)
+        autopic_dir = await bing.download()
+        udB.set_key("AUTOPIC", str(autopic_dir.parent))
+        pics = iterdir(autopic_dir)
     return choice(pics)
 
 
 async def autopic_func():
-    if not (search := udB.get_key("AUTOPIC")):
+    if not (autopic_dir := udB.get_key("AUTOPIC")):
         return
     try:
-        path = await get_or_fetch_image(search)
+        path = await get_or_fetch_image(autopic_dir)
     except Exception as exc:
-        LOGS.exception(f"Autopic Error: {exc}")
-        return exc
-
+        return LOGS.exception(f"Autopic Error: {exc}")
     try:
         tg_file = await ultroid_bot.upload_file(path)
         await ultroid_bot(UploadProfilePhotoRequest(file=tg_file))
@@ -61,13 +55,11 @@ async def autopic_func():
 
 @ultroid_cmd(pattern="autopic( (.*)|$)")
 async def autopic(e):
-    global AUTOPIC_DIR
     search = e.pattern_match.group(2)
-    if udB.get_key("AUTOPIC") and (not search or search == "stop"):
+    autopic_dir = udB.get_key("AUTOPIC")
+    if autopic_dir and (not search or search == "stop"):
         udB.del_key("AUTOPIC")
-        if AUTOPIC_DIR:
-            osremove(AUTOPIC_DIR, folders=True)
-            AUTOPIC_DIR = ""
+        osremove(autopic_dir, folders=True)
         if scheduler:
             scheduler.remove_job("autopic")
         return await e.eor(get_string("autopic_5"))
@@ -80,12 +72,12 @@ async def autopic(e):
 
     eris = await e.eor(get_string("com_1"))
     try:
-        path = await get_or_fetch_image(search)
+        path = await get_or_fetch_image(f"resources/downloads/bing-{search}")
     except Exception as exc:
         LOGS.exception(f"Autopic Error: {exc}")
         return await eris.eor(get_string("autopic_2").format(search), time=10)
 
-    udB.set_key("AUTOPIC", search)
+    udB.set_key("AUTOPIC", str(Path(path).parent))
     await eris.edit(get_string("autopic_3").format(search))
     sleep = udB.get_key("SLEEP_TIME") or 1221
     scheduler.add_job(
