@@ -28,7 +28,7 @@ _IMG_EXTS = (".jpg", ".jpeg", ".exif", ".gif", ".bmp", ".png", ".webp", ".jpe", 
 class BingScrapper:
     def __init__(self, query, limit, hide_nsfw=True, filter=None):
         assert bool(query), "No query provided.."
-        assert type(limit) == int, "limit must be of type Integer"
+        assert type(limit) == int and limit > 0, "limit must be of type Integer"
         self.query = query
         self.limit = limit
         self.page_counter = 0
@@ -75,15 +75,17 @@ class BingScrapper:
         if match(r"^https?://(www.)?bing.com/th/id/OGC", link):
             if re_search := search(r"&amp;rurl=(.+)&amp;ehk=", link):
                 link = unquote(re_search.group(1))
-        filename = _get_filename_from_url(link, self.output_path)
-        ext = Path(filename).suffix
+        filename = Path(self.output_path).joinpath(_get_filename_from_url(link))
+        ext = filename.suffix
         if not (ext and ext in _IMG_EXTS):
-            filename += ".jpg"
+            filename = filename.with_suffix(".jpg")
+        if filename.is_file():
+            return
         try:
             await async_searcher(
                 link,
                 raise_for_status=True,
-                timeout=aiohttp.ClientTimeout(total=8),
+                timeout=aiohttp.ClientTimeout(total=10),
                 evaluate=partial(self._handle_request, filename),
             )
         except (asyncio.TimeoutError, aiohttp.ClientResponseError):

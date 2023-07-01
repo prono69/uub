@@ -5,18 +5,16 @@
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
 
-from urllib.parse import urlparse
-from urllib.parse import parse_qs
+from pathlib import Path
+from random import choice
 
 from telethon.tl.functions.photos import UploadProfilePhotoRequest
 
-from pyUltroid.fns.helper import download_file
-from pyUltroid.fns.misc import unsplashsearch
+from pyUltroid.custom.bing_image import BingScrapper
 
 from . import (
     LOGS,
     osremove,
-    check_filename,
     get_help,
     get_string,
     scheduler,
@@ -28,51 +26,48 @@ from . import (
 
 __doc__ = get_help("help_autopic")
 
-autopic_links = set()
+AUTOPIC_DIR = ""
 
 
-async def gen_unsplash_imgs(search):
-    def is_cropped(data):
-        for i in ("h", "w"):
-            if value := data.get(i):
-                if int(value[0]) < 480:
-                    return True
-
-    global autopic_links
-    links = await unsplashsearch(search, limit=20, shuf=True)
-    for url in links:
-        parsed_data = parse_qs(urlparse(url).query)
-        if not is_cropped(parsed_data):
-            autopic_links.add(url)
+async def get_or_fetch_image(query):
+    global AUTOPIC_DIR
+    iterdir = lambda p: list(Path(p).iterdir())
+    pics = None
+    if AUTOPIC_DIR:
+        pics = iterdir(AUTOPIC_DIR)
+    if not (AUTOPIC_DIR or pics):
+        bing = BingScrapper(query=query, limit=200, filter="photo")
+        AUTOPIC_DIR = await bing.download()
+        pics = iterdir(AUTOPIC_DIR)
+    return choice(pics)
 
 
 async def autopic_func():
-    global autopic_links
     if not (search := udB.get_key("AUTOPIC")):
         return
-    if not autopic_links:
-        await gen_unsplash_imgs(search)
-        if not autopic_links:
-            return LOGS.error(f"Autopic Error: Found No Photos for {search}")
-    img = autopic_links.pop()
-    path = check_filename("resources/downloads/autopic.jpg")
     try:
-        await download_file(img, path)
+        path = await get_or_fetch_image(search)
+    except Exception as exc:
+        LOGS.exception(f"Autopic Error: {exc}")
+        return exc
+
+    try:
         tg_file = await ultroid_bot.upload_file(path)
         await ultroid_bot(UploadProfilePhotoRequest(file=tg_file))
-    except Exception as exc:
-        LOGS.warning(f"autopic error in {img}: {exc}")
-    finally:
         osremove(path)
+    except Exception as exc:
+        LOGS.warning(f"autopic error in {path}: {exc}")
 
 
 @ultroid_cmd(pattern="autopic( (.*)|$)")
 async def autopic(e):
-    global autopic_links
+    global AUTOPIC_DIR
     search = e.pattern_match.group(2)
     if udB.get_key("AUTOPIC") and (not search or search == "stop"):
         udB.del_key("AUTOPIC")
-        autopic_links.clear()
+        if AUTOPIC_DIR:
+            osremove(AUTOPIC_DIR, folders=True)
+            AUTOPIC_DIR = ""
         if scheduler:
             scheduler.remove_job("autopic")
         return await e.eor(get_string("autopic_5"))
@@ -84,8 +79,10 @@ async def autopic(e):
         return await e.eor("`APScheduler is missing, Can't Use Autopic`", time=6)
 
     eris = await e.eor(get_string("com_1"))
-    await gen_unsplash_imgs(search)
-    if not autopic_links:
+    try:
+        path = await get_or_fetch_image(search)
+    except Exception as exc:
+        LOGS.exception(f"Autopic Error: {exc}")
         return await eris.eor(get_string("autopic_2").format(search), time=10)
 
     udB.set_key("AUTOPIC", search)
@@ -111,4 +108,4 @@ if udB.get_key("AUTOPIC"):
             jitter=60,
         )
     else:
-        LOGS.error(f"autopic: 'Apscheduler' not installed.")
+        LOGS.error(f"autopic: 'apscheduler' is not installed.")

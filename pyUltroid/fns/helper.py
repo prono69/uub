@@ -436,7 +436,7 @@ async def download_file(link, name, validate=False):
     return await async_searcher(link, evaluate=_download)
 
 
-def _get_filename_from_url(url, folder):
+def _get_filename_from_url(url, folder=None):
     if path := urlsplit(url).path:
         filename = Path(path).name
         filename = unquote_plus(filename)
