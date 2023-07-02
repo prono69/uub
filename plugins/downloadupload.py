@@ -245,7 +245,6 @@ async def pyro_ul(e):
         await msg.edit(f"`Downloaded to {path} \nUploading now..`")
         await asyncio.sleep(2)
         ul_path = path
-        # kwargs["delete_file"] = True
 
     ulx = pyroUL(event=msg, _path=ul_path)
     await ulx.upload(**kwargs)

@@ -105,12 +105,11 @@ class pyroDL:
     def updateAttrs(self, kwargs):
         if self.event and self.show_progress:
             setattr(self.event, "is_cancelled", False)
-        self.schd_delete = False
         self.auto_edit = True
         self.delay = 8
         self._log = True
-        if any(kwargs.pop(i, None) for i in ("schd_delete", "df")):
-            self.schd_delete = True
+        self.schd_delete = any(kwargs.pop(i, 0) for i in ("schd_delete", "df"))
+        self.delete_file = any(kwargs.pop(i, 0) for i in ("delete_file", "del"))
         for k, v in kwargs.items():
             setattr(self, k, v)
 
