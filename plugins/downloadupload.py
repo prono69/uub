@@ -31,10 +31,10 @@ from . import (
     fast_download,
     get_all_files,
     get_string,
-    getFlags,
     progress,
     time_formatter,
     ultroid_cmd,
+    unix_parser,
 )
 
 
@@ -50,7 +50,7 @@ async def _url_downloader(link, filename, event):
     pattern="download( (.*)|$)",
 )
 async def downlomder(event):
-    matched = event.pattern_match.group(1).strip()
+    matched = event.pattern_match.group(2)
     msg = await event.eor(get_string("udl_4"))
     if not matched:
         return await msg.eor(get_string("udl_5"), time=5)
@@ -69,7 +69,7 @@ async def downlomder(event):
     pattern="dl( (.*)|$)",
 )
 async def download(event):
-    match = event.pattern_match.group(1).strip()
+    match = event.pattern_match.group(2)
     if match and "t.me/" in match:
         chat, msg = get_chat_and_msgid(match)
         if not (chat and msg):
@@ -122,13 +122,14 @@ async def download(event):
 
 @ultroid_cmd(pattern="xdl(?: |$)(.*)")
 async def pyro_dl(event):
-    args = getFlags(event.text)
-    ok = await event.get_reply_message()
-    if not ok:
+    reply = await event.get_reply_message()
+    if not reply:
         return await event.eor("`Reply to a file to download.`", time=8)
 
     xx = await event.eor(get_string("com_1"))
-    dlx = pyroDL(event=xx, source=ok)
+    args = event.pattern_match.group(1)
+    args = unix_parser(args or "")
+    dlx = pyroDL(event=xx, source=reply)
     await dlx.download(**args.kwargs)
 
 
@@ -232,19 +233,18 @@ def is_valid_url(url):
 @ultroid_cmd(pattern="xul(?: |$)(.*)")
 async def pyro_ul(e):
     msg = await e.eor(get_string("com_1"))
-    args = getFlags(e.text, merge_args=True)
-    match, kwargs = args.args, args.kwargs
-    if not match or match[0] == ".env":
+    args = e.pattern_match.group(1)
+    args = unix_parser(args or "")
+    ul_path, kwargs = args.args, args.kwargs
+    if not ul_path or ul_path == ".env":
         return await msg.edit("`Give some path/URL..`")
 
-    ul_path = match[0]
     if is_valid_url(ul_path):
         await msg.edit("`Starting URL Download..`")
         await asyncio.sleep(2)
-        path, _ = await _url_downloader(ul_path, None, msg)
-        await msg.edit(f"`Downloaded to {path} \nUploading now..`")
+        ul_path, _ = await _url_downloader(ul_path, None, msg)
+        await msg.edit(f"`Downloaded to {ul_path} \nUploading now..`")
         await asyncio.sleep(2)
-        ul_path = path
 
     ulx = pyroUL(event=msg, _path=ul_path)
     await ulx.upload(**kwargs)

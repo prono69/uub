@@ -31,26 +31,27 @@ from . import (
     duration_s,
     eod,
     genss,
-    getFlags,
     get_string,
     mediainfo,
     shquote,
     stdr,
     ultroid_cmd,
+    unix_parser,
 )
 
 
 @ultroid_cmd(pattern="sample(?: |$)(.*)")
 async def gen_sample(e):
-    args = getFlags(e.text, merge_args=True)
+    args = e.pattern_match.group(1)
+    args = unix_parser(args or "")
     stime = args.kwargs.pop("s", 30)
     vido = await e.get_reply_message()
     msg = await e.eor("`Checking ...`")
 
-    if not vido and bool(args.args):
-        if not os.path.exists(args.args[0]):
+    if not vido and args.args:
+        path = args.args
+        if not os.path.exists(path):
             return await msg.edit("Path not found")
-        path = args.args[0]
         to_del, reply_to = False, e.id
 
     elif vido and vido.media and "video" in mediainfo(vido.media):
@@ -86,16 +87,17 @@ async def gen_sample(e):
 
 @ultroid_cmd(pattern="vshots(?: |$)(.*)")
 async def gen_shots(e):
-    args = getFlags(e.text, merge_args=True)
+    args = e.pattern_match.group(1)
+    args = unix_parser(args or "")
     shot = args.kwargs.pop("s", 5)
     vido = await e.get_reply_message()
     msg = await e.eor("`Checking ...`")
 
-    if not vido and bool(args.args):
+    if not vido and args.args:
+        path = args.args
         to_del, reply_to = False, e.id
-        if not os.path.exists(args.args[0]):
+        if not os.path.exists(path):
             return await msg.edit("Path not found")
-        path = args.args[0]
     elif vido and vido.media and "video" in mediainfo(vido.media):
         await msg.edit(get_string("com_1"))
         to_del, reply_to = True, vido.id

@@ -30,17 +30,16 @@ from telegraph import upload_file as uf
 from pyUltroid.custom._transfer import pyroDL, pyroUL
 from . import (
     ULTConfig,
-    asyncwrite,
     bash,
     check_filename,
     con,
     downloader,
     get_paste,
     get_string,
-    getFlags,
     shquote,
     udB,
     ultroid_cmd,
+    unix_parser,
     uploader,
 )
 
@@ -73,11 +72,12 @@ async def imak(event):
     reply = await event.get_reply_message()
     if not (reply and reply.media):
         return await event.eor(get_string("cvt_1"))
-    args = getFlags(event.text, merge_args=True)
-    if not bool(args.args):
+    args = event.pattern_match.group(2)
+    args = unix_parser(args or "")
+    if not (inp := args.args):
         return await event.eor(get_string("cvt_2"))
+
     xx = await event.eor(get_string("com_1"))
-    inp = args.args[0]
     if reply.media:
         if hasattr(reply.media, "document"):
             dl = pyroDL(event=xx, source=reply)
@@ -152,16 +152,17 @@ async def _(event):
     a = await event.get_reply_message()
     if not a.message:
         return await xx.edit(get_string("ex_1"))
-    input_str = check_filename(input_str)
-    await xx.edit(f"**Packing into** `{input_str}`")
-    await asyncwrite(input_str, str(a.message), mode="w")
-    await event.client.send_file(
-        event.chat_id,
-        file=input_str,
-        thumb=ULTConfig.thumb,
-        reply_to=event.reply_to_msg_id,
-    )
-    os.remove(input_str)
+
+    await xx.edit(f"**Packing into** `{input_str}..`")
+    with BytesIO(a.message.encode()) as out:
+        out.name = input_str
+        await event.client.send_file(
+            event.chat_id,
+            file=out,
+            caption=f"**{input_str}**",
+            thumb=ULTConfig.thumb,
+            reply_to=event.reply_to_msg_id,
+        )
     await xx.delete()
 
 

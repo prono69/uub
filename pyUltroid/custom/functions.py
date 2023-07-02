@@ -3,6 +3,7 @@ from ast import literal_eval
 from functools import wraps
 from pathlib import Path
 from random import choice, randrange
+from shlex import split as shsplit
 import string
 from time import perf_counter
 
@@ -157,78 +158,27 @@ class RandomPhotoHandler:
 random_pic = RandomPhotoHandler()
 
 
-class getFlags:
-    """Extract flags from string."""
-
-    def __init__(
-        self,
-        text,
-        seperator=" ",
-        args_seperator="-",
-        kwargs_seperator="=",
-        merge_args=False,
-        convert=True,
-        cmds=False,
-        original=False,
-    ):
-        self.text = text
-        self.seperator = seperator
-        self.args_seperator = args_seperator
-        self.kwargs_seperator = kwargs_seperator
-        self.merge_args = merge_args
-        # combines all args into one
-        self.convert = convert
-        self.cmds = cmds
-        self.original = original
-
-    @property
-    def args(self):
-        return self.flags[0]
-
-    @property
-    def kwargs(self):
-        return self.flags[1]
-
-    @property
-    def flags(self):
-        spl = self.splitter(self.text)
-        return self.sep_args_kwargs(spl)
-
-    def splitter(self, text: str):
-        text = str(text)
-        sep_lst = text.split(self.seperator)
-        if self.cmds:
-            return sep_lst
-        return sep_lst[1:] if sep_lst[0][0] in set(string.punctuation) else sep_lst
-
-    def sep_args_kwargs(self, text_lst: list):
-        kwargs, args = {}, []
-        for txt in text_lst:
-            txt = txt.strip()
-            if not txt:
-                continue
-            elif txt.startswith(self.args_seperator) and len(txt) > 1:
-                if self.kwargs_seperator in txt:
-                    fms = txt.split(self.kwargs_seperator)
-                    key_ = fms[0] if self.original else fms[0][1:]
-                    key_, value_ = key_.strip(), fms[1].strip()
-                    kwargs[key_] = self.change_types(value_) if self.convert else value_
-                else:
-                    txt = txt if self.original else txt[1:]
-                    kwargs[txt] = True
+class unix_parser:
+    def __init__(self, text):
+        self.args = []
+        self.kwargs = {}
+        split = shsplit(text)
+        for word in split:
+            if word.startswith("-") and len(word) > 1:
+                split = word.split("=", maxsplit=1)
+                key, value = split if len(split) > 1 else (word, "True")
+                self.kwargs[key[1:]] = self._checker(value)
             else:
-                args.append(txt)
-        if args and self.merge_args:
-            args = [self.seperator.join(args)]
-        return args, kwargs
+                self.args.append(word)
+
+        self.args = " ".join(self.args)
 
     @staticmethod
-    def change_types(text):
+    def _checker(self, data):
         try:
-            text = literal_eval(str(text))
-        except:
-            pass
-        return text
+            return literal_eval(data)
+        except Exception:
+            return data
 
 
 __all__ = [
@@ -239,5 +189,5 @@ __all__ = [
     "random_pic",
     "run_async_task",
     "scheduler",
-    "getFlags",
+    "unix_parser",
 ]

@@ -32,14 +32,14 @@ from . import (
     bash,
     check_filename,
     get_string,
-    getFlags,
     humanbytes,
     mediainfo,
     media_info,
+    osremove,
     shquote,
     time_formatter,
     ultroid_cmd,
-    osremove,
+    unix_parser,
 )
 
 
@@ -60,9 +60,10 @@ def fix_resolution(width, height):
 
 @ultroid_cmd(pattern="compress( (.*)|$)")
 async def og_compressor(e):
-    args = getFlags(e.text, merge_args=True)
-    vido = await e.get_reply_message()
     msg = await e.eor("Checking...")
+    args = e.pattern_match.group(2)
+    args = unix_parser(args or "")
+    vido = await e.get_reply_message()
 
     # _ext = "mkv"
     _audio_cmd = "-c:a copy"
@@ -70,8 +71,8 @@ async def og_compressor(e):
     _crf = args.kwargs.pop("c", 28 if _codec == "libx265" else 35)
     _speed = args.kwargs.pop("s", "ultrafast")
 
-    if not vido and bool(args.args):
-        path = Path(args.args[0])
+    if not vido and args.args:
+        path = Path(args.args)
         if not path.is_file():
             return await msg.edit("`Path not found...`")
         to_delete, reply_to = False, e.id
