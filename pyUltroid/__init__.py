@@ -9,7 +9,6 @@ import time
 
 start_time = time.time()
 
-
 from .version import __version__, ultroid_version
 from .custom.init import loop, tasks_db
 from .configs import Var

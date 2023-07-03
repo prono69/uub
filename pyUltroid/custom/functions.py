@@ -174,7 +174,7 @@ class unix_parser:
         self.args = " ".join(self.args)
 
     @staticmethod
-    def _checker(self, data):
+    def _checker(data):
         try:
             return literal_eval(data)
         except Exception:
