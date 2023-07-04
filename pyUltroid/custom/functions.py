@@ -64,8 +64,8 @@ async def cleargif(gif):
     if not gif.client._bot and gif.gif:
         try:
             await gif.client(SaveGifRequest(id=get_input_document(gif), unsave=True))
-        except Exception as ex:
-            return LOGS.warning(f"error in cleargif: {ex}", exc_info=True)
+        except Exception as exc:
+            return LOGS.warning(f"error in cleargif: {exc}", exc_info=True)
 
 
 async def get_imgbb_link(path, **kwargs):

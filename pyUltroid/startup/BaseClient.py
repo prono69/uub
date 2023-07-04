@@ -117,7 +117,7 @@ class UltroidClient(TelegramClient):
         # Don't show progress bar when file size is less than 5MB.
         if size < 5 * 2**20:
             show_progress = False
-        if use_cache and self._cache and self._cache.get("upload_cache"):
+        if use_cache and self._cache and "upload_cache" in self._cache:
             for files in self._cache["upload_cache"]:
                 if (
                     files["size"] == size
@@ -147,17 +147,17 @@ class UltroidClient(TelegramClient):
                     if show_progress
                     else None,
                 )
-        cache = {
-            "by_bot": by_bot,
-            "size": size,
-            "path": path,
-            "name": filename,
-            "raw_file": raw_file,
-        }
-        if self._cache.get("upload_cache"):
-            self._cache["upload_cache"].append(cache)
-        else:
-            self._cache.update({"upload_cache": [cache]})
+
+        if kwargs.get("save_cache", True):
+            cache = {
+                "by_bot": by_bot,
+                "size": size,
+                "path": path,
+                "name": filename,
+                "raw_file": raw_file,
+            }
+            _cache = self._cache.get("upload_cache")
+            self._cache["upload_cache"] = _cache.append(cache) if _cache else [cache]
         if to_delete:
             path.unlink(missing_ok=True)
         return raw_file, time.time() - start_time
