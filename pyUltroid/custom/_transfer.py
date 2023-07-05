@@ -109,7 +109,6 @@ class pyroDL:
         self.delay = 8
         self._log = True
         self.schd_delete = any(kwargs.pop(i, 0) for i in ("schd_delete", "df"))
-        self.delete_file = any(kwargs.pop(i, 0) for i in ("delete_file", "del"))
         for k, v in kwargs.items():
             setattr(self, k, v)
 
@@ -316,8 +315,8 @@ class pyroUL:
             setattr(self, k, v)
         self.pre_time = time()
         self.client = app(self.dc)
-        if any(kwargs.pop(i, None) for i in ("schd_delete", "df")):
-            self.schd_delete = True
+        self.schd_delete = any(kwargs.pop(i, 0) for i in ("schd_delete", "df"))
+        self.delete_file = any(kwargs.pop(i, 0) for i in ("delete_file", "del"))
         if not hasattr(self, "chat_id"):
             dump = udB.get_key("DUMP_CHANNEL")
             self.chat_id = dump if self.schd_delete and dump else DUMP_CHANNEL
