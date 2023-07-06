@@ -16,7 +16,7 @@ except ModuleNotFoundError:
 
 
 def startup_logo():
-    # skipping bash startup
+    # skipping `bash startup`
     print(
         """
             ┏┳┓╋┏┓╋╋╋╋┏┓┏┓
@@ -37,13 +37,12 @@ def cleanup_stuff():
         f"{py_path}/lib/python3.*/site-packages/.wh*",
     )
     for path in hitlist:
-        run(f"rm -rfv {path}", shell=True)
+        run(f"rm -rf {path}", shell=True)
     for file in ("jewel", "bird", ".wget-hsts", "prvenv"):
         Path(file).unlink(missing_ok=True)
 
 
 def setup_timezone():
-    # use db for this !?
     TZ = environ.get("TZ", "Asia/Kolkata")
     try:
         environ["TZ"] = TZ
@@ -61,12 +60,23 @@ def startup_tasks():
     """
     startup_logo()
     cleanup_stuff()
-    setup_timezone()
     if load_dotenv and Path(".env").is_file():
         load_dotenv(override=True)
+    setup_timezone()
+
+
+def extra_tasks():
+    try:
+        from PIL import Image
+
+        if not hasattr(Image, "ANTIALIAS"):
+            Image.ANTIALIAS = Image.LANCZOS
+    except ImportError:
+        pass
 
 
 startup_tasks()
+extra_tasks()
 
 
 # startup part 2

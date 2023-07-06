@@ -17,8 +17,8 @@ from ..fns.misc import split_list
 from ..fns.helper import (
     _get_filename_from_url,
     async_searcher,
+    asyncwrite,
     check_filename,
-    run_async,
 )
 
 
@@ -26,6 +26,8 @@ _IMG_EXTS = (".jpg", ".jpeg", ".exif", ".gif", ".bmp", ".png", ".webp", ".jpe", 
 
 
 class BingScrapper:
+    __slots__ = ("query", "limit", "page_counter", "hide_nsfw", "url_args", "headers", "output_path")
+
     def __init__(self, query, limit, hide_nsfw=True, filter=None):
         assert bool(query), "No query provided.."
         assert type(limit) == int and limit > 0, "limit must be of type Integer"
@@ -60,16 +62,11 @@ class BingScrapper:
         else:
             return ""
 
-    @run_async
-    def _save_to_file(self, filename, content):
-        with open(filename, "wb+") as f:
-            f.write(content)
-
     async def _handle_request(self, filename, response):
         if response.status < 207:
             image_data = await response.read()
             if imghdr.what(None, image_data):
-                await self._save_to_file(filename, image_data)
+                await asyncwrite(filename, image_data, "wb+")
 
     async def save_image(self, link):
         if match(r"^https?://(www.)?bing.com/th/id/OGC", link):

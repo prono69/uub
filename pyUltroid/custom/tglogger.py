@@ -19,6 +19,11 @@ _PAYLOAD = {"disable_web_page_preview": True, "parse_mode": "Markdown"}
 
 
 class TGLogHandler(StreamHandler):
+    __slots__ = (
+        "chat", "__tgtoken", "log_db", "current_log_msg",
+        "message_id", "is_active", "_floodwait", "doc_message_id",
+    )
+
     def __init__(self, chat, token):
         self.chat = chat
         self.__tgtoken = f"https://api.telegram.org/bot{token}"
@@ -154,10 +159,12 @@ class TGLogHandler(StreamHandler):
                     "Bad Request: message to edit not found",
                 )
             ):
+                # deleted message
                 self.message_id = None
-                return  # deleted message
+                return
             print(f"Errors while updating TG logs: {resp}")
             return
+
         elif s := error.get("retry_after"):
             self._floodwait = True
             print(f"tglogger: floodwait of {s}s")

@@ -104,6 +104,8 @@ async def get_imgbb_link(path, **kwargs):
 
 
 class RandomPhotoHandler:
+    __slots__ = ("ok", "running", "photos_to_store", "sources")
+
     def __init__(self):
         self.ok = bool(udB.get_key("__RANDOM_PIC", force=True))
         self.running = False
@@ -159,6 +161,8 @@ random_pic = RandomPhotoHandler()
 
 
 class unix_parser:
+    __slots__ = ("args", "kwargs")
+
     def __init__(self, text):
         self.args = []
         self.kwargs = {}

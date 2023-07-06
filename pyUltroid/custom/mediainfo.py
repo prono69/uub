@@ -25,6 +25,8 @@ def _parser(data, attr, to_int=True):
 
 
 class TGMediaInfo:
+    __slots__ = ("path", "obj", "general_track", "track")
+
     def __init__(self, path):
         try:
             self.path = path

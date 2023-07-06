@@ -11,6 +11,7 @@ __doc__ = get_help("help_converter")
 
 import os
 import time
+from io import BytesIO
 
 from . import LOGS
 
