@@ -26,7 +26,15 @@ _IMG_EXTS = (".jpg", ".jpeg", ".exif", ".gif", ".bmp", ".png", ".webp", ".jpe", 
 
 
 class BingScrapper:
-    __slots__ = ("query", "limit", "page_counter", "hide_nsfw", "url_args", "headers", "output_path")
+    __slots__ = (
+        "query",
+        "limit",
+        "page_counter",
+        "hide_nsfw",
+        "url_args",
+        "headers",
+        "output_path",
+    )
 
     def __init__(self, query, limit, hide_nsfw=True, filter=None):
         assert bool(query), "No query provided.."

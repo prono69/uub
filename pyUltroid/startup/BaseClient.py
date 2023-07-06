@@ -117,8 +117,8 @@ class UltroidClient(TelegramClient):
         # Don't show progress bar when file size is less than 5MB.
         if size < 5 * 2**20:
             show_progress = False
-        if use_cache and self._cache and "upload_cache" in self._cache:
-            for files in self._cache["upload_cache"]:
+        if use_cache and self._cache and (_cache := self._cache.get("upload_cache")):
+            for files in _cache:
                 if (
                     files["size"] == size
                     and files["path"] == path

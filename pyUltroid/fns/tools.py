@@ -15,7 +15,9 @@ from random import choice, shuffle
 from io import BytesIO
 from json.decoder import JSONDecodeError
 from shlex import quote as shquote
+from shutil import copy2
 from traceback import format_exc
+from urllib.parse import quote, unquote
 
 import requests
 
@@ -41,8 +43,6 @@ try:
 except ImportError:
     Image, ImageDraw, ImageFont = None, None, None
     LOGS.info("PIL not installed!")
-
-from urllib.parse import quote, unquote
 
 try:
     import requests
@@ -97,7 +97,7 @@ async def get_ofox(codename):
 
 
 def _unquote_text(text):
-    return text.replace("'", unquote("%5C%27")).replace('"', unquote("%5C%22"))
+    return shquote(text)
 
 
 def json_parser(data, indent=None, ascii=False):
@@ -792,6 +792,13 @@ class TgConverter:
     async def create_webm(file, name="video", remove=False):
         _ = await metadata(file)
         name += ".webm"
+        if (
+            _.get("type") == "sticker"
+            or _.get("duration") <= 3
+            and _.get("has_audio") == False
+        ):
+            copy2(file, name)
+            return name
         h, w = _["height"], _["width"]
         if h == w and h != 512:
             h, w = 512, 512

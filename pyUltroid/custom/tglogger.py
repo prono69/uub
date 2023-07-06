@@ -20,8 +20,14 @@ _PAYLOAD = {"disable_web_page_preview": True, "parse_mode": "Markdown"}
 
 class TGLogHandler(StreamHandler):
     __slots__ = (
-        "chat", "__tgtoken", "log_db", "current_log_msg",
-        "message_id", "is_active", "_floodwait", "doc_message_id",
+        "chat",
+        "__tgtoken",
+        "log_db",
+        "current_log_msg",
+        "message_id",
+        "is_active",
+        "_floodwait",
+        "doc_message_id",
     )
 
     def __init__(self, chat, token):
