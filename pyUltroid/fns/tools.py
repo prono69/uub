@@ -327,7 +327,8 @@ class LogoHelper:
     def get_text_size(text, image, font):
         im = Image.new("RGB", (image.width, image.height))
         draw = ImageDraw.Draw(im)
-        return draw.textsize(text, font)
+        dim = draw.textbbox((0, 0), text, font=font)
+        return (dim[2] - dim[0], dim[3] - dim[1])
 
     @staticmethod
     def find_font_size(text, font, image, target_width_ratio):
@@ -353,7 +354,8 @@ class LogoHelper:
         draw = ImageDraw.Draw(img)
         font_size = LogoHelper.find_font_size(text, funt, img, width_ratio)
         font = ImageFont.truetype(funt, font_size)
-        w, h = draw.textsize(text, font=font)
+        dim = draw.textbbox((0, 0), text, font=font)
+        w, h = dim[2] - dim[0], dim[3] - dim[1]
         draw.text(
             ((width - w) / 2, (height - h) / 2),
             text,
