@@ -154,10 +154,10 @@ class pyroDL:
             self.is_copy = True
             await asyncio.sleep(0.5)
             self.msg = await self.client.get_messages(dump_msg.chat_id, dump_msg.id)
-        if self.msg:
-            self.filename = self.get_filename(self.msg)
+        self.filename = self.get_filename(self.msg)
         if self.show_progress:
-            self.progress_text = f"`Downloading {self.filename}...`"
+            display_txt = self.filename.relative_to(Path.cwd())
+            self.progress_text = f"`Downloading {display_txt}...`"
 
     async def download(self, **kwargs):
         try:
@@ -255,9 +255,9 @@ class pyroUL:
             if not _path.exists():
                 return f"Path doesn't exists: `{path}`"
             elif _path.is_file():
-                files = (str(i.resolve()) for i in (_path,))
+                files = (str(i.absolute()) for i in (_path,))
             elif _path.is_dir():
-                files = (str(i.resolve()) for i in _path.rglob("*") if i.is_file())
+                files = (str(i.absolute()) for i in _path.rglob("*") if i.is_file())
             else:
                 return "Unrecognised Path"
         if not (files := tuple(files)):
@@ -328,8 +328,9 @@ class pyroUL:
             setattr(self, k, v)
         if self.event and self.show_progress:
             setattr(self.event, "is_cancelled", False)
+            display_txt = Path(self.file).absolute().relative_to(Path.cwd())
             self.progress_text = (
-                f"```{self.count}/{self.total_files} | Uploading {self.file}..```"
+                f"```{self.count}/{self.total_files} | Uploading {display_txt}..```"
             )
 
     async def pre_upload(self):
