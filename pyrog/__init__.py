@@ -25,7 +25,7 @@ _workers = 2 if os.cpu_count() < 3 else min(6, os.cpu_count())
 _default_client_values = {
     "api_id": Var.API_ID,
     "api_hash": Var.API_HASH,
-    "workdir": os.getcwd() + "/resources/temp",
+    "workdir": os.getcwd() + "/resources/temp/",
     "sleep_threshold": 90,
     "workers": _workers,
     "no_updates": True,

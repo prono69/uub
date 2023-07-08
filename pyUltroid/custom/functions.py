@@ -109,7 +109,7 @@ class RandomPhotoHandler:
     def __init__(self):
         self.ok = bool(udB.get_key("__RANDOM_PIC", force=True))
         self.running = False
-        self.photos_to_store = 20
+        self.photos_to_store = 15
         self.sources = (
             ("r_wallpapers", 9547, 29000),
             ("Anime_hot_wallpapers", 5, 11500),
@@ -119,7 +119,7 @@ class RandomPhotoHandler:
         photos = udB.get_key("__RANDOM_PIC", force=True) or []
         if not photos:
             run_async_task(self._save_images, id="random_pic")
-            return None
+            return udB.get_key("ALIVE_PIC")
         pic = choice(photos)
         if clear:
             photos.remove(pic)
