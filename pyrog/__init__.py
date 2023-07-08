@@ -10,7 +10,7 @@
 import asyncio
 from ast import literal_eval
 from copy import deepcopy
-from os import getcwd, environ
+import os
 
 from pyrogram import Client
 
@@ -20,13 +20,16 @@ from pyUltroid.custom.init import run_async_task
 
 
 PYROG_CLIENTS = {}
+_workers = 2 if os.cpu_count() < 3 else min(6, os.cpu_count())
+
 _default_client_values = {
     "api_id": Var.API_ID,
     "api_hash": Var.API_HASH,
-    "workdir": getcwd() + "/resources/temp",
-    "sleep_threshold": 60,
-    "workers": 6,
+    "workdir": os.getcwd() + "/resources/temp",
+    "sleep_threshold": 90,
+    "workers": _workers,
     "no_updates": True,
+    "max_concurrent_transmissions": 1 if _workers < 5 else 4,
 }
 
 
@@ -38,7 +41,7 @@ def app(n=None):
 def setup_clients():
     # plugins = {"root": "pyrog/plugins"}
     var = "PYROGRAM_CLIENTS"
-    stuff = environ.get(var)
+    stuff = os.environ.get(var)
     if not stuff:
         LOGS.warning(
             "'PYROGRAM_CLIENTS' ENV wasn't found, Skipping PyroGram Initialisation."
@@ -46,7 +49,7 @@ def setup_clients():
         return True
     data = literal_eval(stuff)
     if Var.HOST.lower() == "heroku":
-        environ.pop(var, None)
+        os.environ.pop(var, None)
     for k, v in data.items():
         _default = deepcopy(_default_client_values)
         _default.update({"name": "bot_" + str(k)})
@@ -66,7 +69,7 @@ async def pyro_startup():
             await client.start()
         except Exception:
             LOGS.warning(f"Error while starting PyroGram Client: {count}")
-            LOGS.debug("", exc_info=True)
+            LOGS.debug("error:", exc_info=True)
             PYROG_CLIENTS.pop(count, None)
         finally:
             await asyncio.sleep(2)
