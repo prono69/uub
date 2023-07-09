@@ -249,15 +249,15 @@ class pyroUL:
 
     def list_files(self, path):
         if type(path) in (list, tuple):
-            files = (str(Path(i).absolute()) for i in path if Path(i).is_file())
+            files = (Path(i).absolute() for i in path if Path(i).is_file())
         else:
             _path = Path(path)
             if not _path.exists():
                 return f"Path doesn't exists: `{path}`"
             elif _path.is_file():
-                files = (str(i.absolute()) for i in (_path,))
+                files = (i.absolute() for i in (_path,))
             elif _path.is_dir():
-                files = (str(i.absolute()) for i in _path.rglob("*") if i.is_file())
+                files = (i.absolute() for i in _path.rglob("*") if i.is_file())
             else:
                 return "Unrecognised Path"
         if not (files := tuple(files)):
@@ -295,7 +295,7 @@ class pyroUL:
                 self.post_upload()
                 if self.event and getattr(self.event, "is_cancelled", False):
                     # Process Cancelled aka Event Message Deleted..
-                    return LOGS.debug(f"Stopped Uploading - {self.file}")
+                    return LOGS.debug(f"Stopped Uploading - {str(self.file)}")
                 if self.return_obj:
                     return out  # for single file
                 await self.finalize(out)
@@ -328,9 +328,9 @@ class pyroUL:
             setattr(self, k, v)
         if self.event and self.show_progress:
             setattr(self.event, "is_cancelled", False)
-            display_txt = Path(self.file).absolute().relative_to(Path.cwd())
+            progress_txt = self.file.relative_to(Path.cwd())
             self.progress_text = (
-                f"```{self.count}/{self.total_files} | Uploading {display_txt}..```"
+                f"```{self.count}/{self.total_files} | Uploading {progress_txt}..```"
             )
 
     async def pre_upload(self):
@@ -388,14 +388,14 @@ class pyroUL:
         self.success += 1
         if self.auto_edit and self.event:
             await self.event.edit(
-                f"__**Successfully Uploaded!  ({self.count}/{self.total_files})**__ \n**>**  ```{self.file}```",
+                f"__**Successfully Uploaded!  ({self.count}/{self.total_files})**__ \n**>**  ```{str(self.file)}```",
             )
 
     async def handle_error(self, error):
         self.failed += 1
         if self.event and self.show_progress:
             try:
-                msg = f"__**Error While Uploading :**__ \n>  ```{self.file}``` \n>  `{error}`"
+                msg = f"__**Error While Uploading :**__ \n>  ```{str(self.file)}``` \n>  `{error}`"
                 await self.event.edit(msg)
             except Exception as exc:
                 LOGS.exception(exc)
@@ -411,7 +411,7 @@ class pyroUL:
 
     @staticmethod
     def size_checks(path):
-        size = Path(path).stat().st_size
+        size = path.stat().st_size
         if size == 0:
             raise UploadError("File Size = 0 B ...")
         elif size > 2097152000:
@@ -421,22 +421,20 @@ class pyroUL:
         self.metadata = media_info(self.file)
         type = self.metadata.get("type").lower()
         if type == "image":
-            path = Path(self.file)
-            if path.stat().st_size > 3 * 1024 * 1024:
+            if self.file.stat().st_size > 3 * 1024 * 1024:
                 self.metadata["type"] = "document"
                 type = "document"
             exts = ".jpg .jpeg .exif .gif .bmp .png .webp .jpe .tiff".split()
             if not (path.suffix and path.suffix.lower() in exts):
-                path = path.rename(path.with_suffix(".jpg"))
-                self.file = str(path.absolute())
+                self.file = self.file.rename(self.file.with_suffix(".jpg")).absolute()
         if not (self.force_document or hasattr(self, "thumb")):
             self.thumb = None
             if type == "video":
-                self.thumb = await videoThumb(self.file, self.metadata["duration"])
+                self.thumb = await videoThumb(str(self.file), self.metadata["duration"])
             elif type == "audio":
-                self.thumb = await audioThumb(self.file)
+                self.thumb = await audioThumb(str(self.file))
             elif type == "gif":
-                self.thumb = await videoThumb(self.file, False)
+                self.thumb = await videoThumb(str(self.file), False)
 
     @property
     def sleeptime(self):
@@ -445,10 +443,10 @@ class pyroUL:
 
     def handle_webm(self):
         type = self.metadata.get("type")
-        if type != "sticker" and self.file.lower().endswith(".webm"):
-            ext = "" if self.file[:-5].lower().endswith((".mkv", ".mp4")) else ".mkv"
-            new_pth = check_filename(self.file[:-5] + ext)
-            self.file = Path(self.file).rename(new_pth)
+        if type != "sticker" and self.file.suffix.lower() == ".webm":
+            ext = "" if self.file.suffix.lower().endswith((".mkv", ".mp4")) else ".mkv"
+            new_pth = check_filename(self.file.with_suffix(ext))
+            self.file = self.file.rename(new_pth).absolute()
 
     def set_captions(self, pre=False):
         if pre:
@@ -458,13 +456,13 @@ class pyroUL:
         if hasattr(self, "caption"):
             if cap := getattr(self, "caption"):
                 self.caption = cap.replace("$$path", str(self.file)).replace(
-                    "$$base", str(Path(self.file).name)
+                    "$$base", self.file.name
                 )
         else:
             self.caption = "__**Uploaded in {0}** • ({1})__ \n**>**  ```{2}```".format(
                 self.ul_time,
                 self.metadata["size"],
-                self.file,
+                str(self.file),
             )
 
     def cleanups(self):
@@ -597,8 +595,11 @@ class pyroUL:
 
     def _log_info(self, format):
         if self._log:
-            n = LOGGER_MSG.format(format, self.file, self.dc, self.metadata["size"])
-            LOGS.debug(n)
+            LOGS.debug(
+                LOGGER_MSG.format(
+                    format, str(self.file), self.dc, self.metadata["size"]
+                )
+            )
 
     def _progress_args(self, args):
         if self.show_progress and self.event:
@@ -618,7 +619,7 @@ class pyroUL:
         return args
 
     def _handle_upload_error(self, type, error):
-        LOGS.exception(f"{type} Uploader: {self.file}")
+        LOGS.exception(f"{type} Uploader: {str(self.file)}")
         err = ", ".join(error.args) if error.args else "NoneType"
         raise UploadError(
             f"{error.__class__.__name__} while uploading {type}: `{err}`",
@@ -641,7 +642,7 @@ async def videoThumb(path, duration):
     await bash(
         f"ffmpeg -ss {dur} -i {shquote(path)} -vframes 1 {shquote(str(thumb_path))} -y"
     )
-    return str(thumb_path) if thumb_path.exists() else DEFAULT_THUMB
+    return str(thumb_path) if thumb_path.is_file() else DEFAULT_THUMB
 
 
 async def audioThumb(path):
@@ -649,7 +650,7 @@ async def audioThumb(path):
     thumby = Path(check_filename(f"resources/temp/{rnds}.jpg"))
     try:
         if not (album_art := load_file(path).get("artwork")):
-            return LOGS.error(f"no artwork found: {path}")
+            return LOGS.warning(f"no artwork found: {path}")
         data = album_art.value.data
         thumb = Image.open(BytesIO(data))
         thumb.save(str(thumby))
