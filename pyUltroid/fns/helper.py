@@ -12,6 +12,7 @@ import re
 import sys
 import time
 from datetime import datetime
+from mimetypes import guess_extension
 from pathlib import Path, PurePath
 from secrets import token_hex
 from shutil import rmtree, which
@@ -124,11 +125,14 @@ def osremove(*files, folders=False):
 def get_tg_filename(tg_media):
     def generate_filename(media_type, ext=None):
         date = datetime.now()
-        filename_fmt = "{}_{}-{:02}-{:02}_{:02}-{:02}-{:02}"
-        filename = filename_fmt.format(
+        filename = "{}_{}-{:02}-{:02}_{:02}-{:02}-{:02}".format(
             media_type,
-            date.year, date.month, date.day,
-            date.hour, date.minute, date.second,
+            date.year,
+            date.month,
+            date.day,
+            date.hour,
+            date.minute,
+            date.second,
         )
         return filename + ext if ext else filename
 
@@ -141,23 +145,19 @@ def get_tg_filename(tg_media):
             if isinstance(i, types.DocumentAttributeFilename):
                 return i.file_name
         mime = tg_media.document.mime_type
-        return generate_filename(mime.split("/")[0], ext=guess_extension(mime))
+        return generate_filename(mime.split("/", 1)[0], ext=guess_extension(mime))
     elif isinstance(tg_media, types.MessageMediaPhoto):
         return generate_filename("photo", ext=".jpg")
     else:
         raise ValueError("Invalid media File")
 
 
-def get_filename_from_url(url, folder=None):
-    if path := urlsplit(url).path:
-        filename = Path(path).name
-        filename = unquote_plus(filename)
-        if len(filename) > 63:
-            filename = Path(filename).with_stem(filename[:63])
-    else:
-        filename = token_hex(nbytes=8)
-    if folder:
-        filename = Path(folder).joinpath(filename)
+def get_filename_from_url(url):
+    if not (path := urlsplit(url).path):
+        return token_hex(nbytes=8)
+    filename = unquote_plus(Path(path).name)
+    if len(filename) > 62:
+        filename = str(Path(filename).with_stem(filename[:60]))
     return filename
 
 
@@ -480,7 +480,8 @@ async def download_file(link, name, validate=False):
 
 async def fast_download(download_url, filename=None, progress_callback=None):
     if not filename:
-        filename = get_filename_from_url(download_url, folder="resources/downloads/")
+        filename = get_filename_from_url(download_url)
+        filename = check_filename(Path("resources/downloads") / filename)
     if not aiohttp_client:
         return await download_file(download_url, filename)[0], None
 

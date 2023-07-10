@@ -30,11 +30,18 @@ from telethon.errors import MessageNotModifiedError, MessageIdInvalidError
 from pyrog import app
 from .mediainfo import media_info
 from .functions import cleargif, run_async_task
-from pyUltroid.exceptions import UploadError, DownloadError
-from pyUltroid.fns.helper import bash, time_formatter, inline_mention, osremove
-from pyUltroid.fns.tools import check_filename, humanbytes, shquote
+
+from pyUltroid.fns.tools import humanbytes, shquote
 from pyUltroid.startup import LOGS
 from pyUltroid import asst, udB, ultroid_bot
+from pyUltroid.fns.helper import (
+    bash,
+    check_filename,
+    get_tg_filename,
+    inline_mention,
+    osremove,
+    time_formatter,
+)
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -43,6 +50,20 @@ DUMP_CHANNEL = udB.get_key("TAG_LOG")
 PROGRESS_LOG = {}
 LOGGER_MSG = "Uploading {} | Path: {} | DC: {} | Size: {}"
 DEFAULT_THUMB = str(Path.cwd().joinpath("resources/extras/ultroid.jpg"))
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# custom exceptions
+
+
+class UploadError(Exception):
+    pass
+
+
+class DownloadError(Exception):
+    pass
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -154,9 +175,11 @@ class pyroDL:
             self.is_copy = True
             await asyncio.sleep(0.5)
             self.msg = await self.client.get_messages(dump_msg.chat_id, dump_msg.id)
-        self.filename = self.get_filename(self.msg)
+        self.filename = check_filename(
+            Path("resources/downloads").absolute() / get_tg_filename(self.source)
+        )
         if self.show_progress:
-            display_txt = self.filename.relative_to(Path.cwd())
+            display_txt = Path(self.filename).relative_to(Path.cwd())
             self.progress_text = f"`Downloading {display_txt}...`"
 
     async def download(self, **kwargs):
@@ -211,30 +234,6 @@ class pyroDL:
     async def delTask(task):
         await asyncio.sleep(5)
         await task.delete()
-
-    @staticmethod
-    def get_filename(event):
-        def get_attrs(event, attr):
-            media_types = (
-                "video",
-                "photo",
-                "document",
-                "animation",
-                "audio",
-                "sticker",
-            )
-            for i in media_types:
-                if mtype := getattr(event, i, None):
-                    if data := getattr(mtype, attr, None):
-                        return data
-
-        _default = Path.cwd().joinpath("resources/downloads/")
-        if filename := get_attrs(event, "file_name"):
-            return check_filename(str(_default.joinpath(filename)))
-        if mime := get_attrs(event, "mime_type"):
-            path = f"{mime.split('/')[0]}-{round(time())}{guess_extension(mime)}"
-            return check_filename(str(_default.joinpath(path)))
-        return str(_default)  # no filename, just a folder
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -425,7 +424,7 @@ class pyroUL:
                 self.metadata["type"] = "document"
                 type = "document"
             exts = ".jpg .jpeg .exif .gif .bmp .png .webp .jpe .tiff".split()
-            if not (path.suffix and path.suffix.lower() in exts):
+            if not (self.file.suffix and self.file.suffix.lower() in exts):
                 self.file = self.file.rename(self.file.with_suffix(".jpg")).absolute()
         if not (self.force_document or hasattr(self, "thumb")):
             self.thumb = None

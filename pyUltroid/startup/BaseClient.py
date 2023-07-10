@@ -6,7 +6,6 @@
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
 import inspect
-import mimetypes
 import sys
 import time
 from logging import Logger
@@ -174,25 +173,11 @@ class UltroidClient(TelegramClient):
             show_progress = False
 
         from pyUltroid.fns.FastTelethon import download_file
-        from pyUltroid.fns.helper import progress
+        from pyUltroid.fns.helper import progress, check_filename, get_tg_filename
 
         start_time = time.time()
         # Auto-generate Filename
-        if not filename:
-            if fn := list(
-                filter(
-                    lambda i: isinstance(i, DocumentAttributeFilename), file.attributes
-                )
-            ):
-                filename = fn[0].file_name
-            else:
-                mimetype = file.mime_type
-                filename = (
-                    mimetype.split("/")[0]
-                    + "-"
-                    + str(round(start_time))
-                    + mimetypes.guess_extension(mimetype)
-                )
+        filename = check_filename(filename if filename else get_tg_filename(file))
         message = kwargs.get("message", f"Downloading {filename}...")
 
         raw_file = None
