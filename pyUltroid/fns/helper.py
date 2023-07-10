@@ -11,6 +11,7 @@ import os
 import re
 import sys
 import time
+from datetime import datetime
 from pathlib import Path, PurePath
 from secrets import token_hex
 from shutil import rmtree, which
@@ -76,18 +77,6 @@ def run_async(function):
 # ~~~~~~~~~~~~~~~~~~~~ small funcs ~~~~~~~~~~~~~~~~~~~~ #
 
 
-def check_filename(filroid):
-    if not isinstance(filroid, PurePath):
-        filroid = Path(filroid)
-    num = 1
-    while filroid.exists():
-        og_stem = filroid.stem.rstrip(f"_{num - 1}") if num != 1 else filroid.stem
-        filroid = filroid.with_stem(f"{og_stem}_{num}")
-        num += 1
-    else:
-        return str(filroid)
-
-
 def make_mention(user, custom=None):
     if n := getattr(user, "username", None):
         return "@" + n
@@ -107,16 +96,69 @@ def inline_mention(user, custom=None, html=False):
     return mention_text
 
 
+# ---------------------- custom ------------------------------------------ #
+
+
+def check_filename(filroid):
+    if not isinstance(filroid, PurePath):
+        filroid = Path(filroid)
+    num = 1
+    while filroid.exists():
+        og_stem = filroid.stem.rstrip(f"_{num - 1}") if num != 1 else filroid.stem
+        filroid = filroid.with_stem(f"{og_stem}_{num}")
+        num += 1
+    else:
+        return str(filroid)
+
+
 def osremove(*files, folders=False):
-    pure_path = lambda path: path if isinstance(path, PurePath) else Path(str(path))
-    for path in map(pure_path, files):
-        if path.is_file():
+    get_path = lambda path: path if isinstance(path, PurePath) else Path(str(path))
+    for path in map(get_path, files):
+        try:
             path.unlink(missing_ok=True)
-        elif folders and path.is_dir():
-            rmtree(path, ignore_errors=True)
+        except IsADirectoryError:
+            if folders:
+                rmtree(path, ignore_errors=True)
 
 
-# --------------------------------------------------------------------- #
+def get_tg_filename(tg_media):
+    def generate_filename(media_type, ext=None):
+        date = datetime.now()
+        filename_fmt = "{}_{}-{:02}-{:02}_{:02}-{:02}-{:02}"
+        filename = filename_fmt.format(
+            media_type,
+            date.year, date.month, date.day,
+            date.hour, date.minute, date.second,
+        )
+        return filename + ext if ext else filename
+
+    if isinstance(tg_media, types.Message):
+        if not tg_media.media:
+            raise ValueError("Not a media File")
+        tg_media = tg_media.media
+    if isinstance(tg_media, types.MessageMediaDocument):
+        for i in tg_media.document.attributes:
+            if isinstance(i, types.DocumentAttributeFilename):
+                return i.file_name
+        mime = tg_media.document.mime_type
+        return generate_filename(mime.split("/")[0], ext=guess_extension(mime))
+    elif isinstance(tg_media, types.MessageMediaPhoto):
+        return generate_filename("photo", ext=".jpg")
+    else:
+        raise ValueError("Invalid media File")
+
+
+def get_filename_from_url(url, folder=None):
+    if path := urlsplit(url).path:
+        filename = Path(path).name
+        filename = unquote_plus(filename)
+        if len(filename) > 63:
+            filename = Path(filename).with_stem(filename[:63])
+    else:
+        filename = token_hex(nbytes=8)
+    if folder:
+        filename = Path(folder).joinpath(filename)
+    return filename
 
 
 @run_async
@@ -436,23 +478,9 @@ async def download_file(link, name, validate=False):
     return await async_searcher(link, evaluate=_download)
 
 
-def _get_filename_from_url(url, folder=None):
-    if path := urlsplit(url).path:
-        filename = Path(path).name
-        filename = unquote_plus(filename)
-        if len(filename) > 63:
-            filename = Path(filename).with_stem(filename[:63])
-    else:
-        filename = token_hex(nbytes=8)
-
-    if folder:
-        filename = Path(folder).joinpath(filename)
-    return check_filename(filename)
-
-
 async def fast_download(download_url, filename=None, progress_callback=None):
     if not filename:
-        filename = _get_filename_from_url(download_url, folder="resources/downloads/")
+        filename = get_filename_from_url(download_url, folder="resources/downloads/")
     if not aiohttp_client:
         return await download_file(download_url, filename)[0], None
 

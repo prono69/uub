@@ -15,10 +15,10 @@ from .. import LOGS
 from ..fns import some_random_headers
 from ..fns.misc import split_list
 from ..fns.helper import (
-    _get_filename_from_url,
     async_searcher,
     asyncwrite,
     check_filename,
+    get_filename_from_url,
 )
 
 
@@ -80,7 +80,7 @@ class BingScrapper:
         if match(r"^https?://(www.)?bing.com/th/id/OGC", link):
             if re_search := search(r"&amp;rurl=(.+)&amp;ehk=", link):
                 link = unquote(re_search.group(1))
-        filename = Path(self.output_path).joinpath(_get_filename_from_url(link))
+        filename = Path(self.output_path).joinpath(get_filename_from_url(link))
         ext = filename.suffix
         if not (ext and ext in _IMG_EXTS):
             filename = filename.with_suffix(".jpg")
