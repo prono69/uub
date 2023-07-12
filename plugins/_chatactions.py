@@ -8,7 +8,7 @@
 import asyncio
 
 from telethon import Button, events
-from telethon.errors.rpcerrorlist import UserNotParticipantError
+from telethon.errors.rpcerrorlist import UserNotParticipantError, ChannelPrivateError
 from telethon.tl.functions.channels import GetParticipantRequest
 from telethon.utils import get_display_name
 
@@ -306,5 +306,7 @@ async def asst_join(event):
 async def Function(event):
     try:
         await DummyHandler(event)
+    except ChannelPrivateError:
+        return
     except Exception as er:
         LOGS.exception(er)
