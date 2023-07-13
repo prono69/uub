@@ -140,7 +140,7 @@ def get_tg_filename(tg_media):
         if not tg_media.media:
             raise ValueError("Not a media File")
         tg_media = tg_media.media
-    if isinstance(tg_media, types.MessageMediaDocument):
+    if isinstance(tg_media, (types.MessageMediaDocument, types.Document)):
         for i in tg_media.document.attributes:
             if isinstance(i, types.DocumentAttributeFilename):
                 return i.file_name
