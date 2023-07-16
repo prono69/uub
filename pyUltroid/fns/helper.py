@@ -122,7 +122,7 @@ def osremove(*files, folders=False):
                 rmtree(path, ignore_errors=True)
 
 
-class get_tg_filename:
+class _TGFilename:
     __slots__ = ("tg_media", "ext")
 
     def __init__(self, tg_media, ext=None):
@@ -133,6 +133,10 @@ class get_tg_filename:
         else:
             self.tg_media = tg_media
         self.ext = ext
+
+    @classmethod
+    def init(cls, tg_media, ext=None):
+        self = cls(tg_media, ext)
         return self.get_filename()
 
     def generate_filename(self, media_type):
@@ -161,6 +165,9 @@ class get_tg_filename:
             return self.generate_filename("photo", ext=".jpg")
         else:
             raise ValueError("Invalid media File.")
+
+
+get_tg_filename = _TGFilename.init
 
 
 def get_filename_from_url(url):

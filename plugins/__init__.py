@@ -23,7 +23,7 @@ from pyUltroid.fns.helper import *
 from pyUltroid.fns.misc import *
 from pyUltroid.fns.tools import *
 from pyUltroid.custom.functions import *
-from pyUltroid.startup._database import _BaseDatabase as Database
+from pyUltroid.startup._database import _BaseDatabase
 from pyUltroid.version import __version__, ultroid_version
 from strings import get_help, get_string
 
@@ -37,7 +37,7 @@ con = TgConverter
 OWNER_NAME = ultroid_bot.full_name
 OWNER_ID = ultroid_bot.uid
 
-udB: Database
+udB: _BaseDatabase
 ultroid_bot: UltroidClient
 asst: UltroidClient
 
