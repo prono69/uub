@@ -41,6 +41,8 @@ if Var.DATABASE_URL:
 
 
 class _BaseDatabase:
+    __slots__ = ("_cache",)
+
     def __init__(self, *args, **kwargs):
         self._cache = {}
         if self.to_cache:
@@ -52,9 +54,6 @@ class _BaseDatabase:
     @property
     def usage(self):
         return 0
-
-    def keys(self):
-        return []
 
     def del_key(self, key):
         if self.to_cache:
@@ -142,6 +141,8 @@ class _BaseDatabase:
 
 
 class MongoDB(_BaseDatabase):
+    __slots__ = ("dB", "db", "to_cache", "_name")
+
     def __init__(self, key, to_cache, _name="MongoDB", dbname="UltroidDB"):
         self.dB = MongoClient(key, serverSelectionTimeoutMS=5000)
         self.db = self.dB[dbname]
@@ -206,6 +207,8 @@ def flushall(self):
 
 
 class SqlDB(_BaseDatabase):
+    __slots__ = ("url", "db", "to_cache", "_name", "_connection", "_cursor")
+
     def __init__(self, url, to_cache, _name="SQL_DB"):
         self._connection = None
         self._cursor = None
@@ -297,6 +300,8 @@ def flushall(self):
 
 
 class RedisDB(_BaseDatabase):
+    __slots__ = ("db", "to_cache", "_name")
+
     def __init__(
         self,
         host,
@@ -377,6 +382,8 @@ class RedisDB(_BaseDatabase):
 
 
 class LocalDB(_BaseDatabase):
+    __slots__ = ("db", "to_cache", "_name")
+
     def __init__(self):
         try:
             from localdb import Database

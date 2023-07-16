@@ -122,8 +122,20 @@ def osremove(*files, folders=False):
                 rmtree(path, ignore_errors=True)
 
 
-def get_tg_filename(tg_media):
-    def generate_filename(media_type, ext=None):
+class get_tg_filename:
+    __slots__ = ("tg_media", "ext")
+
+    def __init__(self, tg_media, ext=None):
+        if isinstance(tg_media, types.Message):
+            if not tg_media.media:
+                raise ValueError("Not a media File.")
+            self.tg_media = tg_media.media
+        else:
+            self.tg_media = tg_media
+        self.ext = ext
+        return self.get_filename()
+
+    def generate_filename(self, media_type):
         date = datetime.now()
         filename = "{}_{}-{:02}-{:02}_{:02}-{:02}-{:02}".format(
             media_type,
@@ -134,22 +146,21 @@ def get_tg_filename(tg_media):
             date.minute,
             date.second,
         )
-        return filename + ext if ext else filename
+        return filename + self.ext if self.ext else filename
 
-    if isinstance(tg_media, types.Message):
-        if not tg_media.media:
-            raise ValueError("Not a media File")
-        tg_media = tg_media.media
-    if isinstance(tg_media, (types.MessageMediaDocument, types.Document)):
-        for i in tg_media.document.attributes:
-            if isinstance(i, types.DocumentAttributeFilename):
-                return i.file_name
-        mime = tg_media.document.mime_type
-        return generate_filename(mime.split("/", 1)[0], ext=guess_extension(mime))
-    elif isinstance(tg_media, types.MessageMediaPhoto):
-        return generate_filename("photo", ext=".jpg")
-    else:
-        raise ValueError("Invalid media File")
+    def get_filename(self):
+        if isinstance(self.tg_media, (types.MessageMediaDocument, types.Document)):
+            for attr in self.tg_media.document.attributes:
+                if isinstance(attr, types.DocumentAttributeFilename):
+                    return attr.file_name
+            mime = self.tg_media.document.mime_type
+            return self.generate_filename(
+                mime.split("/", 1)[0], ext=guess_extension(mime)
+            )
+        elif isinstance(self.tg_media, types.MessageMediaPhoto):
+            return self.generate_filename("photo", ext=".jpg")
+        else:
+            raise ValueError("Invalid media File.")
 
 
 def get_filename_from_url(url):
