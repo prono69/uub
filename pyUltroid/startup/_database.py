@@ -300,7 +300,7 @@ def flushall(self):
 
 
 class RedisDB(_BaseDatabase):
-    __slots__ = ("db", "to_cache", "_name")
+    __slots__ = ("db", "to_cache", "_name", "set", "get", "keys", "delete")
 
     def __init__(
         self,
@@ -382,7 +382,7 @@ class RedisDB(_BaseDatabase):
 
 
 class LocalDB(_BaseDatabase):
-    __slots__ = ("db", "to_cache", "_name")
+    __slots__ = ("db", "to_cache", "_name", "get", "set", "delete")
 
     def __init__(self):
         try:

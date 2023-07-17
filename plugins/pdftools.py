@@ -4,6 +4,7 @@
 # This file is a part of < https://github.com/TeamUltroid/Ultroid/ >
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
+
 """
 ✘ Commands Available -
 
@@ -25,9 +26,10 @@
 • `{i}pdsend `
     Merge & send the pdf, collected from .pdsave.
 """
+
+import asyncio
 import glob
 import os
-import shutil
 import time
 
 import cv2
@@ -38,11 +40,11 @@ try:
 except ImportError:
     Image = None
     LOGS.info(f"{__file__}: PIL  not Installed.")
+
 from PyPDF2 import PdfFileMerger, PdfFileReader, PdfFileWriter
 from telethon.errors.rpcerrorlist import PhotoSaveFileInvalidError
 
 from pyUltroid.fns.tools import four_point_transform
-
 from . import (
     HNDLR,
     LOGS,
@@ -51,11 +53,12 @@ from . import (
     downloader,
     eor,
     get_string,
+    osremove,
     ultroid_cmd,
 )
 
-if not os.path.isdir("pdf"):
-    os.mkdir("pdf")
+
+os.makedirs("pdf", exist_ok=True)
 
 
 @ultroid_cmd(
@@ -88,11 +91,12 @@ async def pdfseimg(event):
             ok.append(fil)
             with open(fil, "wb") as f:
                 pw.write(f)
-        os.remove(pdfp)
+        osremove(pdfp)
         for z in ok:
             await event.client.send_file(event.chat_id, z)
-        shutil.rmtree("pdf")
-        os.mkdir("pdf")
+            await asyncio.sleep(3)
+        osremove("pdf", folders=True)
+        os.makedirs("pdf", exist_ok=True)
         await xx.delete()
     elif "-" in msg:
         ok = int(msg.split("-")[-1]) - 1
@@ -101,23 +105,21 @@ async def pdfseimg(event):
             pw.addPage(pdf.getPage(o))
             with open(os.path.join("ult.png"), "wb") as f:
                 pw.write(f)
-            await event.reply(
-                file="ult.png",
-            )
-            os.remove("ult.png")
-        os.remove(pdfp)
+            await event.reply(file="ult.png")
+            osremove("ult.png")
+        osremove(pdfp)
     else:
         o = int(msg) - 1
         pw = PdfFileWriter()
         pw.addPage(pdf.getPage(o))
         with open(os.path.join("ult.png"), "wb") as f:
             pw.write(f)
-        os.remove(pdfp)
+        osremove(pdfp)
         try:
             await event.reply(file="ult.png")
         except PhotoSaveFileInvalidError:
             await event.reply(file="ult.png", force_document=True)
-        os.remove("ult.png")
+        osremove("ult.png")
 
 
 @ultroid_cmd(
@@ -151,8 +153,7 @@ async def pdfsetxt(event):
             text,
             reply_to=event.reply_to_msg_id,
         )
-        os.remove(text)
-        os.remove(dl)
+        osremove(text, dl)
         return
     if "-" in msg:
         u, d = msg.split("-")
@@ -172,8 +173,7 @@ async def pdfsetxt(event):
         text,
         reply_to=event.reply_to_msg_id,
     )
-    os.remove(text)
-    os.remove(dl)
+    osremove(text, dl)
 
 
 @ultroid_cmd(
@@ -240,10 +240,8 @@ async def imgscan(event):
     scann = f"Scanned {ultt.split('.')[0]}.pdf"
     im1.save(scann)
     await event.client.send_file(event.chat_id, scann, reply_to=event.reply_to_msg_id)
+    osremove(ultt, "o.png", scann)
     await xx.delete()
-    os.remove(ultt)
-    os.remove("o.png")
-    os.remove(scann)
 
 
 @ultroid_cmd(
@@ -313,7 +311,7 @@ async def savepdf(event):
         await xx.edit(
             f"Done, Now Reply Another Image/pdf if completed then use {HNDLR}pdsend to merge nd send all as pdf",
         )
-        os.remove("o.png")
+        osremove("o.png")
     elif ultt.endswith(".pdf"):
         a = check_filename("pdf/scan.pdf")
         await event.client.download_media(ok, a)
@@ -323,7 +321,7 @@ async def savepdf(event):
         )
     else:
         await event.eor("`Reply to a Image/pdf only...`")
-    os.remove(ultt)
+    osremove(ultt)
 
 
 @ultroid_cmd(
@@ -346,6 +344,5 @@ async def sendpdf(event):
             merger.append(item)
     merger.write(ok)
     await event.client.send_file(event.chat_id, ok_, reply_to=event.reply_to_msg_id)
-    os.remove(ok_)
-    shutil.rmtree("pdf/")
-    os.makedirs("pdf/")
+    osremove(ok_, "pdf", folders=True)
+    os.makedirs("pdf", exist_ok=True)
