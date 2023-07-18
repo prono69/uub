@@ -225,7 +225,7 @@ class pyroDL:
             stime = time()
             dlx = await self.client.download_media(**args)
             self.dl_time = time_formatter((time() - stime) * 1000)
-            return dlx
+            return str(Path(dlx).relative_to(Path.cwd()))
         except Exception as exc:
             LOGS.exception("PyroDL error")
             raise DownloadError(exc)

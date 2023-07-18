@@ -70,7 +70,7 @@ class BingScrapper:
         else:
             return ""
 
-    async def _handle_request(self, filename, response):
+    async def _handle_download(self, filename, response):
         if response.status < 207:
             image_data = await response.read()
             if imghdr.what(None, image_data):
@@ -91,7 +91,7 @@ class BingScrapper:
                 link,
                 raise_for_status=True,
                 timeout=aiohttp.ClientTimeout(total=10),
-                evaluate=partial(self._handle_request, filename),
+                evaluate=partial(self._handle_download, filename),
             )
         except (
             asyncio.TimeoutError,

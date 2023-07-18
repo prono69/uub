@@ -153,7 +153,12 @@ class _TGFilename:
 
     def get_filename(self):
         if isinstance(self.tg_media, (types.MessageMediaDocument, types.Document)):
-            for attr in self.tg_media.document.attributes:
+            doc = (
+                self.tg_media
+                if isinstance(self.tg_media, types.Document)
+                else self.tg_media.document
+            )
+            for attr in doc.attributes:
                 if isinstance(attr, types.DocumentAttributeFilename):
                     return attr.file_name
             mime = self.tg_media.document.mime_type
