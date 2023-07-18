@@ -65,4 +65,6 @@ music_tag
 uvloop
 aiodns
 
-# Extras - spotdl, pygithub, imgur_python, openai, flask, gunicorn
+# Extras - spotdl, pygithub, imgur_python, openai
+# - https://github.com/1Danish-00/glitch_me.git#egg=glitch_me
+# - flask, gunicorn, scikit-image

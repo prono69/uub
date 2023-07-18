@@ -60,7 +60,7 @@ def fix_resolution(width, height):
 
 @ultroid_cmd(pattern="compress( (.*)|$)")
 async def og_compressor(e):
-    msg = await e.eor("Checking...")
+    msg = await e.eor("`Checking...`")
     args = e.pattern_match.group(2)
     args = unix_parser(args or "")
     vido = await e.get_reply_message()

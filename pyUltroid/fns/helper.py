@@ -123,23 +123,22 @@ def osremove(*files, folders=False):
 
 
 class _TGFilename:
-    __slots__ = ("tg_media", "ext")
+    __slots__ = ("tg_media",)
 
-    def __init__(self, tg_media, ext=None):
+    def __init__(self, tg_media):
         if isinstance(tg_media, types.Message):
             if not tg_media.media:
                 raise ValueError("Not a media File.")
             self.tg_media = tg_media.media
         else:
             self.tg_media = tg_media
-        self.ext = ext
 
     @classmethod
-    def init(cls, tg_media, ext=None):
-        self = cls(tg_media, ext)
+    def init(cls, tg_media):
+        self = cls(tg_media)
         return self.get_filename()
 
-    def generate_filename(self, media_type):
+    def generate_filename(self, media_type, ext=None):
         date = datetime.now()
         filename = "{}_{}-{:02}-{:02}_{:02}-{:02}-{:02}".format(
             media_type,
@@ -150,7 +149,7 @@ class _TGFilename:
             date.minute,
             date.second,
         )
-        return filename + self.ext if self.ext else filename
+        return filename + ext if ext else filename
 
     def get_filename(self):
         if isinstance(self.tg_media, (types.MessageMediaDocument, types.Document)):
