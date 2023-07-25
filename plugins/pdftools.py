@@ -41,7 +41,7 @@ except ImportError:
     Image = None
     LOGS.info(f"{__file__}: PIL  not Installed.")
 
-from PyPDF2 import PdfFileMerger, PdfFileReader, PdfFileWriter
+from PyPDF2 import PdfMerger, PdfFileReader, PdfFileWriter
 from telethon.errors.rpcerrorlist import PhotoSaveFileInvalidError
 
 from pyUltroid.fns.tools import four_point_transform
@@ -334,9 +334,9 @@ async def sendpdf(event):
             "first select pages by replying .pdsave of which u want to make multi page pdf file",
         )
         return
-    msg = event.pattern_match.group(1).strip()
-    ok = f"{msg}.pdf" if msg else "My PDF File.pdf"
-    merger = PdfFileMerger()
+    msg = event.pattern_match.group(2) or "My PDF File.pdf"
+    ok = msg if msg.lower().endswith(".pdf") else f"{msg}.pdf"
+    merger = PdfMerger()
     afl = glob.glob("pdf/*")
     ok_ = [*sorted(afl)]
     for item in ok_:

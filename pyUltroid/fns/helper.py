@@ -161,7 +161,7 @@ class _TGFilename:
             for attr in doc.attributes:
                 if isinstance(attr, types.DocumentAttributeFilename):
                     return attr.file_name
-            mime = self.tg_media.document.mime_type
+            mime = doc.mime_type
             return self.generate_filename(
                 mime.split("/", 1)[0], ext=guess_extension(mime)
             )

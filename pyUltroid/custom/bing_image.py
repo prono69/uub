@@ -107,12 +107,18 @@ class BingScrapper:
         while len(cached_urls) < self.limit:
             extra_args = f"&first={self.page_counter}&count={self.limit}&adlt={self.hide_nsfw}{self.url_args}"
             request_url = f"https://www.bing.com/images/async?q={quote_plus(self.query)}{extra_args}"
-            response = await async_searcher(request_url, headers=self.headers)
+            try:
+                response = await async_searcher(request_url, headers=self.headers)
+            except Excpetion:
+                response = ""
+                LOGS.debug(
+                    f"Skipping searching images for - {self.query}, page - {self.page_counter}",
+                    exc_info=True,
+                )
             if response == "":
                 LOGS.info(
                     f"No more Image available for {self.query}. Page - {self.page_counter} | Downloaded - {len(cached_urls)}"
                 )
-                assert bool(cached_urls), f"Could not find any Images for {self.query}"
                 return self._evaluate_links(cached_urls)
 
             img_links = findall("murl&quot;:&quot;(.*?)&quot;", response)
@@ -120,10 +126,10 @@ class BingScrapper:
                 cached_urls.add(url)
             self.page_counter += 1
 
-        assert bool(cached_urls), f"Could not find any Images for {self.query}"
         return self._evaluate_links(cached_urls)
 
     def _evaluate_links(self, links):
+        assert bool(links), f"Could not find any Images for {self.query}"
         links = list(links)
         shuffle(links)
         return links[: self.limit]
