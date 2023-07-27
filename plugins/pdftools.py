@@ -221,10 +221,10 @@ async def imgscan(event):
             from skimage.filters import threshold_local
         except ImportError:
             LOGS.info(f"Scikit-Image is not Installed.")
-            await xx.edit("`Installing Scikit-Image...\nThis may take some long...`")
-            _, __ = await bash("pip install scikit-image")
-            LOGS.info(_)
+            await xx.edit("`Installing Scikit-Image, This may take some time...`")
+            await bash("pip install -q scikit-image")
             from skimage.filters import threshold_local
+
         cropped_image = four_point_transform(
             original_image,
             simplified_cnt.reshape(4, 2) * ratio,

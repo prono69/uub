@@ -100,7 +100,10 @@ def ultroid_cmd(
                 ult.message, "edit_hide", None
             ):
                 return
+
             chat = ult.chat
+
+            """
             if hasattr(chat, "title"):
                 if (
                     "#noub" in chat.title.lower()
@@ -108,6 +111,7 @@ def ultroid_cmd(
                     and not (ult.sender_id in DEVLIST)
                 ):
                     return
+            """
 
             if ult.is_private and (groups_only or admins_only):
                 return await eod(ult, get_string("py_d3"))
