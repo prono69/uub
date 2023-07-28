@@ -179,7 +179,10 @@ class pyroDL:
             Path("resources/downloads").absolute() / get_tg_filename(self.source)
         )
         if self.show_progress:
-            display_txt = Path(self.filename).relative_to(Path.cwd())
+            try:
+                display_txt = str(Path(self.filename).relative_to(Path.cwd()))
+            except ValueError:
+                display_txt = self.filename
             self.progress_text = f"`Downloading {display_txt}...`"
 
     async def download(self, **kwargs):
@@ -225,7 +228,10 @@ class pyroDL:
             stime = time()
             dlx = await self.client.download_media(**args)
             self.dl_time = time_formatter((time() - stime) * 1000)
-            return str(Path(dlx).relative_to(Path.cwd()))
+            try:
+                return str(Path(dlx).relative_to(Path.cwd()))
+            except ValueError:
+                return dlx
         except Exception as exc:
             LOGS.exception("PyroDL error")
             raise DownloadError(exc)
@@ -327,7 +333,10 @@ class pyroUL:
             setattr(self, k, v)
         if self.event and self.show_progress:
             setattr(self.event, "is_cancelled", False)
-            progress_txt = self.file.relative_to(Path.cwd())
+            try:
+                progress_txt = str(self.file.relative_to(Path.cwd()))
+            except ValueError:
+                progress_text = str(self.file)
             self.progress_text = (
                 f"```{self.count}/{self.total_files} | Uploading {progress_txt}..```"
             )

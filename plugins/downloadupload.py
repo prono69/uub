@@ -31,6 +31,7 @@ from . import (
     fast_download,
     get_all_files,
     get_string,
+    get_tg_filename,
     progress,
     time_formatter,
     ultroid_cmd,
@@ -87,13 +88,7 @@ async def download(event):
     k = time.time()
     if hasattr(ok.media, "document"):
         file = ok.media.document
-        mime_type = file.mime_type
-        filename = match or ok.file.name
-        if not filename:
-            if "audio" in mime_type:
-                filename = "audio_" + dt.now().isoformat("_", "seconds") + ".ogg"
-            elif "video" in mime_type:
-                filename = "video_" + dt.now().isoformat("_", "seconds") + ".mp4"
+        filename = match or ok.file.name or get_tg_filename(ok)
         try:
             result = await downloader(
                 f"resources/downloads/{filename}",
@@ -180,6 +175,11 @@ async def umplomder(event):
         if os.path.isdir(result):
             c, s = 0, 0
             for files in get_all_files(result):
+                if os.path.getsize(files) == 0:
+                    c += 1
+                    await msg.edit(f"`file size is 0B..`\n`{files}`")
+                    await asyncio.sleep(6)
+                    continue
                 attributes = None
                 if stream:
                     try:
@@ -204,6 +204,8 @@ async def umplomder(event):
                 except (ValueError, IsADirectoryError):
                     c += 1
             break
+        if os.path.getsize(result) == 0:
+            return await msg.edit(f"`file size is 0B..`\n`{result}`")
         attributes = None
         if stream:
             try:
