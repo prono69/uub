@@ -11,7 +11,6 @@ __doc__ = get_help("help_converter")
 
 import os
 import time
-from io import BytesIO
 
 from . import LOGS
 
@@ -31,6 +30,7 @@ from telegraph import upload_file as uf
 from pyUltroid.custom._transfer import pyroDL, pyroUL
 from . import (
     ULTConfig,
+    asyncwrite,
     bash,
     check_filename,
     con,
@@ -151,19 +151,20 @@ async def _(event):
         return await event.eor(get_string("cvt_1"), time=5)
     xx = await event.eor(get_string("com_1"))
     a = await event.get_reply_message()
-    if not a.message:
+    if not a.text:
         return await xx.edit(get_string("ex_1"))
 
-    await xx.edit(f"**Packing into** `{input_str}..`")
-    with BytesIO(a.message.encode()) as out:
-        out.name = input_str
-        await event.client.send_file(
-            event.chat_id,
-            file=out,
-            caption=f"**{input_str}**",
-            thumb=ULTConfig.thumb,
-            reply_to=event.reply_to_msg_id,
-        )
+    out = check_filename(input_str)
+    await xx.edit(f"**Packing into** `{out}..`")
+    await asyncwrite(out, a.message, mode="w+")
+    await event.client.send_file(
+        event.chat_id,
+        file=out,
+        caption=f"`{out}`",
+        thumb=ULTConfig.thumb,
+        reply_to=event.reply_to_msg_id,
+    )
+    # os.remove(out)
     await xx.delete()
 
 

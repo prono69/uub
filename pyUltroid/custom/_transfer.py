@@ -109,7 +109,7 @@ async def pyro_progress(
         PROGRESS_LOG.update({unique_id: now})
         await message.edit(to_edit)
     except MessageNotModifiedError as exc:
-        LOGS.warning(exc)
+        LOGS.debug(exc)
     except MessageIdInvalidError:
         setattr(message, "is_cancelled", True)
 
@@ -336,7 +336,7 @@ class pyroUL:
             try:
                 progress_txt = str(self.file.relative_to(Path.cwd()))
             except ValueError:
-                progress_text = str(self.file)
+                progress_txt = str(self.file)
             self.progress_text = (
                 f"```{self.count}/{self.total_files} | Uploading {progress_txt}..```"
             )
