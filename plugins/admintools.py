@@ -306,35 +306,30 @@ async def pin_message(ult):
         LOGS.exception(er)
 
 
-@ultroid_cmd(pattern="purge( (.*)|$)", manager=True, require="delete_messages")
+@ultroid_cmd(pattern="purge( (\d*)|$)", manager=True, require="delete_messages")
 async def fastpurger(purg):
-    match = purg.pattern_match.group(1).strip()
-    try:
-        ABC = purg.text[6]
-    except IndexError:
-        ABC = None
-    if ABC and purg.text[6] in ["m", "a"]:
-        return
-    if not purg._client._bot and (
-        (match)
-        or (purg.is_reply and (purg.is_private or isinstance(purg.chat, types.Chat)))
-    ):
+    match = purg.pattern_match.group(2)
+    match = int(match) if match else None
+    reply_id = purg.reply_to_msg_id or 0
+    if not (match or reply_id):
+        return await eor(purg, get_string("purge_1"), time=5)
+
+    if not purg._client._bot and (purg.is_private or isinstance(purg.chat, types.Chat)):
         p = 0
         async for msg in purg.client.iter_messages(
             purg.chat_id,
-            limit=int(match) if match else None,
-            min_id=purg.reply_to_msg_id if purg.is_reply else None,
+            limit=match if not reply_id else None,
+            min_id=reply_id,
+            max_id=purg.id,
         ):
             await msg.delete()
-            p += 0
-        return await eor(purg, f"Purged {p} Messages! ", time=5)
-    if not purg.reply_to_msg_id:
-        return await eor(purg, get_string("purge_1"), time=10)
-    try:
-        await purg.client.delete_messages(
-            purg.chat_id, list(range(purg.reply_to_msg_id, purg.id))
-        )
+            p += 1
+        await purg.eor(f"__Purged {p} Messages!__", time=5)
+        return
 
+    purge_range = list(range(reply_id or purg.id - match, purg.id))
+    try:
+        await purg.client.delete_messages(purg.chat_id, purge_range)
     except Exception as er:
         LOGS.info(er)
     await purg.eor("__Fast purge complete!__", time=5)
@@ -352,11 +347,14 @@ async def fastpurgerme(purg):
             return
         mp = 0
         async for mm in purg.client.iter_messages(
-            purg.chat_id, limit=nnt, from_user="me"
+            purg.chat_id,
+            limit=nnt,
+            from_user="me",
+            max_id=purg.id,
         ):
             await mm.delete()
             mp += 1
-        await eor(purg, f"Purged {mp} Messages!", time=5)
+        await eor(purg, f"__Purged {mp} Messages!__", time=5)
         return
     elif not purg.reply_to_msg_id:
         return await eod(
@@ -365,17 +363,17 @@ async def fastpurgerme(purg):
             time=10,
         )
     chat = await purg.get_input_chat()
-    msgs = []
+    mp = 0
     async for msg in purg.client.iter_messages(
         chat,
         from_user="me",
         min_id=purg.reply_to_msg_id,
+        max_id=purg.id,
     ):
-        msgs.append(msg)
-    if msgs:
-        await purg.client.delete_messages(chat, msgs)
+        await msg.delete()
+        mp += 1
     await purg.eor(
-        "__Fast purge complete!__\n**Purged** `" + str(len(msgs)) + "` **messages.**",
+        f"__Fast purge complete!__\n**Purged** `{mp}` **Messages!**",
         time=5,
     )
 
