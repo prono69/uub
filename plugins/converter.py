@@ -9,8 +9,10 @@ from . import get_help
 
 __doc__ = get_help("help_converter")
 
+import asyncio
 import os
 import time
+from io import BytesIO
 
 from . import LOGS
 
@@ -143,28 +145,33 @@ async def uconverter(event):
 
 
 @ultroid_cmd(
-    pattern="doc( (.*)|$)",
+    pattern="(d)?doc( (.*)|$)",
 )
-async def _(event):
-    input_str = event.pattern_match.group(1).strip()
-    if not (input_str and event.is_reply):
+async def d_doc(event):
+    input_str = event.pattern_match.group(3)
+    if not (input_str and event.reply_to):
         return await event.eor(get_string("cvt_1"), time=5)
     xx = await event.eor(get_string("com_1"))
     a = await event.get_reply_message()
     if not a.text:
         return await xx.edit(get_string("ex_1"))
 
-    out = check_filename(input_str)
-    await xx.edit(f"**Packing into** `{out}..`")
-    await asyncwrite(out, a.message, mode="w+")
-    await event.client.send_file(
-        event.chat_id,
-        file=out,
-        caption=f"`{out}`",
-        thumb=ULTConfig.thumb,
-        reply_to=event.reply_to_msg_id,
-    )
-    # os.remove(out)
+    await xx.edit(f"**Packing into** `{input_str}..`")
+    await asyncio.sleep(0.6)
+    if event.pattern_match.group(1):
+        out = check_filename(input_str)
+        await asyncwrite(out, a.message, mode="w+")
+        return await xx.edit(f"**Successfully Saved as** `{out}`")
+
+    with BytesIO(a.message.encode()) as out:
+        out.name = input_str
+        await event.client.send_file(
+            event.chat_id,
+            file=out,
+            caption=f"`{input_str}`",
+            thumb=ULTConfig.thumb,
+            reply_to=event.reply_to_msg_id,
+        )
     await xx.delete()
 
 
