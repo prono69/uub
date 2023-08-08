@@ -26,12 +26,6 @@ from pyUltroid.custom._transfer import pyroUL, pyroDL
 
 from . import *
 
-# Used for Formatting Eval Code, if installed
-try:
-    import black
-except ImportError:
-    black = None
-
 try:
     from yaml import safe_load
 except ImportError:
@@ -247,11 +241,12 @@ async def _(event):
         xx = await event.eor(get_string("com_1"))
     if mode != "nolog":
         LOGS.debug(cmd)
-    if mode == "black" and black:
+    if mode == "black":
         try:
+            import black
+
             cmd = black.format_str(cmd, mode=black.Mode())
-        except Exception:
-            # Consider it as Code Error, and move on to be shown ahead.
+        except (ImportError, Exception):
             pass
 
     reply_to_id = event.reply_to_msg_id or event
@@ -272,13 +267,14 @@ async def _(event):
     redirected_output = sys.stdout = StringIO()
     redirected_error = sys.stderr = StringIO()
     stdout, stderr, exc, timeg = None, None, None, None
-    tima = time.time()
     try:
+        tima = time.time()
         value = await aexec(cmd, event)
     except Exception:
         value = None
         exc = traceback.format_exc()
-    tima = time.time() - tima
+    finally:
+        tima = time.time() - tima
     stdout = redirected_output.getvalue()
     stderr = redirected_error.getvalue()
     sys.stdout = old_stdout
