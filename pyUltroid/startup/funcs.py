@@ -475,7 +475,7 @@ async def fetch_ann():
                 get_.append(key)
         udB.set_key("OLDANN", get_)
     except Exception as er:
-        LOGS.exception(er)
+        LOGS.info(er)
 
 
 async def WasItRestart(udb):
