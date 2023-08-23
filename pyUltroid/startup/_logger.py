@@ -25,19 +25,19 @@ LOGS.setLevel(logging.DEBUG)
 def where_hosted():
     if environ.get("DYNO"):
         return "heroku"
-    if environ.get("RAILWAY_STATIC_URL"):
+    elif environ.get("RAILWAY_STATIC_URL"):
         return "railway"
-    if environ.get("OKTETO_TOKEN"):
+    elif environ.get("OKTETO_TOKEN"):
         return "okteto"
-    if environ.get("KUBERNETES_PORT"):
-        return "qovery | kubernetes"
-    if environ.get("RUNNER_USER") or environ.get("HOSTNAME"):
+    elif environ.get("RUNNER_USER") or environ.get("HOSTNAME"):
         if environ.get("USER") == "codespace":
             return "codespace"
         return "github actions"
-    if environ.get("ANDROID_ROOT"):
+    elif environ.get("KUBERNETES_PORT"):
+        return "qovery | kubernetes"
+    elif environ.get("ANDROID_ROOT"):
         return "termux"
-    if environ.get("FLY_APP_NAME"):
+    elif environ.get("FLY_APP_NAME"):
         return "fly.io"
     return "local"
 

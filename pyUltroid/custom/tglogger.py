@@ -104,7 +104,7 @@ class TGLogHandler(StreamHandler):
 
     async def send_message(self, message):
         payload = _PAYLOAD.copy()
-        message = message.lstrip("\n\n")
+        message = message.lstrip()
         payload["text"] = f"```{message}```"
         if ids := self.message_id or self.doc_message_id:
             payload["reply_to_message_id"] = ids
@@ -120,7 +120,7 @@ class TGLogHandler(StreamHandler):
         if not self.message_id:
             return await self.send_message(message)
         payload = _PAYLOAD.copy()
-        message = message.lstrip("\n\n")
+        message = message.lstrip()
         payload.update({"message_id": self.message_id, "text": f"```{message}```"})
         res = await self.send_request(self.__tgtoken + "/editMessageText", payload)
         self.current_log_msg = message
@@ -128,7 +128,7 @@ class TGLogHandler(StreamHandler):
             await self.handle_error(res)
 
     async def send_file(self, logs):
-        logs = logs.lstrip("\n\n")
+        logs = logs.lstrip()
         file = BytesIO(logs.encode())
         file.name = "tglogging.txt"
         url = self.__tgtoken + "/sendDocument"

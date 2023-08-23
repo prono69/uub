@@ -31,7 +31,7 @@ async def get_or_fetch_image(autopic_dir):
     diriter = lambda p: list(p.iterdir())
     autopic_dir = Path(autopic_dir)
     if not (autopic_dir.is_dir() and (pics := diriter(autopic_dir))):
-        query = autopic_dir.name.lstrip("bing-")
+        query = autopic_dir.name.removeprefix("bing-")
         bing = BingScrapper(query=query, limit=250, filter="photo")
         autopic_dir = await bing.download()
         udB.set_key("AUTOPIC", autopic_dir)

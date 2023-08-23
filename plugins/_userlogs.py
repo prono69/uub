@@ -12,6 +12,7 @@ from datetime import timezone
 
 from telethon.errors.rpcerrorlist import (
     ChannelPrivateError,
+    ChatForwardsRestrictedError,
     ChatWriteForbiddenError,
     MediaCaptionTooLongError,
     MediaEmptyError,
@@ -38,6 +39,7 @@ from . import (
     ultroid_bot,
 )
 
+
 CACHE_SPAM = {}
 TAG_EDITS = {}
 
@@ -45,7 +47,7 @@ TAG_EDITS = {}
 @ultroid_bot.on(
     events.NewMessage(
         incoming=True,
-        func=lambda e: (e.mentioned),
+        func=lambda e: e.mentioned,
     ),
 )
 async def all_messages_catcher(e):
@@ -67,6 +69,8 @@ async def all_messages_catcher(e):
             TAG_EDITS.update({e.chat_id: {e.id: {"id": sent.id, "msg": e}}})
         if udB.get_key("TAGLOG_REPLIES"):
             tag_add(sent.id, e.chat_id, e.id)
+    except ChatForwardsRestrictedError:
+        return
     except MediaEmptyError:
         try:
             msg = await asst.get_messages(e.chat_id, ids=e.id)
