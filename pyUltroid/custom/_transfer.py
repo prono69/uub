@@ -426,7 +426,7 @@ class pyroUL:
             raise UploadError("File Size is Greater than 2GB..")
 
     async def get_metadata(self):
-        self.metadata = media_info(self.file)
+        self.metadata = media_info(str(self.file))
         type = self.metadata.get("type").lower()
         if type == "image":
             if self.file.stat().st_size > 3 * 1024 * 1024:

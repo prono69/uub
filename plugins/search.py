@@ -4,6 +4,7 @@
 # This file is a part of < https://github.com/TeamUltroid/Ultroid/ >
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
+
 """
 ✘ Commands Available -
 
@@ -23,20 +24,22 @@
 • `{i}reverse`
     Reply an Image or sticker to find its sauce.
 """
+
 import os
 
 import requests
 from bs4 import BeautifulSoup as bs
+from telethon.tl.types import DocumentAttributeAudio
 
 try:
     from PIL import Image
 except ImportError:
     Image = None
+
 try:
     import cv2
 except ImportError:
     cv2 = None
-from telethon.tl.types import DocumentAttributeAudio
 
 from pyUltroid.fns.misc import google_search
 from pyUltroid.fns.tools import get_google_images, saavn_search

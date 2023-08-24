@@ -144,7 +144,9 @@ async def google_search(query):
                     "description": data.find_all("div")[-1].text,
                 }
             )
-        except BaseException as er:
+        except IndexError:
+            pass
+        except Exception as er:
             LOGS.exception(er)
     return result
 

@@ -106,7 +106,7 @@ async def _(e):
         )
 
 
-@in_pattern("fl2lnk ?(.*)", owner=True)
+@in_pattern("fl2lnk ?(.*)", fullsudo=True)
 async def _(e):
     match = e.pattern_match.group(1)
     chat_id, msg_id = match.split(":")
@@ -151,7 +151,7 @@ async def _(e):
     re_compile(
         "fl(.*)",
     ),
-    owner=True,
+    fullsudo=True,
 )
 async def _(e):
     t = (e.data).decode("UTF-8")
@@ -180,7 +180,7 @@ async def repo(e):
     await e.answer(res, switch_pm="Ultroid Repo.", switch_pm_param="start")
 
 
-@in_pattern("go", owner=True)
+@in_pattern("go", fullsudo=True)
 async def gsearch(q_event):
     try:
         match = q_event.text.split(maxsplit=1)[1]
@@ -197,7 +197,7 @@ async def gsearch(q_event):
             desc = i["description"]
             searcher.append(
                 await q_event.builder.article(
-                    title=title,
+                    title=title or match,
                     description=desc,
                     thumb=wb(gugirl, 0, "image/jpeg", []),
                     text=f"**Gᴏᴏɢʟᴇ Sᴇᴀʀᴄʜ**\n\n**••Tɪᴛʟᴇ••**\n`{title}`\n\n**••Dᴇsᴄʀɪᴘᴛɪᴏɴ••**\n`{desc}`",
@@ -224,7 +224,7 @@ async def gsearch(q_event):
     await q_event.answer(searcher, switch_pm="Google Search.", switch_pm_param="start")
 
 
-@in_pattern("mods", owner=True)
+@in_pattern("mods", fullsudo=True)
 async def _(e):
     try:
         quer = e.text.split(" ", maxsplit=1)[1]
@@ -342,7 +342,7 @@ PISTON_URI = "https://emkc.org/api/v2/piston/"
 PISTON_LANGS = {}
 
 
-@in_pattern("run", owner=True)
+@in_pattern("run", fullsudo=True)
 async def piston_run(event):
     try:
         lang = event.text.split()[1]
@@ -457,7 +457,7 @@ _bearer_collected = [
 ]
 
 
-@in_pattern("twitter", owner=True)
+@in_pattern("twitter", fullsudo=True)
 async def twitter_search(event):
     try:
         match = event.text.split(maxsplit=1)[1].lower()
