@@ -138,15 +138,12 @@ class pyroDL:
         self.delay = 8
         self._log = True
         self.schd_delete = any(kwargs.pop(i, 0) for i in ("schd_delete", "df"))
-        self.filename = check_filename(
-            Path("resources/downloads").absolute() / get_tg_filename(self.source)
+        self.relative_path = check_filename(
+            Path("resources/downloads") / get_tg_filename(self.source)
         )
+        self.filename = str(Path(self.relative_path).absolute())
         if self.show_progress:
-            try:
-                display_txt = str(Path(self.filename).relative_to(Path.cwd()))
-            except ValueError:
-                display_txt = self.filename
-            self.progress_text = f"`Downloading {display_txt}...`"
+            self.progress_text = f"`Downloading {self.relative_path}...`"
         for k, v in kwargs.items():
             setattr(self, k, v)
 
@@ -160,10 +157,10 @@ class pyroDL:
             )
         except ChatForwardsRestrictedError:
             raise
-        except Exception as exc:
+        except Exception:
             er = f"pyroDL: error while copying message to {destination}"
-            LOGS.error(exc, exc_info=True)
-            raise DownloadError(exc)
+            LOGS.error(er, exc_info=True)
+            raise DownloadError(er)
 
     def get_file_dc(self, file):
         if doc := getattr(file, "document", None):
@@ -175,7 +172,7 @@ class pyroDL:
             LOGS.debug(f"Stopped Downloading - {self.filename}")
         elif self.event and self.show_progress:
             try:
-                msg = f"__**Error While Downloading :**__ \n>  ```{self.filename}``` \n>  `{error}`"
+                msg = f"__**Error While Downloading :**__ \n>  ```{self.relative_path}``` \n>  `{error}`"
                 await self.event.edit(msg)
             except Exception as exc:
                 LOGS.exception(exc)
@@ -201,7 +198,7 @@ class pyroDL:
             self.client = app(self.dc)
             self.updateAttrs(kwargs)
             await self.get_message()
-            dl_path = await self.tg_downloader()
+            await self.tg_downloader()
             if self.event and getattr(self.event, "is_cancelled", False):
                 raise DownloadError(
                     "MessageIdInvalidError: Event Message was deleted.."
@@ -213,9 +210,9 @@ class pyroDL:
         else:
             if self.auto_edit and self.show_progress:
                 return await self.event.edit(
-                    f"Successfully Downloaded \n`{dl_path}` \nin {self.dl_time}",
+                    f"Successfully Downloaded \n`{self.relative_path}` \nin {self.dl_time}",
                 )
-            return dl_path
+            return self.filename
         finally:
             if self.event and self.show_progress:
                 ids = str(self.event.chat_id) + "_" + str(self.event.id)
@@ -230,14 +227,16 @@ class pyroDL:
                 "show_progress": self.show_progress,
             }
             if self.event and self.show_progress:
-                args.update({"event": self.event, "message": self.progress_text})
+                progress_text = self.progress_text.replace("`", "")
+                args.update({"event": self.event, "message": progress_text})
             dlx, dl_time = await self.event.client.fast_downloader(**args)
-            self.dl_time = time_formatter(dl_time * 1000)
+            dlx, self.dl_time = dlx.name, time_formatter(dl_time * 1000)
         else:
             args, s_time = None, time()
             if self.event and self.show_progress:
+                progress_text = self.progress_text.replace("`", "")
                 args = lambda d, t: asyncio.create_task(
-                    progress(d, t, self.event, s_time, self.progress_text)
+                    progress(d, t, self.event, s_time, progress_text)
                 )
             dlx = await self.event.client.download_media(
                 self.source,
@@ -246,10 +245,11 @@ class pyroDL:
             )
             self.dl_time = time_formatter((time() - s_time) * 1000)
 
-        try:
-            return str(Path(dlx).relative_to(Path.cwd()))
-        except ValueError:
-            return dlx
+        if self.auto_edit and self.show_progress:
+            return await self.event.edit(
+                f"Successfully Downloaded \n`{self.relative_path}` \nin {self.dl_time}",
+            )
+        return self.filename
 
     async def tg_downloader(self):
         args = {"message": self.msg, "file_name": self.filename}
@@ -271,12 +271,8 @@ class pyroDL:
             stime = time()
             dlx = await self.client.download_media(**args)
             self.dl_time = time_formatter((time() - stime) * 1000)
-            try:
-                return str(Path(dlx).relative_to(Path.cwd()))
-            except ValueError:
-                return dlx
         except Exception as exc:
-            LOGS.exception("PyroDL error")
+            LOGS.exception("PyroDL Error!")
             raise DownloadError(exc)
 
     @staticmethod
@@ -339,10 +335,10 @@ class pyroUL:
                 await self.pre_upload()
                 ulfunc = self.uploader_func()
                 out = await ulfunc()
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.6)
                 self.post_upload()
                 if self.event and getattr(self.event, "is_cancelled", False):
-                    # Process Cancelled aka Event Message Deleted..
+                    # Process Cancelled // Event message Deleted..
                     return LOGS.debug(f"Stopped Uploading - {str(self.file)}")
                 if self.return_obj:
                     return out  # for single file
@@ -372,17 +368,15 @@ class pyroUL:
     def update_attributes(self, kwargs, file, count):
         self.file = file
         self.count = count
+        try:
+            self.relative_path = str(self.file.relative_to(Path.cwd()))
+        except ValueError:
+            self.relative_path = str(self.file)
         for k, v in kwargs.items():
             setattr(self, k, v)
         if self.event and self.show_progress:
             setattr(self.event, "is_cancelled", False)
-            try:
-                progress_txt = str(self.file.relative_to(Path.cwd()))
-            except ValueError:
-                progress_txt = str(self.file)
-            self.progress_text = (
-                f"```{self.count}/{self.total_files} | Uploading {progress_txt}..```"
-            )
+            self.progress_text = f"```{self.count}/{self.total_files} | Uploading {self.relative_path}..```"
 
     async def pre_upload(self):
         self.start_time = time()
@@ -430,23 +424,24 @@ class pyroUL:
             )
             delattr(self, "caption")
             run_async_task(self.dump_stuff, out, copy)
-        except Exception as exc:
-            er = "Error while copying file from DUMP: "
+        except Exception:
+            er = f"Error while copying file from DUMP: {self.relative_path}"
             LOGS.exception(er)
             raise UploadError(er)
 
     async def handle_edits(self):
         self.success += 1
+        await asyncio.sleep(0.6)
         if self.auto_edit and self.event:
             await self.event.edit(
-                f"__**Successfully Uploaded!  ({self.count}/{self.total_files})**__ \n**>**  ```{str(self.file)}```",
+                f"__**Successfully Uploaded!  ({self.count}/{self.total_files})**__ \n**>**  ```{self.relative_path}```",
             )
 
     async def handle_error(self, error):
         self.failed += 1
         if self.event and self.show_progress:
             try:
-                msg = f"__**Error While Uploading :**__ \n>  ```{str(self.file)}``` \n>  `{error}`"
+                msg = f"__**Error While Uploading :**__ \n>  ```{self.relative_path}``` \n>  `{error}`"
                 await self.event.edit(msg)
             except Exception as exc:
                 LOGS.exception(exc)
@@ -513,7 +508,7 @@ class pyroUL:
             self.caption = "__**Uploaded in {0}** • ({1})__ \n**>**  ```{2}```".format(
                 self.ul_time,
                 self.metadata["size"],
-                str(self.file),
+                self.relative_path,
             )
 
     def cleanups(self):
@@ -527,6 +522,7 @@ class pyroUL:
 
     async def dump_stuff(self, upl, copy):
         await cleargif(copy)
+        await asyncio.sleep(2)
         if self.schd_delete:
             await upl.delete()
         elif not copy.sticker:
@@ -541,7 +537,6 @@ class pyroUL:
                 str(self.file),
             )
             try:
-                await asyncio.sleep(1)
                 await upl.edit_caption(text)
             except Exception:
                 LOGS.warning("Editing Dump Media. <(ignore)>", exc_info=True)
@@ -670,7 +665,7 @@ class pyroUL:
         return args
 
     def _handle_upload_error(self, type, error):
-        LOGS.exception(f"{type} Uploader: {str(self.file)}")
+        LOGS.exception(f"{type} Uploader: {self.relative_path}")
         err = ", ".join(error.args) if error.args else "NoneType"
         raise UploadError(
             f"{error.__class__.__name__} while uploading {type}: `{err}`",
