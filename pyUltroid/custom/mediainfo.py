@@ -70,7 +70,7 @@ class TGMediaInfo:
         }
         for key, vars in _items.items():
             for attr in vars:
-                if value := self._getter(data, attr, False):
+                if value := TGMediaInfo._getter(data, attr, False):
                     result.update({key: value})
                     break
         return tuple(result.values())
