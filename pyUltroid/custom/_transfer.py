@@ -99,7 +99,7 @@ async def pyro_progress(
     percentage = current * 100 / total
     speed = current / diff
     time_to_completion = round((total - current) / speed) * 1000
-    progress_bar = min(percentage // 5, 20)
+    progress_bar = min(int(percentage // 5), 20)
     progress_str = "`[{0}{1}] {2}%`\n\n".format(
         "●" * progress_bar,
         "" * (20 - progress_bar),
@@ -158,6 +158,8 @@ class pyroDL:
                 destination,
                 caption=f"#pyroDL\n\n{self.source.text}",
             )
+        except ChatForwardsRestrictedError:
+            raise
         except Exception as exc:
             er = f"pyroDL: error while copying message to {destination}"
             LOGS.error(exc, exc_info=True)

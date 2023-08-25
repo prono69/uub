@@ -624,10 +624,10 @@ async def progress(current, total, event, start, type_of_ps, file_name=None):
     percentage = current * 100 / total
     speed = current / diff
     time_to_completion = round((total - current) / speed) * 1000
-    progress_bar = min(percentage // 5, 20)
+    bar_count = min(int(percentage // 5), 20)
     progress_str = "`[{0}{1}] {2}%`\n\n".format(
-        "●" * progress_bar,
-        "" * (20 - progress_bar),
+        "●" * bar_count,
+        "" * (20 - bar_count),
         round(percentage, 2),
     )
     tmp = progress_str + "`{0} of {1}`\n\n`✦ Speed: {2}/s`\n\n`✦ ETA: {3}`\n\n".format(

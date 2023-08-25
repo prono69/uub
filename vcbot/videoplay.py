@@ -12,7 +12,6 @@
    Stream Videos in chat.
    you can use remotely too
    like `{i}videoplay @chat <input/reply>`
-
 """
 
 import asyncio
@@ -20,7 +19,7 @@ import re
 
 from telethon.errors.rpcerrorlist import ChatSendMediaForbiddenError
 
-from pyUltroid.custom.mediainfo import media_info
+from pyUltroid.custom.mediainfo import gen_mediainfo
 from . import (
     vc_asst,
     Path,
@@ -97,9 +96,9 @@ async def video_c(event):
     finally:
         if thumb:
             osremove(thumb)
-    await asyncio.sleep(2)
+    await asyncio.sleep(1)
     with_audio = (
-        media_info(song).get("has_audio")
+        (await gen_mediainfo(song)).get("has_audio")
         if Path(song).is_file()
         else True
     )
