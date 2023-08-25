@@ -20,6 +20,7 @@ import asyncio
 from math import floor
 from pathlib import Path
 from re import findall
+from shlex import quote
 from time import time
 
 from telethon.errors.rpcerrorlist import MessageNotModifiedError, MessageIdInvalidError
@@ -31,12 +32,11 @@ from . import (
     asyncwrite,
     bash,
     check_filename,
+    gen_mediainfo,
     get_string,
     humanbytes,
     mediainfo,
-    media_info,
     osremove,
-    shquote,
     time_formatter,
     ultroid_cmd,
     unix_parser,
@@ -98,13 +98,13 @@ async def og_compressor(e):
     og_size = path.stat().st_size
     edit_sleep_time = 8.5  # if e.client._bot else 8
     out_path = check_filename("resources/downloads/" + path.stem + "-compressed.mp4")
-    minfo = media_info(str(path))
+    minfo = await gen_mediainfo(str(path))
     total_frame = minfo.get("frames")
     if minfo.get("type") == "gif" or path.suffix.lower() == ".gif":
         _audio_cmd = ""
         _codec = "libx264"
 
-    # x, y = await bash(f'''mediainfo --fullscan {shquote(path)} | grep "Frame count"''')
+    # x, y = await bash(f'''mediainfo --fullscan {quote(path)} | grep "Frame count"''')
     # total_frame = x.split(":")[1].split("\n")[0]
 
     progress_file = f"progress-{time()}.txt"
@@ -119,10 +119,10 @@ async def og_compressor(e):
     pre_time = time()
     ffmpeg = await asyncio.create_subprocess_shell(
         FFMPEG_CMD.format(
-            progress_file=shquote(progress_file),
-            input_file=shquote(str(path)),
+            progress_file=quote(progress_file),
+            input_file=quote(str(path)),
             crf=str(_crf),
-            output_file=shquote(out_path),
+            output_file=quote(out_path),
             codec=_codec,
             speed=_speed,
             audio_cmd=_audio_cmd,
@@ -199,7 +199,7 @@ async def og_compressor(e):
     osremove(progress_file)
     time_diff = time_formatter((time() - pre_time) * 1000)
 
-    minfo = media_info(out_path)
+    minfo = await gen_mediainfo(out_path)
     if minfo.get("type") == "video" and not minfo.get("has_audio"):
         o_path = Path(out_path)
         out_path = check_filename(o_path.with_suffix(".mkv"))

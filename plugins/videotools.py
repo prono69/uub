@@ -21,6 +21,7 @@
 import asyncio
 import glob
 import os
+from shlex import quote
 
 from pyUltroid.fns.tools import set_attributes
 from pyUltroid.custom._transfer import pyroDL, pyroUL
@@ -33,7 +34,6 @@ from . import (
     genss,
     get_string,
     mediainfo,
-    shquote,
     stdr,
     ultroid_cmd,
     unix_parser,
@@ -68,7 +68,7 @@ async def gen_sample(e):
     # await asyncio.sleep(1.5)
     await msg.edit(f"Generating Sample of `{stime}` seconds...")
     ss, dd = await duration_s(path, stime)
-    cmd = f"ffmpeg -i {shquote(path)} -preset ultrafast -ss {ss} -to {dd} -codec copy -map 0 {shquote(out)} -y"
+    cmd = f"ffmpeg -i {quote(path)} -preset ultrafast -ss {ss} -to {dd} -codec copy -map 0 {quote(out)} -y"
     await bash(cmd)
     if to_del:
         os.remove(path)
@@ -111,9 +111,9 @@ async def gen_shots(e):
     await msg.edit(f"Generating `{shot}` screenshots...")
     foldr = f"resources/ss/{os.path.basename(path)}"
     if os.path.exists(foldr):
-        await bash(f"rm -rf {shquote(foldr)}")
+        await bash(f"rm -rf {quote(foldr)}")
     os.makedirs(foldr, exist_ok=True)
-    cmd = f"ffmpeg -i {shquote(path)} -vf fps=0.009 -vframes {shot} {shquote(foldr)}/pic%01d.png"
+    cmd = f"ffmpeg -i {quote(path)} -vf fps=0.009 -vframes {shot} {quote(foldr)}/pic%01d.png"
     await bash(cmd)
     if to_del:
         os.remove(path)
@@ -123,7 +123,7 @@ async def gen_shots(e):
         text = "`Failed to Take Screenshots..`"
         pic = None
     await e.client.send_message(e.chat_id, text, file=pic, reply_to=reply_to)
-    await bash(f"rm -rf {shquote(foldr)}")
+    await bash(f"rm -rf {quote(foldr)}")
     await msg.delete()
 
 
@@ -148,7 +148,7 @@ async def gen_sample(e):
             return await eod(msg, get_string("audiotools_6"))
         ss, dd = stdr(int(a)), stdr(int(b))
         xxx = await msg.edit(f"Trimming Video from `{ss}` to `{dd}`...")
-        cmd = f"ffmpeg -i {shquote(file.name)} -preset ultrafast -ss {ss} -to {dd} -codec copy -map 0 {shquote(out)} -y"
+        cmd = f"ffmpeg -i {quote(file.name)} -preset ultrafast -ss {ss} -to {dd} -codec copy -map 0 {quote(out)} -y"
         await bash(cmd)
         os.remove(file.name)
         attributes = await set_attributes(out)

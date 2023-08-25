@@ -58,7 +58,7 @@ except ImportError:
 from telethon import Button
 from telethon.tl.types import DocumentAttributeAudio, DocumentAttributeVideo
 
-from pyUltroid.custom.mediainfo import media_info
+from pyUltroid.custom.mediainfo import gen_mediainfo
 from ..dB.filestore_db import get_stored_msg, store_msg
 
 try:
@@ -132,7 +132,7 @@ async def is_url_ok(url: str):
 
 
 async def metadata(file):
-    data = media_info(file)
+    data = await gen_mediainfo(file)
     if type(data) == dict:
         if data["type"] in ("video", "gif"):
             if not data["bitrate"]:

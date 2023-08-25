@@ -6,7 +6,6 @@
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
 import asyncio
-import math
 import os
 import re
 import sys
@@ -625,9 +624,10 @@ async def progress(current, total, event, start, type_of_ps, file_name=None):
     percentage = current * 100 / total
     speed = current / diff
     time_to_completion = round((total - current) / speed) * 1000
+    progress_bar = min(percentage // 5, 20)
     progress_str = "`[{0}{1}] {2}%`\n\n".format(
-        "".join("●" for i in range(math.floor(percentage / 5))),
-        "".join("" for i in range(20 - math.floor(percentage / 5))),
+        "●" * progress_bar,
+        "" * (20 - progress_bar),
         round(percentage, 2),
     )
     tmp = progress_str + "`{0} of {1}`\n\n`✦ Speed: {2}/s`\n\n`✦ ETA: {3}`\n\n".format(

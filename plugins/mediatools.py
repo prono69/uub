@@ -19,6 +19,7 @@
 import os
 import time
 from datetime import datetime as dt
+from shlex import quote as shquote
 
 from pyUltroid.fns.misc import rotate_image
 from pyUltroid.fns.tools import make_html_telegraph
@@ -31,7 +32,6 @@ from . import (
     get_string,
     is_url_ok,
     mediainfo,
-    shquote,
     ultroid_cmd,
 )
 

@@ -11,13 +11,13 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 import asyncio
-from math import floor
 from time import time
 from io import BytesIO
 from PIL import Image, ImageFilter
 from random import choice, choices
 from pathlib import Path
 from mimetypes import guess_extension
+from shlex import quote
 from string import ascii_lowercase
 
 # from mimetypes import guess_all_extensions
@@ -25,13 +25,16 @@ from string import ascii_lowercase
 from music_tag import load_file
 from pyrogram.errors import ChannelInvalid
 from telethon.utils import get_display_name
-from telethon.errors import MessageNotModifiedError, MessageIdInvalidError
+from telethon.errors import (
+    ChatForwardsRestrictedError,
+    MessageNotModifiedError,
+    MessageIdInvalidError,
+)
 
 from pyrog import app
-from .mediainfo import media_info
+from .mediainfo import gen_mediainfo
 from .functions import cleargif, run_async_task
-
-from pyUltroid.fns.tools import humanbytes, shquote
+from pyUltroid.fns.tools import humanbytes
 from pyUltroid.startup import LOGS
 from pyUltroid import asst, udB, ultroid_bot
 from pyUltroid.fns.helper import (
@@ -40,6 +43,7 @@ from pyUltroid.fns.helper import (
     get_tg_filename,
     inline_mention,
     osremove,
+    progress,
     time_formatter,
 )
 
@@ -79,23 +83,26 @@ async def pyro_progress(
     edit_delay=8,
 ):
     unique_id = str(message.chat_id) + "_" + str(message.id)
-    if client and getattr(message, "is_cancelled", False):
+    if getattr(message, "is_cancelled", False) and client:
         LOGS.debug(
-            f"Cancelling Transfer: {unique_id} | Completed: {humanbytes(current)}/{humanbytes(total)}"
+            f"Cancelling Transfer: {unique_id} | Progress: {humanbytes(current)} out of {humanbytes(total)}"
         )
         await client.stop_transmission()
+
     last_update = PROGRESS_LOG.get(unique_id)
     now = time()
     if last_update and current != total:
         if (now - last_update) < edit_delay:
             return
+
     diff = now - started_at
     percentage = current * 100 / total
     speed = current / diff
     time_to_completion = round((total - current) / speed) * 1000
+    progress_bar = min(percentage // 5, 20)
     progress_str = "`[{0}{1}] {2}%`\n\n".format(
-        "".join("●" for i in range(floor(percentage / 5))),
-        "".join("" for i in range(20 - floor(percentage / 5))),
+        "●" * progress_bar,
+        "" * (20 - progress_bar),
         round(percentage, 2),
     )
     to_edit = f"✦ {edit_text} \n\n{progress_str}"
@@ -105,11 +112,12 @@ async def pyro_progress(
         humanbytes(speed),
         time_formatter(time_to_completion),
     )
+
     try:
         PROGRESS_LOG.update({unique_id: now})
         await message.edit(to_edit)
-    except MessageNotModifiedError as exc:
-        LOGS.debug(exc)
+    except MessageNotModifiedError:
+        pass
     except MessageIdInvalidError:
         setattr(message, "is_cancelled", True)
 
@@ -130,6 +138,15 @@ class pyroDL:
         self.delay = 8
         self._log = True
         self.schd_delete = any(kwargs.pop(i, 0) for i in ("schd_delete", "df"))
+        self.filename = check_filename(
+            Path("resources/downloads").absolute() / get_tg_filename(self.source)
+        )
+        if self.show_progress:
+            try:
+                display_txt = str(Path(self.filename).relative_to(Path.cwd()))
+            except ValueError:
+                display_txt = self.filename
+            self.progress_text = f"`Downloading {display_txt}...`"
         for k, v in kwargs.items():
             setattr(self, k, v)
 
@@ -141,10 +158,10 @@ class pyroDL:
                 destination,
                 caption=f"#pyroDL\n\n{self.source.text}",
             )
-        except Exception:
+        except Exception as exc:
             er = f"pyroDL: error while copying message to {destination}"
-            LOGS.error(er, exc_info=True)
-            raise DownloadError(er)
+            LOGS.error(exc, exc_info=True)
+            raise DownloadError(exc)
 
     def get_file_dc(self, file):
         if doc := getattr(file, "document", None):
@@ -173,17 +190,8 @@ class pyroDL:
         except (ChannelInvalid, Exception):
             dump_msg = await self.copy_msg()
             self.is_copy = True
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.6)
             self.msg = await self.client.get_messages(dump_msg.chat_id, dump_msg.id)
-        self.filename = check_filename(
-            Path("resources/downloads").absolute() / get_tg_filename(self.source)
-        )
-        if self.show_progress:
-            try:
-                display_txt = str(Path(self.filename).relative_to(Path.cwd()))
-            except ValueError:
-                display_txt = self.filename
-            self.progress_text = f"`Downloading {display_txt}...`"
 
     async def download(self, **kwargs):
         try:
@@ -196,6 +204,8 @@ class pyroDL:
                 raise DownloadError(
                     "MessageIdInvalidError: Event Message was deleted.."
                 )
+        except ChatForwardsRestrictedError:
+            return await self.telethon_fast_downloader()
         except (DownloadError, Exception) as exc:
             await self.handle_error(exc)
         else:
@@ -208,6 +218,36 @@ class pyroDL:
             if self.event and self.show_progress:
                 ids = str(self.event.chat_id) + "_" + str(self.event.id)
                 PROGRESS_LOG.pop(ids, None)
+
+    # fallback to here if forward is locked!
+    async def telethon_fast_downloader(self):
+        if file := getattr(self.source.media, "document", None):
+            args = {
+                "file": file,
+                "filename": self.filename,
+                "show_progress": self.show_progress,
+            }
+            if self.event and self.show_progress:
+                args.update({"event": self.event, "message": self.progress_text})
+            dlx, dl_time = await self.event.client.fast_downloader(**args)
+            self.dl_time = time_formatter(dl_time * 1000)
+        else:
+            args, s_time = None, time()
+            if self.event and self.show_progress:
+                args = lambda d, t: asyncio.create_task(
+                    progress(d, t, self.event, s_time, self.progress_text)
+                )
+            dlx = await self.event.client.download_media(
+                self.source,
+                self.filename,
+                progress_callback=args,
+            )
+            self.dl_time = time_formatter((time() - s_time) * 1000)
+
+        try:
+            return str(Path(dlx).relative_to(Path.cwd()))
+        except ValueError:
+            return dlx
 
     async def tg_downloader(self):
         args = {"message": self.msg, "file_name": self.filename}
@@ -224,6 +264,7 @@ class pyroDL:
             args.update({"progress": pyro_progress, "progress_args": progress_args})
         if self.schd_delete and self.is_copy:
             run_async_task(self.delTask, self.msg)
+
         try:
             stime = time()
             dlx = await self.client.download_media(**args)
@@ -238,7 +279,7 @@ class pyroDL:
 
     @staticmethod
     async def delTask(task):
-        await asyncio.sleep(5)
+        await asyncio.sleep(6)
         await task.delete()
 
 
@@ -426,7 +467,7 @@ class pyroUL:
             raise UploadError("File Size is Greater than 2GB..")
 
     async def get_metadata(self):
-        self.metadata = media_info(str(self.file))
+        self.metadata = await gen_mediainfo(str(self.file))
         type = self.metadata.get("type").lower()
         if type == "image":
             if self.file.stat().st_size > 3 * 1024 * 1024:
@@ -648,7 +689,7 @@ async def videoThumb(path, duration):
     rnds = "".join(choices(ascii_lowercase, k=8))
     thumb_path = Path(check_filename(f"resources/temp/{rnds}-{dur}.jpg")).absolute()
     await bash(
-        f"ffmpeg -ss {dur} -i {shquote(path)} -vframes 1 {shquote(str(thumb_path))} -y"
+        f"ffmpeg -ss {dur} -i {quote(path)} -vframes 1 {quote(str(thumb_path))} -y"
     )
     return str(thumb_path) if thumb_path.is_file() else DEFAULT_THUMB
 

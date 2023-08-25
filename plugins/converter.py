@@ -13,6 +13,7 @@ import asyncio
 import os
 import time
 from io import BytesIO
+from shlex import quote
 
 from . import LOGS
 
@@ -39,7 +40,6 @@ from . import (
     downloader,
     get_paste,
     get_string,
-    shquote,
     udB,
     ultroid_cmd,
     unix_parser,
@@ -52,7 +52,7 @@ opn = []
 @ultroid_cmd(
     pattern="thumbnail$",
 )
-async def _(e):
+async def set_thumbnail(e):
     r = await e.get_reply_message()
     if r.photo:
         dl = await r.download_media()
@@ -91,7 +91,7 @@ async def imak(event):
             file = await event.client.download_media(reply.media)
 
     inp = check_filename(inp)
-    await bash(f"mv {shquote(file)} {shquote(inp)}")
+    await bash(f"mv {quote(file)} {quote(inp)}")
     if not os.path.exists(inp) or (os.path.exists(inp) and not os.path.getsize(inp)):
         os.rename(file, inp)
     ul = pyroUL(event=xx, _path=inp)

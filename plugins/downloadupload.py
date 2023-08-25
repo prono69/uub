@@ -118,8 +118,8 @@ async def download(event):
 @ultroid_cmd(pattern="xdl(?: |$)(.*)")
 async def pyro_dl(event):
     reply = await event.get_reply_message()
-    if not reply:
-        return await event.eor("`Reply to a file to download.`", time=8)
+    if not (reply and reply.media):
+        return await event.eor("`Reply to a file to download..`", time=8)
 
     xx = await event.eor(get_string("com_1"))
     args = event.pattern_match.group(1)
