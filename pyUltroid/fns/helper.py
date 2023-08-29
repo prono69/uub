@@ -702,7 +702,7 @@ __all__ = (
     "async_searcher",
     "asyncread",
     "asyncwrite",
-    "bash,",
+    "bash",
     "check_filename",
     "def_logs",
     "download_file",

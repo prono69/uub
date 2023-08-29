@@ -18,7 +18,7 @@ if os.getenv("__TELEPATCH__") == "true":
 
 
 from .version import __version__, ultroid_version
-from .custom.init import *
+from .custom.init import loop
 from .configs import Var
 from .startup import *
 

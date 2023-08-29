@@ -7,6 +7,7 @@
 
 import asyncio
 import os
+import re
 import time
 from random import choice
 
@@ -22,11 +23,14 @@ from pyUltroid.dB import DEVLIST, ULTROID_IMAGES
 from pyUltroid.fns.helper import *
 from pyUltroid.fns.misc import *
 from pyUltroid.fns.tools import *
-from pyUltroid.custom.functions import *
 
 # from pyUltroid.startup._database import _BaseDatabase
 from pyUltroid.version import __version__, ultroid_version, moi_version
 from strings import get_help, get_string
+
+# custom
+from pyUltroid.custom.functions import *
+from pyUltroid.custom.mediainfo import gen_mediainfo
 
 
 quotly = Quotly()

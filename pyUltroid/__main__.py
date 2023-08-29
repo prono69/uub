@@ -122,6 +122,7 @@ async def init_shutdown():
         except Exception:
             pass
         tasks.append(asst.disconnect())
+
     await asyncio.sleep(5)
     await asyncio.gather(*tasks, return_exceptions=True)
     await loop.shutdown_asyncgens()

@@ -43,6 +43,7 @@ import io
 import os
 import secrets
 from asyncio.exceptions import TimeoutError as AsyncTimeout
+from shlex import quote as shquote
 
 try:
     import cv2
@@ -85,7 +86,6 @@ from . import (
     json_parser,
     mediainfo,
     osremove,
-    shquote,
     ultroid_cmd,
 )
 

@@ -99,7 +99,6 @@ from pyUltroid.fns.info import get_chat_info
 from . import (
     HNDLR,
     LOGS,
-    Image,
     ReTrieveFile,
     Telegraph,
     asst,
@@ -422,10 +421,13 @@ async def _(ult):
 )
 async def abs_rmbg(event):
     RMBG_API = udB.get_key("RMBG_API")
+    if not Image:
+        return await event.eor(f"`Install 'Pillow' module to use this..`")
     if not RMBG_API:
         return await event.eor(
             "Get your API key from [here](https://www.remove.bg/) for this plugin to work.",
         )
+
     match = event.pattern_match.group(1).strip()
     reply = await event.get_reply_message()
     if match and os.path.exists(match):
@@ -476,6 +478,8 @@ async def abs_rmbg(event):
     pattern="telegraph( (.*)|$)",
 )
 async def telegraphcmd(event):
+    if not Image:
+        return await event.eor(f"`Install 'Pillow' module to use this..`")
     xx = await event.eor(get_string("com_1"))
     match = event.pattern_match.group(1).strip() or "Ultroid"
     reply = await event.get_reply_message()

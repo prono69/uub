@@ -3,6 +3,7 @@
 # This file is a part of < https://github.com/TeamUltroid/Ultroid/ >
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
+
 """
 ✘ Commands Available -
 
@@ -23,6 +24,7 @@
 """
 
 import os
+import re
 from datetime import datetime as dt
 
 from bs4 import BeautifulSoup as bs
@@ -31,12 +33,13 @@ try:
     from htmlwebshot import WebShot
 except ImportError:
     WebShot = None
+
 try:
     from img2html.converter import Img2HTMLConverter
 except ImportError:
     Img2HTMLConverter = None
 
-from . import async_searcher, get_random_user_data, get_string, re, ultroid_cmd
+from . import async_searcher, get_random_user_data, get_string, ultroid_cmd
 
 
 @ultroid_cmd(pattern="eod$")
