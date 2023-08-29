@@ -23,8 +23,9 @@ from pyUltroid.fns.helper import *
 from pyUltroid.fns.misc import *
 from pyUltroid.fns.tools import *
 from pyUltroid.custom.functions import *
-from pyUltroid.startup._database import _BaseDatabase
-from pyUltroid.version import __version__, ultroid_version
+
+# from pyUltroid.startup._database import _BaseDatabase
+from pyUltroid.version import __version__, ultroid_version, moi_version
 from strings import get_help, get_string
 
 
@@ -34,15 +35,19 @@ Telegraph = telegraph_client()
 Redis = udB.get_key
 con = TgConverter
 
+# udB: _BaseDatabase
+# asst: UltroidClient
+# ultroid_bot: UltroidClient
+
 OWNER_NAME = ultroid_bot.full_name
 OWNER_ID = ultroid_bot.uid
 
-udB: _BaseDatabase
-ultroid_bot: UltroidClient
-asst: UltroidClient
-
 LOG_CHANNEL = udB.get_key("LOG_CHANNEL")
 TAG_LOG = udB.get_key("TAG_LOG")
+
+# used in plugins, don't touch
+InlinePlugin = {}
+STUFF = {}
 
 
 def inline_pic():
@@ -54,13 +59,12 @@ def inline_pic():
     return INLINE_PIC
 
 
+# extra stuff
 List = []
 Dict = {}
-InlinePlugin = {}
 N = 0
-cmd = ultroid_cmd
-STUFF = {}
-
+h1, h2 = [], {}
+h3, h4 = set(), 0
 
 # Chats, which needs to be ignore for some cases
 # Considerably, there can be many
@@ -74,20 +78,7 @@ NOSPAM_CHAT = [
     -1001473548283,  # SharingUserbot
 ]
 
-KANGING_STR = [
-    "Using Witchery to kang this sticker...",
-    "Plagiarising hehe...",
-    "Inviting this sticker over to my pack...",
-    "Kanging this sticker...",
-    "Hey that's a nice sticker!\nMind if I kang?!..",
-    "Hehe me stel ur stiker...",
-    "Ay look over there (☉｡☉)!→\nWhile I kang this...",
-    "Roses are red violets are blue, kanging this sticker so my pack looks cool",
-    "Imprisoning this sticker...",
-    "Mr.Steal-Your-Sticker is stealing this sticker... ",
-]
-
-ATRA_COL = [
+ATRA_COL = (
     "DarkCyan",
     "DeepSkyBlue",
     "DarkTurquoise",
@@ -100,11 +91,4 @@ ATRA_COL = [
     "Azure",
     "Moccasin",
     "PowderBlue",
-]
-
-# incase we need it..
-STUFF_1 = []
-STUFF_2 = {}
-STUFF_3 = []
-STUFF_4 = {}
-STUFF_5 = set()
+)

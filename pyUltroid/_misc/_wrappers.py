@@ -5,6 +5,8 @@
 # PLease read the GNU Affero General Public License in
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
+__all__ = ("eod", "eor")
+
 from asyncio import sleep
 
 from telethon.errors import MessageDeleteForbiddenError, MessageNotModifiedError

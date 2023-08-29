@@ -5,6 +5,8 @@
 # PLease read the GNU Affero General Public License in
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
+__all__ = ("asst_cmd", "callback", "in_pattern")
+
 import inspect
 import re
 from traceback import format_exc

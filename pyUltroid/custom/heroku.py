@@ -1,5 +1,7 @@
 # for Heroku ;_;
 
+__all__ = ("Heroku",)
+
 try:
     import heroku3
 except ImportError:
