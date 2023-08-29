@@ -400,19 +400,21 @@ int main(){
 """
 
 
-@ultroid_cmd(pattern="cpp", only_devs=True, fullsudo=True)
-async def doie(e):
-    match = e.text.split(" ", maxsplit=1)
-    try:
-        match = match[1]
-    except IndexError:
+@ultroid_cmd(
+    pattern="cpp( ([\s\S]*)|$)",
+    only_devs=True,
+    fullsudo=True,
+)
+async def cpp_compiler(e):
+    match = e.pattern_match.group(2)
+    if not match:
         return await e.eor(get_string("devs_3"))
+
     msg = await e.eor(get_string("com_1"))
     if "main(" not in match:
         new_m = "".join(" " * 4 + i + "\n" for i in match.split("\n"))
         match = DUMMY_CPP.replace("!code", new_m)
-    with open("cpp-ultroid.cpp", "w+") as f:
-        f.write(match)
+    await asyncwrite("cpp-ultroid.cpp", match, mode="w+")
     m = await bash("g++ -o CppUltroid cpp-ultroid.cpp")
     o_cpp = f"• **Eval-Cpp**\n`{match}`"
     if m[1]:
@@ -434,22 +436,24 @@ async def doie(e):
             await msg.reply(f"`{match}`", file=out_file)
     else:
         await eor(msg, o_cpp)
-    os.remove("CppUltroid")
-    os.remove("cpp-ultroid.cpp")
+    osremove("CppUltroid", "cpp-ultroid.cpp")
 
 
-# for running C code with gcc (no dummy cpp)
-@ultroid_cmd(pattern="gcc", only_devs=True, fullsudo=True)
+# for running C code with gcc (w/o dummy cpp)
+@ultroid_cmd(
+    pattern="gcc( ([\s\S]*)|$)",
+    only_devs=True,
+    fullsudo=True,
+)
 async def _gcc_compiler(e):
-    try:
-        match = e.text.split(" ", maxsplit=1)[1]
-    except IndexError:
+    match = e.pattern_match.group(2)
+    if not match:
         return await e.eor(get_string("devs_3"))
+
     msg = await e.eor(get_string("com_1"))
-    with open("ultroid.c", "w+") as f:
-        f.write(match)
+    await asyncwrite("ultroid.c", match, mode="w+")
     m = await bash("gcc ultroid.c -o ultroid.out")
-    out = f"• **Eval-C**\n```{match}```"
+    out = f"• **Eval-GCC**\n```{match}```"
     if m[1]:
         out += f"\n\n**• Error :**\n```{m[1]}```"
         osremove("ultroid.c", "ultroid.out")

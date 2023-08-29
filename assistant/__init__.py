@@ -5,6 +5,8 @@
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
 
+import re
+
 from telethon import Button, custom
 
 from plugins import ATRA_COL, InlinePlugin

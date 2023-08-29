@@ -10,10 +10,11 @@
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+__all__ = ("pyroUL", "pyroDL", "pyro_progress")
+
 import asyncio
 from time import time
 from io import BytesIO
-from PIL import Image, ImageFilter
 from random import choice, choices
 from pathlib import Path
 from mimetypes import guess_extension
@@ -22,7 +23,6 @@ from string import ascii_lowercase
 
 # from mimetypes import guess_all_extensions
 
-from music_tag import load_file
 from pyrogram.errors import ChannelInvalid
 from telethon.utils import get_display_name
 from telethon.errors import (
@@ -46,6 +46,16 @@ from pyUltroid.fns.helper import (
     progress,
     time_formatter,
 )
+
+try:
+    from music_tag import load_file
+except ImportError:
+    load_file = None
+
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -692,15 +702,18 @@ async def videoThumb(path, duration):
 
 
 async def audioThumb(path):
+    if not (Image and load_file):
+        return DEFAULT_THUMB
     rnds = "".join(choices(ascii_lowercase, k=8))
-    thumby = Path(check_filename(f"resources/temp/{rnds}.jpg"))
+    thumby = check_filename(f"resources/temp/{rnds}.jpg")
     try:
-        if not (album_art := load_file(path).get("artwork")):
-            return LOGS.warning(f"no artwork found: {path}")
-        data = album_art.value.data
-        thumb = Image.open(BytesIO(data))
-        thumb.save(str(thumby))
-        return str(thumby) if thumby.exists() else DEFAULT_THUMB
+        load = load_file(path)
+        if not (album_art := load.get("artwork")):
+            return LOGS.warning(f"no artwork found for: {path}")
+
+        thumb = Image.open(BytesIO(album_art.values[0].data))
+        thumb.save(thumby)
+        return thumby if Path(thumby).exists() else DEFAULT_THUMB
     except BaseException as exc:
         LOGS.error(exc)
         return DEFAULT_THUMB
