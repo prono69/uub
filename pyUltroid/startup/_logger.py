@@ -1,3 +1,11 @@
+__all__ = (
+    "LOGS",
+    "HOSED_ON",
+    "TelethonLogger",
+    "where_hosted",
+    "LOG_HANDLERS",
+)
+
 import logging
 from ast import literal_eval
 from os import environ

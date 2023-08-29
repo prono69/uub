@@ -17,11 +17,6 @@ from secrets import choice as schoice
 
 from pyUltroid.exceptions import DependencyMissingError
 
-try:
-    from aiohttp import ContentTypeError
-except ImportError:
-    ContentTypeError = None
-
 from telethon.tl import types
 from telethon.utils import get_display_name, get_peer_id
 
@@ -414,7 +409,7 @@ class Quotly:
         }
         try:
             request = await async_searcher(url, post=True, json=content, re_json=True)
-        except ContentTypeError as er:
+        except aiohttp.ContentTypeError as er:
             if url != self._API:
                 return await self.create_quotly(
                     event,
@@ -464,3 +459,19 @@ def random_string(length=12, numbers=False, symbols=False):
 
 
 setattr(random, "random_string", random_string)
+
+
+__all__ = (
+    "Quotly",
+    "ReTrieveFile",
+    "YtDataScraper",
+    "allcmds",
+    "get_random_user_data",
+    "get_synonyms_or_antonyms",
+    "google_search",
+    "random_string",
+    "randomchannel",
+    "rotate_image",
+    "split_list",
+    "unsplashsearch",
+)

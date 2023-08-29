@@ -1,6 +1,8 @@
 # Written by dot arc (@moiusrname)
 # Bing Scrapper Source: https://github.com/gurugaurav/bing_image_downloader
 
+__all__ = ("BingScrapper",)
+
 import asyncio
 import imghdr
 from functools import partial

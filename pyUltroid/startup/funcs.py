@@ -579,3 +579,19 @@ async def enable_inline(ultroid_bot, username):
     await asyncio.sleep(1)
     await ultroid_bot.send_message(bf, "Search")
     await ultroid_bot.send_read_acknowledge(bf)
+
+
+__all__ = (
+    "_version_changes",
+    "autopilot",
+    "enable_inline",
+    "autobot",
+    "startup_stuff",
+    "update_envs",
+    "autoupdate_local_database",
+    "ready",
+    "plug",
+    "fetch_ann",
+    "customize",
+    "WasItRestart",
+)

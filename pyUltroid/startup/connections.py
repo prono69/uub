@@ -5,6 +5,8 @@
 # PLease read the GNU Affero General Public License in
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
+__all__ = ("validate_session", "vc_connection", "connect_ub")
+
 import base64
 import ipaddress
 import struct

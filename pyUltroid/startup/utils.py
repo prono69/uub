@@ -5,12 +5,14 @@
 # PLease read the GNU Affero General Public License in
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
+__all__ = ("load_addons",)
+
 from importlib import util
 from sys import modules
 
 # for addons
 
-configPaths = [
+configPaths = (
     "ub",
     "var",
     "support",
@@ -25,7 +27,7 @@ configPaths = [
     "fridaybot.utils",
     "fridaybot.Config",
     "userbot.uniborgConfig",
-]
+)
 
 
 def load_addons(plugin_name):

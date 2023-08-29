@@ -25,7 +25,7 @@ from .tools import async_searcher
 
 http.client._MAXHEADERS = 1000
 
-args_list = [
+args_list = (
     "keywords",
     "keywords_from_file",
     "prefix_keywords",
@@ -65,7 +65,9 @@ args_list = [
     "no_download",
     "save_source",
     "ignore_urls",
-]
+)
+
+__all__ = ("googleimagesdownload",)
 
 
 class googleimagesdownload:

@@ -257,3 +257,16 @@ def get_videos_link(url):
         link = re.search(r"\?v=([(\w+)\-]*)", vid["link"]).group(1)
         to_return.append(f"https://youtube.com/watch?v={link}")
     return to_return
+
+
+__all__ = (
+    "dler",
+    "download_yt",
+    "extract_info",
+    "get_buttons",
+    "get_formats",
+    "get_videos_link",
+    "get_yt_link",
+    "ytdl_progress",
+    "ytdownload",
+)

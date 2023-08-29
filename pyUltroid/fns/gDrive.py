@@ -5,6 +5,8 @@
 # PLease read the GNU Affero General Public License in
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
+__all__ = ("GDriveManager",)
+
 import time
 from io import FileIO
 from logging import WARNING

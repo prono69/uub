@@ -561,6 +561,7 @@ def telegraph_client():
     if not Telegraph:
         LOGS.info("'Telegraph' is not Installed!")
         return
+
     if TELEGRAPH:
         return TELEGRAPH[0]
 
@@ -571,6 +572,7 @@ def telegraph_client():
     if token:
         TELEGRAPH.append(TelegraphClient)
         return TelegraphClient
+
     gd_name = ultroid_bot.full_name
     short_name = gd_name[:30]
     profile_url = (
@@ -588,8 +590,8 @@ def telegraph_client():
                 short_name="ultroiduser", author_name=gd_name, author_url=profile_url
             )
         else:
-            LOGS.exception(er)
-            return
+            return LOGS.exception(er)
+
     udB.set_key("_TELEGRAPH_TOKEN", TelegraphClient.get_access_token())
     TELEGRAPH.append(TelegraphClient)
     return TelegraphClient
@@ -908,18 +910,17 @@ class TgConverter:
                     )
 
 
-def _get_value(stri):
-    try:
-        value = eval(stri.strip())
-    except Exception as er:
-        # from .. import LOGS
-
-        # LOGS.debug(er)
-        value = stri.strip()
-    return value
-
-
 def safe_load(file, *args, **kwargs):
+    def _get_value(stri):
+        try:
+            value = eval(stri.strip())
+        except Exception:
+            # from .. import LOGS
+
+            # LOGS.debug(er)
+            value = stri.strip()
+        return value
+
     if isinstance(file, str):
         read = file.split("\n")
     else:
@@ -952,3 +953,40 @@ def get_chat_and_msgid(link):
 
 
 # --------- END --------- #
+
+__all__ = (
+    "Carbon",
+    "LogoHelper",
+    "TgConverter",
+    "_get_value",
+    "_package_rpc",
+    "_unquote_text",
+    "cmd_regex_replace",
+    "create_tl_btn",
+    "duration_s",
+    "format_btn",
+    "four_point_transform",
+    "genss",
+    "get_all_files",
+    "get_chat_and_msgid",
+    "get_chatbot_reply",
+    "get_file_link",
+    "get_google_images",
+    "get_msg_button",
+    "get_ofox",
+    "get_paste",
+    "get_stored_file",
+    "is_url_ok",
+    "json_parser",
+    "make_html_telegraph",
+    "metadata",
+    "order_points",
+    "saavn_search",
+    "safe_load",
+    "set_attributes",
+    "stdr",
+    "telegraph_client",
+    "text_set",
+    "translate",
+    "webuploader",
+)

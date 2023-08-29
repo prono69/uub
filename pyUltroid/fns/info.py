@@ -5,6 +5,7 @@
 # PLease read the GNU Affero General Public License in
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
+__all__ = ("get_uinfo", "get_chat_info")
 
 # -----------------Random Stuff--------------
 

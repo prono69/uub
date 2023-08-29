@@ -1,4 +1,4 @@
-__all__ = []
+__all__ = tuple()
 
 import asyncio
 from os import environ, system

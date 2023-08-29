@@ -5,6 +5,8 @@
 # PLease read the GNU Affero General Public License in
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
+__all__ = ("_after_load", "load_other_plugins")
+
 import os
 import subprocess
 import sys

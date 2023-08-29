@@ -12,7 +12,7 @@ from telethon.tl.functions.messages import SaveGifRequest
 from telethon.utils import get_display_name, get_input_document
 from telethon.tl.types import InputMessagesFilterPhotos
 
-from ._loop import loop, run_async_task
+from ._loop import loop, run_async_task, tasks_db
 from pyUltroid.startup import LOGS, HOSTED_ON
 from pyUltroid.fns.helper import async_searcher, osremove, asyncread, asyncwrite
 from pyUltroid.fns.misc import random_string
@@ -185,13 +185,15 @@ class unix_parser:
             return data
 
 
-__all__ = [
+__all__ = (
     "timeit",
     "cleargif",
     "osremove",
     "get_imgbb_link",
+    "loop",
     "random_pic",
     "run_async_task",
     "scheduler",
+    "tasks_db",
     "unix_parser",
-]
+)

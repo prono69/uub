@@ -18,7 +18,7 @@ if os.getenv("__TELEPATCH__") == "true":
 
 
 from .version import __version__, ultroid_version
-from .custom.init import loop, tasks_db
+from .custom.init import *
 from .configs import Var
 from .startup import *
 
@@ -31,14 +31,24 @@ class ULTConfig:
 _ult_cache = {}
 _ignore_eval = []
 
-from .custom.init import afterBoot
-from .startup._database import udB
-from .startup.BaseClient import UltroidClient
-from .startup.connections import validate_session, vc_connection
-from .startup.funcs import autobot, enable_inline
+# database stuff
+from .startup._database import UltroidDB as _UltroidDB
+
+LOGS.info("Connecting to Database..")
+udB = _UltroidDB()
+LOGS.info(f"Connected to {udB.name} Successfully!")
 
 
-afterBoot(udB)
+from .custom.init import afterBoot as _afterBoot
+from .startup.BaseClient import UltroidClient as _UltroidClient
+from .startup.connections import (
+    validate_session as _validate_session,
+    vc_connection as _vc_connection,
+)
+from .startup.funcs import autobot as _autobot, enable_inline as _enable_inline
+
+
+_afterBoot(udB)
 BOT_MODE = udB.get_key("BOTMODE")
 DUAL_MODE = udB.get_key("DUAL_MODE")
 
@@ -56,19 +66,19 @@ if BOT_MODE:
         LOGS.critical('"BOT_TOKEN" not Found! Please add it, in order to use "BOTMODE"')
         quit()
 else:
-    ultroid_bot = UltroidClient(
-        validate_session(Var.SESSION, LOGS),
+    ultroid_bot = _UltroidClient(
+        _validate_session(Var.SESSION, LOGS),
         udB=udB,
         app_version=ultroid_version,
         device_model="Ultroid",
         proxy=udB.get_key("TG_PROXY"),
     )
-    ultroid_bot.run_in_loop(autobot())
+    ultroid_bot.run_in_loop(_autobot())
 
 if USER_MODE:
     asst = ultroid_bot
 else:
-    asst = UltroidClient(None, bot_token=udB.get_key("BOT_TOKEN"), udB=udB)
+    asst = _UltroidClient(None, bot_token=udB.get_key("BOT_TOKEN"), udB=udB)
 
 if BOT_MODE:
     ultroid_bot = asst
@@ -80,17 +90,17 @@ if BOT_MODE:
         except Exception as er:
             LOGS.exception(er)
 elif not asst.me.bot_inline_placeholder:
-    ultroid_bot.run_in_loop(enable_inline(ultroid_bot, asst.me.username))
+    ultroid_bot.run_in_loop(_enable_inline(ultroid_bot, asst.me.username))
 
-vcClient = vc_connection(udB, ultroid_bot)
+
+vcClient = _vc_connection(udB, ultroid_bot)
 
 
 HNDLR = udB.get_key("HNDLR") or "."
 DUAL_HNDLR = udB.get_key("DUAL_HNDLR") or "/"
 SUDO_HNDLR = udB.get_key("SUDO_HNDLR") or HNDLR
 
-# multidb, version_change, updatenv
-del vc_connection, autobot, enable_inline
-from .custom.startup_helper import handle_post_startup
 
-handle_post_startup()
+from .custom.startup_helper import _handle_post_startup
+
+_handle_post_startup()

@@ -1,5 +1,7 @@
 # better mediainfo! - by @moiusrname (dot arc)
 
+__all__ = ("gen_mediainfo", "TGMediaInfo")
+
 import asyncio
 
 from os.path import getsize

@@ -442,6 +442,4 @@ def UltroidDB():
     quit(0)
 
 
-LOGS.info("Connecting to Database..")
-udB = UltroidDB()
-LOGS.info(f"Connected to {udB.name} Successfully!")
+__all__ = ("LocalDB", "MongoDB", "RedisDB", "SqlDB")
