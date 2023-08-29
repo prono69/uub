@@ -23,26 +23,23 @@ from .utils import load_addons
 def _after_load(loader, module, plugin_name=""):
     if not module or plugin_name.startswith("_"):
         return
+
     from strings import get_help
 
     if doc_ := get_help(plugin_name) or module.__doc__:
         try:
             doc = doc_.format(i=HNDLR)
-        except Exception as er:
-            loader._logger.exception(er)
-            loader._logger.info(f"Error in {plugin_name}: {module}")
-            return
-        if loader.key in HELP.keys():
-            update_cmd = HELP[loader.key]
-            try:
-                update_cmd.update({plugin_name: doc})
-            except BaseException as er:
-                loader._logger.exception(er)
-        else:
-            try:
-                HELP.update({loader.key: {plugin_name: doc}})
-            except BaseException as em:
-                loader._logger.exception(em)
+        except Exception:
+            return loader._logger.exception(f"Error in {plugin_name}: {module}")
+
+        try:
+            if HELP.get(loader.key) == None:
+                HELP[loader.key] = {}
+            HELP[loader.key][plugin_name] = doc
+        except Exception:
+            loader._logger.exception(
+                f"Error in adding __doc__ of {plugin_name} to HELP!"
+            )
 
 
 def load_other_plugins(addons=None, pmbot=None, manager=None, vcbot=None):
@@ -66,23 +63,21 @@ def load_other_plugins(addons=None, pmbot=None, manager=None, vcbot=None):
 
     # for addons
     if addons:
-        if url := udB.get_key("ADDONS_URL"):
-            subprocess.run(f"git clone -q {url} addons", shell=True)
-        if os.path.exists("addons") and not os.path.exists("addons/.git"):
-            rmtree("addons")
-        if not os.path.exists("addons"):
-            subprocess.run(
-                f"git clone -q -b {Repo().active_branch} https://github.com/TeamUltroid/UltroidAddons.git addons",
-                shell=True,
+
+        def _fetch_addons():
+            url = (
+                udB.get_key("ADDONS_URL")
+                or "https://github.com/TeamUltroid/UltroidAddons.git"
             )
-        else:
-            subprocess.run("cd addons && git pull -q && cd ..", shell=True)
+            subprocess.run(f"git clone -q {url} addons", shell=True)
 
         if not os.path.exists("addons"):
-            subprocess.run(
-                "git clone -q https://github.com/TeamUltroid/UltroidAddons.git addons",
-                shell=True,
-            )
+            _fetch_addons()
+        if not os.path.exists("addons/.git"):
+            rmtree("addons")
+            _fetch_addons()
+        else:
+            subprocess.run("(cd addons && git pull --rebase)", shell=True)
 
         """
         if os.path.exists("addons/addons.txt"):
@@ -122,19 +117,19 @@ def load_other_plugins(addons=None, pmbot=None, manager=None, vcbot=None):
     if vcbot and not vcClient._bot:
         try:
             import pytgcalls  # ignore: pylint
-
-            if os.path.exists("vcbot"):
-                if os.path.exists("vcbot/.git"):
-                    subprocess.run("cd vcbot && git pull -q --rebase", shell=True)
-            else:
-                subprocess.run(
-                    "git clone https://github.com/TeamUltroid/VcBot vcbot",
-                    shell=True,
-                )
-            try:
-                os.makedirs("vcbot/downloads", exist_ok=True)
-                Loader(path="vcbot", key="VCBot").load(after_load=_after_load)
-            except FileNotFoundError as e:
-                LOGS.error(f"{e} Skipping VCBot Installation.")
         except ModuleNotFoundError:
-            LOGS.error("'pytgcalls' not installed!\nSkipping loading of VCBOT.")
+            return LOGS.error("'pytgcalls' not installed!\nSkipping loading of VCBOT.")
+
+        if os.path.exists("vcbot"):
+            if os.path.exists("vcbot/.git"):
+                subprocess.run("(cd vcbot && git pull --rebase)", shell=True)
+        else:
+            subprocess.run(
+                "git clone https://github.com/TeamUltroid/VcBot vcbot",
+                shell=True,
+            )
+        try:
+            os.makedirs("vcbot/downloads", exist_ok=True)
+            Loader(path="vcbot", key="VCBot").load(after_load=_after_load)
+        except (FileNotFoundError, Exception) as exc:
+            LOGS.error(f"Skipping VCBot Installation - {exc}")

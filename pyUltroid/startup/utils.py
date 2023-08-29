@@ -32,6 +32,7 @@ def load_addons(plugin_name):
     base_name = plugin_name.split("/")[-1].split("\\")[-1].replace(".py", "")
     if base_name.startswith("__"):
         return
+
     from pyUltroid import fns
 
     from .. import HNDLR, LOGS, asst, udB, ultroid_bot
@@ -86,14 +87,10 @@ def load_addons(plugin_name):
     spec.loader.exec_module(mod)
     modules[name] = mod
     doc = modules[name].__doc__.format(i=HNDLR) if modules[name].__doc__ else ""
-    if "Addons" in HELP.keys():
-        update_cmd = HELP["Addons"]
-        try:
-            update_cmd.update({base_name: doc})
-        except BaseException:
-            pass
-    else:
-        try:
+    try:
+        if "Addons" in HELP.keys():
+            HELP["Addons"][base_name] = doc
+        else:
             HELP.update({"Addons": {base_name: doc}})
-        except BaseException as em:
-            pass
+    except Exception:
+        pass

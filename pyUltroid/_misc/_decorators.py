@@ -33,6 +33,7 @@ from telethon.errors.rpcerrorlist import (
     UserIsBotError,
 )
 from telethon.events import MessageEdited, NewMessage
+from telethon.tl.types import MessageMediaWebPage
 from telethon.utils import get_display_name
 
 from .. import *
@@ -83,6 +84,12 @@ def ultroid_cmd(
     def decor(dec):
         @wraps(dec)
         async def wrapp(ult):
+            if (ult.media and not isinstance(ult.media, MessageMediaWebPage)) or (
+                isinstance(ult, MessageEdited.Event)
+                and getattr(ult.message, "edit_hide", None)
+            ):
+                return
+
             if not ult.out:
                 if owner_only:
                     return
@@ -95,11 +102,6 @@ def ultroid_cmd(
                     )
                 if fullsudo and ult.sender_id not in SUDO_M.fullsudos:
                     return await eod(ult, get_string("py_d2"), time=15)
-
-            if isinstance(ult, MessageEdited.Event) and getattr(
-                ult.message, "edit_hide", None
-            ):
-                return
 
             chat = ult.chat
 
