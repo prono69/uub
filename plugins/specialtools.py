@@ -285,7 +285,8 @@ async def wall(event):
         return await event.eor("`Give me something to search..`")
     nn = await event.eor(get_string("com_1"))
     query = f"hd {inp}"
-    images = await get_google_images(query)
+    if not (images := await get_google_images(query)):
+        return await nn.eor(f"`No walls found for {inp}..`", time=6)
     for z in range(5):
         await event.client.send_file(event.chat_id, file=images[z]["original"])
     await nn.delete()

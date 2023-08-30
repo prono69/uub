@@ -5,10 +5,11 @@
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
 
-
-import os
+import asyncio
 import time
 from datetime import datetime as dt
+from pathlib import Path
+from shlex import quote
 
 from pyUltroid.fns.tools import set_attributes
 
@@ -16,6 +17,7 @@ from . import (
     LOGS,
     ULTConfig,
     bash,
+    check_filename,
     downloader,
     eod,
     eor,
@@ -24,6 +26,7 @@ from . import (
     get_string,
     humanbytes,
     mediainfo,
+    osremove,
     stdr,
     time_formatter,
     ultroid_cmd,
@@ -34,30 +37,43 @@ __doc__ = get_help("help_audiotools")
 
 
 @ultroid_cmd(pattern="makevoice$")
-async def vnc(e):
-    if not e.reply_to:
-        return await eod(e, get_string("audiotools_1"))
-    r = await e.get_reply_message()
-    if not mediainfo(r.media).startswith(("audio", "video")):
-        return await eod(e, get_string("spcltool_1"))
-    xxx = await e.eor(get_string("com_1"))
-    file, _ = await e.client.fast_downloader(
-        r.document,
-    )
-    await xxx.edit(get_string("audiotools_2"))
-    await bash(
-        f"ffmpeg -i '{file.name}' -map 0:a -codec:a libopus -b:a 100k -vbr on out.opus"
-    )
+async def to_voice(e):
+    reply = await e.get_reply_message()
+    if not (reply and reply.media and mediainfo(reply.media) == "audio"):
+        return await e.eor("`Reply to Audio file...`", time=5)
+
+    eris = await e.eor("›› __Converting to Voice..__")
     try:
-        await e.client.send_message(
-            e.chat_id, file="out.opus", force_document=False, reply_to=r
+        dl = await e.client.fast_downloader(
+            reply.document,
+            show_progress=True,
+            event=eris,
         )
-    except Exception as er:
-        LOGS.exception(er)
-        return await xxx.edit("`Failed to convert in Voice...`")
-    await xxx.delete()
-    os.remove(file.name)
-    os.remove("out.opus")
+        dl_path = dl[0].name
+        opus_path = check_filename(Path(dl_path).with_suffix(".opus"))
+        await eris.edit(get_string("audiotools_2"))
+        cmd = f"ffmpeg -hide_banner -loglevel error -i {quote(dl_path)} -c:a libopus -b:a 64k -vbr on -compression_level 9 -application audio {quote(opus_path)} -y"
+        await bash(cmd)
+        await asyncio.sleep(2)
+        tgfile, _ = await e.client.fast_uploader(
+            opus_path,
+            event=eris,
+            show_progress=True,
+        )
+        osremove(dl_path, opus_path)
+        caption = f"`{Path(opus_path).name}`"
+        await e.client.send_file(
+            e.chat_id,
+            tgfile,
+            voice_note=True,
+            caption=caption,
+            silent=e.reply_to,
+            reply_to=e.reply_to_msg_id or e.id,
+        )
+        await eris.delete()
+    except Exception as exc:
+        LOGS.exception(exc)
+        await eris.edit(f"**Error while Converting to Voice:** \n`{exc}`")
 
 
 @ultroid_cmd(pattern="atrim( (.*)|$)")
@@ -88,13 +104,13 @@ async def trim_aud(e):
             f"Downloading {name}...",
         )
 
-        o_size = os.path.getsize(file.name)
+        o_size = Path(file.name).stat().st_size
         d_time = time.time()
         diff = time_formatter((d_time - c_time) * 1000)
         file_name = (file.name).split("/")[-1]
         out = file_name.replace(file_name.split(".")[-1], "_trimmed.aac")
         if int(b) > int(await genss(file.name)):
-            os.remove(file.name)
+            osremove(file.name)
             return await eod(xxx, get_string("audiotools_6"))
         ss, dd = stdr(int(a)), stdr(int(b))
         xxx = await xxx.edit(
@@ -102,7 +118,7 @@ async def trim_aud(e):
         )
         cmd = f'ffmpeg -i "{file.name}" -preset ultrafast -ss {ss} -to {dd} -vn -acodec copy "{out}" -y'
         await bash(cmd)
-        os.remove(file.name)
+        osremove(file.name)
         f_time = time.time()
         mmmm = await uploader(out, out, f_time, xxx, f"Uploading {out}...")
         attributes = await set_attributes(out)
@@ -142,7 +158,7 @@ async def ex_aud(e):
     out_file = f"{file.name}.aac"
     cmd = f"ffmpeg -i {file.name} -vn -acodec copy {out_file}"
     o, err = await bash(cmd)
-    os.remove(file.name)
+    osremove(file.name)
     attributes = await set_attributes(out_file)
 
     f_time = time.time()

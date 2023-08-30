@@ -38,11 +38,11 @@
     shorten any url...
 """
 
+import asyncio
 import glob
 import io
 import os
 import secrets
-from asyncio.exceptions import TimeoutError as AsyncTimeout
 from shlex import quote as shquote
 
 try:
@@ -86,6 +86,7 @@ from . import (
     json_parser,
     mediainfo,
     osremove,
+    ultroid_bot,
     ultroid_cmd,
 )
 
@@ -356,49 +357,42 @@ async def _(e):
 
 
 @ultroid_cmd(
-    pattern="sg( (.*)|$)",
+    pattern="sgb?( (.*)|$)",
 )
-async def lastname(steal):
-    mat = steal.pattern_match.group(1).strip()
-    message = await steal.get_reply_message()
-    if mat:
+async def sangmata_names(e):
+    # merged with sangmata beta
+    args = e.pattern_match.group(2)
+    reply = await e.get_reply_message()
+    if args:
         try:
-            user_id = await steal.client.parse_id(mat)
+            user_id = await e.client.parse_id(args)
         except ValueError:
-            user_id = mat
-    elif message:
-        user_id = message.sender_id
+            user_id = args
+    elif reply:
+        user_id = reply.sender_id
     else:
-        return await steal.eor("`Use this command with reply or give Username/id...`")
-    chat = "@SangMataInfo_bot"
-    id = f"/search_id {user_id}"
-    lol = await steal.eor(get_string("com_1"))
+        return await e.eor("`Use this command with reply or give Username/id..`")
+
+    lol = await e.eor(get_string("com_1"))
+    chat = await ultroid_bot.get_input_entity("SangMata_beta_bot")
     try:
-        async with steal.client.conversation(chat) as conv:
-            try:
-                msg = await conv.send_message(id)
-                response = await conv.get_response()
-                respond = await conv.get_response()
-                responds = await conv.get_response()
-            except YouBlockedUserError:
-                return await lol.edit("Please unblock @sangmatainfo_bot and try again")
-            if (
-                (response and response.text == "No records found")
-                or (respond and respond.text == "No records found")
-                or (responds and responds.text == "No records found")
-            ):
-                await lol.edit("No records found for this user")
-            elif response.text.startswith("🔗"):
-                await lol.edit(respond.message)
-                await lol.reply(responds.message)
-            elif respond.text.startswith("🔗"):
-                await lol.edit(response.message)
-                await lol.reply(responds.message)
-            else:
-                await lol.edit(respond.message)
-                await lol.reply(response.message)
-    except AsyncTimeout:
-        await lol.edit("Error: @SangMataInfo_bot is not responding!.")
+        async with ultroid_bot.conversation(chat, timeout=15) as conv:
+            msg = await conv.send_message(str(user_id))
+            response = await conv.get_response()
+            if response and "no data available" in response.text.lower():
+                await lol.edit("`okbie, No records found for this user..`")
+            elif str(user_id) in response.message:
+                await lol.edit(response.text)
+    except YouBlockedUserError:
+        return await lol.edit(f"`Please unblock @SangMata_beta_bot and try again.`")
+    except asyncio.TimeoutError:
+        await lol.edit("`Bot didn't respond in time..`")
+    except Exception as ex:
+        LOGS.exception(ex)
+        await lol.edit(f"**Error:** `{ex}`")
+    finally:
+        await asyncio.sleep(3)  # incase of multiple messages
+        await ultroid_bot.send_read_acknowledge(chat)
 
 
 @ultroid_cmd(pattern="webshot( (.*)|$)")

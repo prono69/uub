@@ -10,6 +10,7 @@
 
 • `{i}destroy <reply to animated sticker>`
     To destroy the sticker.
+    Flags: -h = heavy, -s = soft
 
 • `{i}tiny <reply to media>`
     To create Tiny stickers.
@@ -28,7 +29,7 @@ import glob
 import io
 import os
 import random
-from os import remove
+from shlex import quote
 
 try:
     import cv2
@@ -58,12 +59,16 @@ from . import (
     LOGS,
     asst,
     async_searcher,
+    asyncread,
+    asyncwrite,
     bash,
+    check_filename,
     con,
     functions,
     get_string,
     inline_mention,
     mediainfo,
+    osremove,
     quotly,
     types,
     udB,
@@ -296,7 +301,7 @@ async def hehe(args):
                         await conv.get_response()
                         if is_anim:
                             await conv.send_file("AnimatedSticker.tgs")
-                            remove("AnimatedSticker.tgs")
+                            osremove("AnimatedSticker.tgs")
                         else:
                             if is_vid:
                                 file = photo
@@ -322,7 +327,7 @@ async def hehe(args):
                         return
                 if is_anim:
                     await conv.send_file("AnimatedSticker.tgs")
-                    remove("AnimatedSticker.tgs")
+                    osremove("AnimatedSticker.tgs")
                 elif "send me an emoji" not in x.message:
                     if is_vid:
                         file = photo
@@ -349,7 +354,7 @@ async def hehe(args):
                 await conv.get_response()
                 if is_anim:
                     await conv.send_file("AnimatedSticker.tgs")
-                    remove("AnimatedSticker.tgs")
+                    osremove("AnimatedSticker.tgs")
                 else:
                     if is_vid:
                         file = photo
@@ -375,14 +380,11 @@ async def hehe(args):
                 await conv.send_message(packname)
                 await conv.get_response()
                 await ultroid_bot.send_read_acknowledge(conv.chat_id)
+        osremove(photo)
         await xx.edit(
             get_string("sts_12").format(emoji, packname),
             parse_mode="md",
         )
-        try:
-            os.remove(photo)
-        except BaseException:
-            pass
 
 
 @ultroid_cmd(
@@ -417,49 +419,65 @@ async def ultdround(event):
         force_document=False,
         reply_to=event.reply_to_msg_id,
     )
+    osremove(file, "ult.webp")
     await xx.delete()
-    os.remove(file)
-    os.remove("ult.webp")
 
 
 @ultroid_cmd(
-    pattern="destroy$",
+    pattern="destroy( (-h|-s)|$)",
 )
-async def ultdestroy(event):
-    ult = await event.get_reply_message()
-    if not (ult and ult.media and "animated" in mediainfo(ult.media)):
-        return await event.eor(get_string("sts_2"))
-    await event.client.download_media(ult, "ultroid.tgs")
-    xx = await event.eor(get_string("com_1"))
-    await bash("lottie_convert.py ultroid.tgs json.json")
-    with open("json.json") as json:
-        jsn = json.read()
-    jsn = (
-        jsn.replace("[100]", "[200]")
-        .replace("[10]", "[40]")
-        .replace("[-1]", "[-10]")
-        .replace("[0]", "[15]")
-        .replace("[1]", "[20]")
-        .replace("[2]", "[17]")
-        .replace("[3]", "[40]")
-        .replace("[4]", "[37]")
-        .replace("[5]", "[60]")
-        .replace("[6]", "[70]")
-        .replace("[7]", "[40]")
-        .replace("[8]", "[37]")
-        .replace("[9]", "[110]")
-    )
-    open("json.json", "w").write(jsn)
-    file = await con.animated_sticker("json.json", "ultroid.tgs")
-    if file:
-        await event.client.send_file(
-            event.chat_id,
-            file="ultroid.tgs",
-            force_document=False,
-            reply_to=event.reply_to_msg_id,
+async def ult_destroyer(e):
+    reply = await e.get_reply_message()
+    if not (reply and reply.media and "animated" in mediainfo(reply.media)):
+        return await e.eor(get_string("sts_2"))
+
+    eris = await e.eor("`destroying...`")
+    args = e.pattern_match.group(2)
+    dl = await reply.download_media()
+    out_json = check_filename("json.json")
+    await bash(f"lottie_convert.py {quote(dl)} {quote(out_json)}")
+    stick = await asyncread(out_json)
+    if args == "-h":
+        for i in range(1, random.randint(10, 20)):
+            stick = random.choice(
+                (
+                    stick.replace(f"[{i}]", f"[{(i+i)*3}]"),
+                    stick.replace(f".{i}", f".{i}{i}"),
+                )
+            )
+    elif args == "-s":
+        stick = (
+            stick.replace("[1]", "[2]")
+            .replace("[2]", "[3]")
+            .replace("[3]", "[4]")
+            .replace("[4]", "[5]")
+            .replace("[5]", "[6]")
         )
-    await xx.delete()
-    os.remove("json.json")
+    else:
+        stick = (
+            stick.replace("[100]", "[200]")
+            .replace("[10]", "[40]")
+            .replace("[-1]", "[-10]")
+            .replace("[0]", "[15]")
+            .replace("[1]", "[20]")
+            .replace("[2]", "[17]")
+            .replace("[3]", "[40]")
+            .replace("[4]", "[37]")
+            .replace("[5]", "[60]")
+            .replace("[6]", "[70]")
+            .replace("[7]", "[40]")
+            .replace("[8]", "[37]")
+            .replace("[9]", "[110]")
+        )
+    await asyncwrite(out_json, stick, mode="w+")
+    out_tgs = check_filename("ultroid.tgs")
+    if file := await con.animated_sticker(out_json, out_tgs):
+        await reply.reply(file=file)
+    else:
+        osremove(dl, out_tgs, out_json)
+        return await eris.edit(f"`Error While Converting file to TGS..`")
+    osremove(dl, out_tgs, out_json)
+    await eris.delete()
 
 
 @ultroid_cmd(
@@ -481,7 +499,7 @@ async def ultiny(event):
         open("json.json", "w").write(jsn)
         await con.animated_sticker("json.json", "ult.tgs")
         file = "ult.tgs"
-        os.remove("json.json")
+        osremove("json.json")
     elif ik.endswith((".gif", ".webm", ".mp4")):
         iik = cv2.VideoCapture(ik)
         dani, busy = iik.read()
@@ -506,8 +524,7 @@ async def ultiny(event):
         back_im.paste(im2, (150, 0))
         back_im.save("o.webp", "WEBP", quality=95)
         file = "o.webp"
-        os.remove(fil)
-        os.remove("k.png")
+        osremove(file, "k.png")
     else:
         im = Image.open(ik)
         z, d = im.size
@@ -528,11 +545,11 @@ async def ultiny(event):
         back_im.paste(im2, (150, 0))
         back_im.save("o.webp", "WEBP", quality=95)
         file = "o.webp"
-        os.remove("k.png")
+        osremove("k.png")
     if os.path.exists(file):
         await event.client.send_file(
             event.chat_id, file, reply_to=event.reply_to_msg_id
         )
-        os.remove(file)
+        osremove(file)
     await xx.delete()
-    os.remove(ik)
+    osremove(ik)
