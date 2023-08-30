@@ -14,6 +14,7 @@ import string
 from logging import WARNING
 from traceback import format_exc
 from secrets import choice as schoice
+from urllib.parse import unquote
 
 from pyUltroid.exceptions import DependencyMissingError
 
@@ -135,12 +136,12 @@ async def google_search(query):
             result.append(
                 {
                     "title": data.find("div").text,
-                    "link": data["href"].split("&url=")[1].split("&ved=")[0],
+                    "link": unquote(data["href"].split("&url=")[1].split("&ved=")[0]),
                     "description": data.find_all("div")[-1].text,
                 }
             )
         except IndexError:
-            pass
+            continue
         except Exception as er:
             LOGS.exception(er)
     return result

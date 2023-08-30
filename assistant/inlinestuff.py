@@ -190,7 +190,7 @@ async def gsearch(q_event):
         )
     searcher = []
     gresults = await google_search(match)
-    for i in gresults:
+    for i in gresults[:50]:
         try:
             title = i["title"]
             link = i["link"]
@@ -221,7 +221,12 @@ async def gsearch(q_event):
             )
         except IndexError:
             break
-    await q_event.answer(searcher, switch_pm="Google Search.", switch_pm_param="start")
+    await q_event.answer(
+        searcher,
+        switch_pm="Google Search.",
+        switch_pm_param="start",
+        cache_time=30,
+    )
 
 
 @in_pattern("mods", fullsudo=True)
@@ -449,6 +454,9 @@ async def do_magic(event):
     await event.answer(ress, switch_pm=msg, switch_pm_param="start")
 
 
+"""
+# not free anymore
+
 # Thanks to OpenSource
 _bearer_collected = [
     "AAAAAAAAAAAAAAAAAAAAALIKKgEAAAAA1DRuS%2BI7ZRKiagD6KHYmreaXomo%3DP5Vaje4UTtEkODg0fX7nCh5laSrchhtLxeyEqxXpv0w9ZKspLD",
@@ -507,7 +515,7 @@ async def twitter_search(event):
         _ult_cache["twitter"].update({match: reso})
     else:
         _ult_cache.update({"twitter": {match: reso}})
-
+"""
 
 _savn_cache = {}
 
@@ -604,7 +612,7 @@ async def inline_tl(ult):
                 )
             )
     mo = f"Showing {len(res)} results!" if res else f"No Results for {match}!"
-    await ult.answer(res[:50], switch_pm=mo, switch_pm_param="start")
+    await ult.answer(res[:50], switch_pm=mo, switch_pm_param="start", cache_time=30)
 
 
 InlinePlugin.update(
@@ -616,7 +624,7 @@ InlinePlugin.update(
         "YᴏᴜTᴜʙᴇ Dᴏᴡɴʟᴏᴀᴅᴇʀ": "yt Ed Sheeran Perfect",
         "Piston Eval": "run javascript console.log('Hello Ultroid')",
         "OʀᴀɴɢᴇFᴏx🦊": "ofox beryllium",
-        "Tᴡɪᴛᴛᴇʀ Usᴇʀ": "twitter theultroid",
+        # "Tᴡɪᴛᴛᴇʀ Usᴇʀ": "twitter theultroid",
         "Fᴅʀᴏɪᴅ Sᴇᴀʀᴄʜ": "fdroid telegram",
         "Sᴀᴀᴠɴ sᴇᴀʀᴄʜ": "saavn",
         "Tʟ Sᴇᴀʀᴄʜ": "tl",
