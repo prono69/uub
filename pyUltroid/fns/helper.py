@@ -524,38 +524,40 @@ async def fast_download(download_url, filename=None, progress_callback=None):
 
 
 def mediainfo(media):
-    xx = str((str(media)).split("(", maxsplit=1)[0])
-    m = ""
-    if xx == "MessageMediaDocument":
-        mim = media.document.mime_type
-        if mim == "application/x-tgsticker":
-            m = "sticker animated"
-        elif "image" in mim:
-            if mim == "image/webp":
-                m = "sticker"
-            elif mim == "image/gif":
-                m = "gif as doc"
+    if isinstance(media, types.MessageMediaDocument):
+        mime = media.document.mime_type
+        if mime == "application/x-tgsticker":
+            return "sticker animated"
+        elif "video" in mime:
+            attrs = getattr(media.document, "attributes", None)
+            if attrs and any(
+                isinstance(i, types.DocumentAttributeAnimated) for i in attrs
+            ):
+                return "gif"
+            elif attrs and any(
+                isinstance(i, types.DocumentAttributeSticker) for i in attrs
+            ):
+                return "sticker video"
+            streamable = (
+                getattr(attrs[0], "supports_streaming", None) if attrs else None
+            )
+            return "video" if streamable else "video as doc"
+        elif "image" in mime:
+            if mime == "image/webp":
+                return "sticker"
+            elif mime == "image/gif":
+                return "gif as doc"
             else:
-                m = "pic as doc"
-        elif "video" in mim:
-            if "DocumentAttributeAnimated" in str(media):
-                m = "gif"
-            elif "DocumentAttributeSticker" in str(media):
-                m = "sticker video"
-            elif "DocumentAttributeVideo" in str(media):
-                attrs = str(media.document.attributes[0])
-                m = "video" if "supports_streaming=True" in attrs else "video as doc"
-            else:
-                m = "video as doc"
-        elif "audio" in mim:
-            m = "audio"
-        else:
-            m = "document"
-    elif xx == "MessageMediaPhoto":
-        m = "pic"
-    elif xx == "MessageMediaWebPage":
-        m = "web"
-    return m
+                return "pic as doc"
+        elif "audio" in mime:
+            return "audio"
+        return "document"
+    elif isinstance(media, types.MessageMediaPhoto):
+        return "pic"
+    elif isinstance(media, types.MessageMediaWebPage):
+        return "web"
+    else:
+        return ""
 
 
 # ------------------Some Small Funcs----------------

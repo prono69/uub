@@ -396,8 +396,7 @@ using namespace std;
 
 int main(){
 !code
-}
-"""
+}"""
 
 
 @ultroid_cmd(
@@ -414,28 +413,31 @@ async def cpp_compiler(e):
     if "main(" not in match:
         new_m = "".join(" " * 4 + i + "\n" for i in match.split("\n"))
         match = DUMMY_CPP.replace("!code", new_m)
+
     await asyncwrite("cpp-ultroid.cpp", match, mode="w+")
     m = await bash("g++ -o CppUltroid cpp-ultroid.cpp")
     o_cpp = f"• **Eval-Cpp**\n`{match}`"
     if m[1]:
         o_cpp += f"\n\n**• Error :**\n`{m[1]}`"
-        osremove("cpp-ultroid.cpp", "CppUltroid")
         if len(o_cpp) > 3000:
-            with BytesIO(str.encode(o_cpp)) as out_file:
-                out_file.name = "compile-error-g++.txt"
-                return await msg.reply(f"`{match}`", file=out_file)
-        return await eor(msg, o_cpp)
-    m = await bash("./CppUltroid")
-    if m[0] != "":
-        o_cpp += f"\n\n**• Output :**\n`{m[0]}`"
-    if m[1]:
-        o_cpp += f"\n\n**• Error :**\n`{m[1]}`"
+            with BytesIO(o_cpp.encode()) as out_file:
+                out_file.name = "compile-error-cpp.txt"
+                await msg.reply(f"```{match[:512]}```", file=out_file)
+        else:
+            await msg.edit(o_cpp)
+        return osremove("cpp-ultroid.cpp", "CppUltroid")
+
+    out, err = await bash("./CppUltroid")
+    if out != "":
+        o_cpp += f"\n\n**• Output :**\n```{out}```"
+    if err:
+        o_cpp += f"\n\n**• Error :**\n```{err}```"
     if len(o_cpp) > 3000:
-        with BytesIO(str.encode(o_cpp)) as out_file:
-            out_file.name = "g++_output.txt"
-            await msg.reply(f"`{match}`", file=out_file)
+        with BytesIO(o_cpp.encode()) as out_file:
+            out_file.name = "cpp_output.txt"
+            await msg.reply(f"```{match[:512]}```", file=out_file)
     else:
-        await eor(msg, o_cpp)
+        await msg.edit(o_cpp)
     osremove("CppUltroid", "cpp-ultroid.cpp")
 
 
@@ -455,22 +457,24 @@ async def _gcc_compiler(e):
     m = await bash("gcc ultroid.c -o ultroid.out")
     out = f"• **Eval-GCC**\n```{match}```"
     if m[1]:
-        out += f"\n\n**• Error :**\n```{m[1]}```"
-        osremove("ultroid.c", "ultroid.out")
+        out += f"\n\n**• Error:**\n```{m[1]}```"
         if len(out) > 4000:
-            with BytesIO(str.encode(out)) as out_file:
+            with BytesIO(out.encode()) as out_file:
                 out_file.name = "compile-error-gcc.txt"
-                return await msg.reply(f"```{match}```", file=out_file)
-        return await eor(msg, out)
-    m = await bash("./ultroid.out")
-    if m[0] != "":
-        out += f"\n\n**• Output :**\n```{m[0]}```"
-    if m[1]:
-        out += f"\n\n**• Error :**\n```{m[1]}```"
+                await msg.reply(f"```{match[:512]}```", file=out_file)
+        else:
+            await msg.edit(out)
+        return osremove("ultroid.c", "ultroid.out")
+
+    stdout, err = await bash("./ultroid.out")
+    if stdout != "":
+        out += f"\n\n**• Output :**\n```{stdout}```"
+    if err:
+        out += f"\n\n**• Error :**\n```{err}```"
     if len(out) > 4000:
-        with BytesIO(str.encode(out)) as out_file:
+        with BytesIO(out.encode()) as out_file:
             out_file.name = "gcc_output.txt"
-            await msg.reply(f"```{match[:1023]}```", file=out_file)
+            await msg.reply(f"```{match[:512]}```", file=out_file)
     else:
         await msg.edit(out)
     osremove("ultroid.out", "ultroid.c")
