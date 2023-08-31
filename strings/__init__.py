@@ -15,10 +15,12 @@ languages = {}
 ULTConfig.lang = udB.get_key("language") or getenv("LANGUAGE", "en")
 
 
+"""
 for file in glob("strings/strings/*yml"):
     if file.endswith(".yml"):
         code = file.split("/")[-1].split("\\")[-1][:-4]
         languages[code] = 0
+"""
 
 
 def _load_string(lang):
@@ -30,13 +32,18 @@ def _load_string(lang):
         LOGS.exception(f"Error in {lang} language file..")
 
 
+# Load the default language on startup :)
+languages[lang] = _load_string(ULTConfig.lang or "en")
+
+
 def get_string(key: str, _res: bool = True) -> Any:
     global languages
     lang = ULTConfig.lang or "en"
-    if languages.get(lang) == 0:
+    if not (lang_data := languages.get(lang)):
         languages[lang] = _load_string(lang)
+        lang_data = languages.get(lang)
     try:
-        return languages[lang][key]
+        return lang_data[key]
     except KeyError:
         try:
             en_ = languages["en"][key]

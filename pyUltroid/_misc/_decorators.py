@@ -83,7 +83,7 @@ def ultroid_cmd(
     only_devs = kwargs.get("only_devs", False)
     func = kwargs.get("func", lambda e: not e.via_bot_id)
 
-    def decor(dec):
+    def main_wrap(dec):
         @wraps(dec)
         async def wrapp(ult):
             if (ult.media and not isinstance(ult.media, MessageMediaWebPage)) or (
@@ -376,4 +376,4 @@ def ultroid_cmd(
                 LIST.update({file.stem: [pattern]})
         return wrapp
 
-    return decor
+    return main_wrap

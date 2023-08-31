@@ -64,10 +64,9 @@ class Loader:
                 modl = None
                 self._logger.error(f"{plugin}: '{er.name}' not installed!")
                 continue
-            except Exception as exc:
+            except Exception:
                 modl = None
-                self._logger.error(f"pyUltroid - {self.key} - ERROR - {plugin}")
-                self._logger.exception(exc)
+                self._logger.exception(f"pyUltroid - {self.key} - ERROR - {plugin}")
                 continue
             if _single and log:
                 self._logger.info(f"Successfully Loaded {plugin}!")

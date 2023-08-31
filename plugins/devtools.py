@@ -326,7 +326,7 @@ async def _(event):
         )
         final_output = f"__►__ **EVAL** (__{timeform}__)\n```{cmd}``` \n\n __►__ **OUTPUT**: [⁮⁮⁮\xad]({url})"
     else:
-        final_output = "__►__ **EVAL** (__{}__)\n```{}``` \n\n __►__ **OUTPUT**: \n```{}``` \n".format(
+        final_output = "__►__ **EVAL** (__{}__)\n```{}``` \n\n __►__ **OUTPUT**: \n```{}```".format(
             timeform,
             cmd,
             evaluation,

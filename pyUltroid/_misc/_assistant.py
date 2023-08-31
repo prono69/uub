@@ -9,6 +9,7 @@ __all__ = ("asst_cmd", "callback", "in_pattern")
 
 import inspect
 import re
+from pathlib import Path
 from traceback import format_exc
 
 from telethon import Button
@@ -17,6 +18,7 @@ from telethon.events import CallbackQuery, InlineQuery, NewMessage
 from telethon.tl.types import InputWebDocument
 
 from .. import LOGS, asst, udB, ultroid_bot
+from ..dB._core import LOADED
 from ..fns.admins import admin_check
 from . import SUDO_M, append_or_update, owner_and_sudos
 
@@ -48,7 +50,7 @@ def asst_cmd(pattern=None, load=None, owner=False, **kwargs):
     name = inspect.stack()[1].filename.split("/")[-1].replace(".py", "")
     kwargs["forwards"] = False
 
-    def ult(func):
+    def asstcmd_wrap(func):
         if pattern:
             kwargs["pattern"] = re.compile(f"^/{pattern}")
 
@@ -65,7 +67,7 @@ def asst_cmd(pattern=None, load=None, owner=False, **kwargs):
         if load is not None:
             append_or_update(load, func, name, kwargs)
 
-    return ult
+    return asstcmd_wrap
 
 
 # callback decorator for assistant
@@ -76,8 +78,8 @@ def callback(data=None, from_users=[], admins=False, owner=False, **kwargs):
         from_users.remove("me")
         from_users.append(ultroid_bot.uid)
 
-    def ultr(func):
-        async def wrapper(event):
+    def callback_wrap(func):
+        async def callback_wrapper(event):
             if admins and not await admin_check(event):
                 return await event.answer()
             if from_users and event.sender_id not in from_users:
@@ -92,9 +94,17 @@ def callback(data=None, from_users=[], admins=False, owner=False, **kwargs):
             except Exception as er:
                 LOGS.exception(er)
 
-        asst.add_event_handler(wrapper, CallbackQuery(data=data, **kwargs))
+        asst.add_event_handler(callback_wrapper, CallbackQuery(data=data, **kwargs))
 
-    return ultr
+        _file = inspect.stack()[1].filename
+        if "addons/" in _file:
+            stem = Path(_file).stem
+            if LOADED.get(stem):
+                LOADED[stem].append(callback_wrapper)
+            else:
+                LOADED.update({stem: [callback_wrapper]})
+
+    return callback_wrap
 
 
 # inline decorator for assistant
@@ -102,8 +112,8 @@ def in_pattern(pattern=None, owner=False, **kwargs):
     """Assistant's inline decorator."""
     full_sudo = kwargs.pop("fullsudo", None)
 
-    def don(func):
-        async def wrapper(event):
+    def inline_wrap(func):
+        async def inline_wrapper(event):
             if (full_sudo and event.sender_id not in SUDO_M.fullsudos) or (
                 owner and event.sender_id not in owner_and_sudos()
             ):
@@ -131,8 +141,9 @@ def in_pattern(pattern=None, owner=False, **kwargs):
             except Exception as er:
                 err = format_exc()
 
-                def error_text():
-                    return f"**#ERROR #INLINE**\n\nQuery: `{asst.me.username} {pattern}`\n\n**Traceback:**\n`{format_exc()}`"
+                error_text = (
+                    lambda: f"**#ERROR #INLINE**\n\nQuery: `{asst.me.username} {pattern}`\n\n**Traceback:**\n`{format_exc()}`"
+                )
 
                 LOGS.exception(er)
                 try:
@@ -148,11 +159,19 @@ def in_pattern(pattern=None, owner=False, **kwargs):
                         ]
                     )
                 except (QueryIdInvalidError, ResultIdDuplicateError):
-                    LOGS.exception(err)
+                    pass
                 except Exception as er:
                     LOGS.exception(er)
                     await asst.send_message(udB.get_key("LOG_CHANNEL"), error_text())
 
-        asst.add_event_handler(wrapper, InlineQuery(pattern=pattern, **kwargs))
+        asst.add_event_handler(inline_wrapper, InlineQuery(pattern=pattern, **kwargs))
 
-    return don
+        _file = inspect.stack()[1].filename
+        if "addons/" in _file:
+            stem = Path(_file).stem
+            if LOADED.get(stem):
+                LOADED[stem].append(inline_wrapper)
+            else:
+                LOADED.update({stem: [inline_wrapper]})
+
+    return inline_wrap
