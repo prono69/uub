@@ -136,7 +136,7 @@ async def umplomder(event):
     match = event.pattern_match.group(1)
     if match:
         match = match.strip()
-    if not event.out and match == ".env":
+    if ".env" in match:
         return await event.reply("`You can't do this...`")
     stream, force_doc, delete, thumb = (
         False,
@@ -238,7 +238,7 @@ async def pyro_ul(e):
     args = e.pattern_match.group(1)
     args = unix_parser(args or "")
     ul_path, kwargs = args.args, args.kwargs
-    if not ul_path or ul_path == ".env":
+    if not ul_path or ".env" in ul_path:
         return await msg.edit("`Give some path/URL..`")
 
     if is_valid_url(ul_path):

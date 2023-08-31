@@ -33,7 +33,7 @@ def _load_string(lang):
 
 
 # Load the default language on startup :)
-languages[lang] = _load_string(ULTConfig.lang or "en")
+languages[ULTConfig.lang or "en"] = _load_string(ULTConfig.lang or "en")
 
 
 def get_string(key: str, _res: bool = True) -> Any:
