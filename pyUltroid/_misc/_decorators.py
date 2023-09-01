@@ -73,6 +73,14 @@ def compile_pattern(data, hndlr):
     return re.compile("\\" + hndlr + data)
 
 
+def _add_func_to_loaded(func, file):
+    if "addons/" in str(file):
+        if LOADED.get(file.stem):
+            LOADED[file.stem].append(func)
+        else:
+            LOADED.update({file.stem: [func]})
+
+
 def ultroid_cmd(
     pattern=None, manager=False, ultroid_bot=ultroid_bot, asst=asst, **kwargs
 ):
@@ -83,9 +91,9 @@ def ultroid_cmd(
     only_devs = kwargs.get("only_devs", False)
     func = kwargs.get("func", lambda e: not e.via_bot_id)
 
-    def main_wrap(dec):
+    def out_wrapper(dec):
         @wraps(dec)
-        async def wrapp(ult):
+        async def in_wrapper(ult):
             if (ult.media and not isinstance(ult.media, MessageMediaWebPage)) or (
                 isinstance(ult, MessageEdited.Event)
                 and getattr(ult.message, "edit_hide", None)
@@ -243,7 +251,7 @@ def ultroid_cmd(
             if pattern:
                 cmd = compile_pattern(pattern, SUDO_HNDLR)
             ultroid_bot.add_event_handler(
-                wrapp,
+                in_wrapper,
                 NewMessage(
                     pattern=cmd,
                     incoming=True,
@@ -256,7 +264,7 @@ def ultroid_cmd(
         if pattern:
             cmd = compile_pattern(pattern, HNDLR)
         ultroid_bot.add_event_handler(
-            wrapp,
+            in_wrapper,
             NewMessage(
                 outgoing=True if _add_new else None,
                 pattern=cmd,
@@ -275,7 +283,7 @@ def ultroid_cmd(
             if pattern:
                 cmd = compile_pattern(pattern, SUDO_HNDLR)
             ultroid_bot.add_event_handler(
-                wrapp,
+                in_wrapper,
                 MessageEdited(
                     incoming=True,
                     pattern=cmd,
@@ -288,7 +296,7 @@ def ultroid_cmd(
 
         if TAKE_EDITS and pattern:
             ultroid_bot.add_event_handler(
-                wrapp,
+                in_wrapper,
                 MessageEdited(
                     outgoing=True,
                     pattern=cmd,
@@ -298,6 +306,8 @@ def ultroid_cmd(
                     blacklist_chats=blacklist_chats,
                 ),
             )
+
+        # manager plugin
         if manager and MANAGER:
             allow_all = kwargs.get("allow_all", False)
             allow_pm = kwargs.get("allow_pm", False)
@@ -308,6 +318,7 @@ def ultroid_cmd(
                     return
                 if not allow_pm and ult.is_private:
                     return
+
                 try:
                     await dec(ult)
                 except Exception as er:
@@ -336,11 +347,12 @@ def ultroid_cmd(
                     blacklist_chats=blacklist_chats,
                 ),
             )
+
         if DUAL_MODE and not (manager and DUAL_HNDLR == "/"):
             if pattern:
                 cmd = compile_pattern(pattern, DUAL_HNDLR)
             asst.add_event_handler(
-                wrapp,
+                in_wrapper,
                 NewMessage(
                     pattern=cmd,
                     incoming=True,
@@ -352,7 +364,7 @@ def ultroid_cmd(
             )
             if TAKE_ASST_EDITS and pattern:
                 asst.add_event_handler(
-                    wrapp,
+                    in_wrapper,
                     MessageEdited(
                         pattern=cmd,
                         incoming=True,
@@ -364,16 +376,14 @@ def ultroid_cmd(
                 )
 
         file = Path(inspect.stack()[1].filename)
-        if "addons/" in str(file):
-            if LOADED.get(file.stem):
-                LOADED[file.stem].append(wrapp)
-            else:
-                LOADED.update({file.stem: [wrapp]})
+        _add_func_to_loaded(in_wrapper, file)
+        if manager and MANAGER:
+            _add_func_to_loaded(manager_cmd, file)
         if pattern:
             if LIST.get(file.stem):
                 LIST[file.stem].append(pattern)
             else:
                 LIST.update({file.stem: [pattern]})
-        return wrapp
+        return in_wrapper
 
-    return main_wrap
+    return out_wrapper
