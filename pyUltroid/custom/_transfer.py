@@ -704,6 +704,7 @@ async def videoThumb(path, duration):
 async def audioThumb(path):
     if not (Image and load_file):
         return DEFAULT_THUMB
+
     rnds = "".join(choices(ascii_lowercase, k=8))
     thumby = check_filename(f"resources/temp/{rnds}.jpg")
     try:

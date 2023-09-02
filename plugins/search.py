@@ -25,8 +25,6 @@
     Reply an Image or sticker to find its sauce.
 """
 
-import os
-
 import requests
 from bs4 import BeautifulSoup as bs
 from telethon.tl.types import DocumentAttributeAudio
@@ -41,10 +39,20 @@ try:
 except ImportError:
     cv2 = None
 
-from pyUltroid.fns.misc import google_search
+from pyUltroid.fns.misc import google_search, string_is_url
 from pyUltroid.fns.tools import get_google_images, saavn_search
+from pyUltroid.custom.reverse_search import GoogleReverseSearch
 
-from . import LOGS, async_searcher, con, eod, fast_download, get_string, ultroid_cmd
+from . import (
+    LOGS,
+    async_searcher,
+    con,
+    eod,
+    fast_download,
+    get_string,
+    osremove,
+    ultroid_cmd,
+)
 
 
 @ultroid_cmd(
@@ -132,46 +140,37 @@ async def goimg(event):
     await nn.delete()
 
 
-@ultroid_cmd(pattern="reverse$")
+@ultroid_cmd(pattern="reverse( (.*)|$)")
 async def reverse(event):
-    reply = await event.get_reply_message()
-    if not reply:
-        return await event.eor("`Reply to an Image`")
+    target = None
+    args = event.pattern_match.group(2)
     ult = await event.eor(get_string("com_1"))
-    dl = await reply.download_media()
-    file = await con.convert(dl, convert_to="png")
-    img = Image.open(file)
-    x, y = img.size
-    files = {"encoded_image": (file, open(file, "rb"))}
-    grs = requests.post(
-        "https://www.google.com/searchbyimage/upload",
-        files=files,
-        allow_redirects=False,
-    )
-    loc = grs.headers.get("Location")
-    response = await async_searcher(
-        loc,
-        headers={
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:58.0) Gecko/20100101 Firefox/58.0",
-        },
-    )
-    xx = bs(response, "html.parser")
-    div = xx.find_all("div", {"class": "r5a77d"})[0]
-    alls = div.find("a")
-    link = alls["href"]
-    text = alls.text
-    await ult.edit(f"`Dimension ~ {x} : {y}`\nSauce ~ [{text}](google.com{link})")
-    images = await get_google_images(text)
-    for z in images[:2]:
-        try:
-            await event.client.send_file(
-                event.chat_id,
-                file=z["original"],
-                caption="Similar Images Realted to Search",
-            )
-        except Exception as er:
-            LOGS.exception(er)
-    os.remove(file)
+    if args and string_is_url(args):
+        target = args
+    elif event.reply_to:
+        reply = await event.get_reply_message()
+        if reply.media:
+            dl = await reply.download_media()
+            target = await con.convert(dl, convert_to="png")
+    if not target:
+        return await ult.eor("`Reply to an Image or give a URL..`", target=8)
+
+    try:
+        response = await GoogleReverseSearch.init(target, similar_results=False)
+        if not response.get("title"):
+            return await ult.edit(f"`Could not find any result..`")
+
+        text, link = response.get("title"), response.get("search_url")
+        result = f"[{text}]({link})" if link else f"`{text}`"
+        if info := response.get("info"):
+            result += f" ~ `{info}`"
+        await ult.edit("`Got Results for this Image >>>\nSauce:`  {result}")
+    except Exception as exc:
+        LOGS.exception(exc)
+        await ult.edit(f"**Error:**  `{exc}`")
+    finally:
+        if event.reply_to:
+            osremove(target, dl)
 
 
 @ultroid_cmd(
@@ -210,5 +209,5 @@ async def siesace(e):
         supports_streaming=True,
         thumb=thumb,
     )
+    osremove(thumb)
     await eve.delete()
-    os.remove(thumb)

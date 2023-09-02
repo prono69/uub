@@ -14,7 +14,6 @@ import glob
 import os
 import time
 from datetime import datetime as dt
-from urllib.parse import urlparse
 
 from aiohttp.client_exceptions import InvalidURL
 from telethon.errors.rpcerrorlist import MessageNotModifiedError
@@ -33,6 +32,7 @@ from . import (
     get_string,
     get_tg_filename,
     progress,
+    string_is_url,
     time_formatter,
     ultroid_cmd,
     unix_parser,
@@ -227,11 +227,6 @@ async def umplomder(event):
     await msg.try_delete()
 
 
-def is_valid_url(url):
-    result = urlparse(url)
-    return bool(result.scheme and result.netloc)
-
-
 @ultroid_cmd(pattern="xul(?: |$)(.*)")
 async def pyro_ul(e):
     msg = await e.eor(get_string("com_1"))
@@ -241,7 +236,7 @@ async def pyro_ul(e):
     if not ul_path or ".env" in ul_path:
         return await msg.edit("`Give some path/URL..`")
 
-    if is_valid_url(ul_path):
+    if string_is_url(ul_path):
         await msg.edit("`Starting URL Download..`")
         await asyncio.sleep(2)
         ul_path, _ = await _url_downloader(ul_path, None, msg)

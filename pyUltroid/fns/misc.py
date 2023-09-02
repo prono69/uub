@@ -14,7 +14,7 @@ import string
 from logging import WARNING
 from traceback import format_exc
 from secrets import choice as schoice
-from urllib.parse import unquote
+from urllib.parse import unquote, urlparse
 
 from pyUltroid.exceptions import DependencyMissingError
 
@@ -473,6 +473,8 @@ __all__ = (
     "random_string",
     "randomchannel",
     "rotate_image",
+    "some_random_headers",
     "split_list",
+    "string_is_url",
     "unsplashsearch",
 )
