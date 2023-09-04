@@ -150,6 +150,11 @@ async def google_search(query):
 # ----------------------------------------------------
 
 
+def string_is_url(url):
+    result = urlparse(url)
+    return bool(result.scheme and result.netloc)
+
+
 async def allcmds(event, telegraph):
     txt = ""
     for z in LIST.keys():
