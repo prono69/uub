@@ -157,14 +157,21 @@ async def reverse(event):
 
     try:
         response = await GoogleReverseSearch.init(target, similar_results=False)
-        if not response.get("title"):
+        if not (response and (response := response.get("match"))):
             return await ult.edit(f"`Could not find any result..`")
 
-        text, link = response.get("title"), response.get("search_url")
-        result = f"[{text}]({link})" if link else f"`{text}`"
-        if info := response.get("info"):
-            result += f" ~ `{info}`"
-        await ult.edit("`Got Results for this Image >>>\nSauce:`  {result}")
+        title, link, info, page = (
+            response.get("title"),
+            response.get("search_url"),
+            response.get("info"),
+            response.get("page_url"),
+        )
+        result = f"[{title}]({link})" if link else f"`{title}`"
+        if info:
+            result += f"  -  `{info}`"
+        if page:
+            result += f"\n\n**URL** - {page}"
+        await ult.edit(f"`Got Results for this Image >>>`\n\n**Sauce:**  {result}")
     except Exception as exc:
         LOGS.exception(exc)
         await ult.edit(f"**Error:**  `{exc}`")

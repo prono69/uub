@@ -83,16 +83,23 @@ class GoogleReverseSearch:
             "page_url": (1, (4,)),
         }
 
-        for k, v in tmp_dict.items():
-            index, v = v
-            try:
-                tmp_data = base_index0 if index == 0 else base_index1
-                for i in v:
-                    tmp_data = tmp_data[i]
-            except (IndexError, TypeError):
-                continue
-            else:
-                data["match"][k] = tmp_data
+        if len(parsed_data) == 1:
+            if "No results for" in base_index0[0][0]:
+                return data
+            elif base_index0[0][0] == "Visual matches":
+                # no search results, only similar images..
+                pass
+        else:
+            for k, v in tmp_dict.items():
+                index, v = v
+                try:
+                    tmp_data = base_index0 if index == 0 else base_index1
+                    for i in v:
+                        tmp_data = tmp_data[i]
+                except (IndexError, TypeError):
+                    continue
+                else:
+                    data["match"][k] = tmp_data
 
         return data
 
