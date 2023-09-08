@@ -43,7 +43,6 @@ covid
 emoji
 fonttools
 gtts
-gingerit
 jikanpy
 git+https://github.com/New-dev0/AsyncLyricsExtractor.git
 phlogo
@@ -67,4 +66,5 @@ aiodns
 
 # Extras - spotdl, pygithub, imgur_python, openai
 # - https://github.com/1Danish-00/glitch_me.git#egg=glitch_me
+# - https://github.com/lanowde/instagrapi/archive/master.zip
 # - flask, gunicorn, scikit-image

@@ -14,7 +14,9 @@ if os.getenv("__TELEPATCH__") == "true":
     try:
         import telethonpatch
     except ImportError:
-        print("Telethon Patch Missing!")
+        print("Telethon Patch Missing..")
+    else:
+        print("Telethon Patched!")
 
 
 from .version import __version__, ultroid_version

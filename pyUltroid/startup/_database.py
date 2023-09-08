@@ -365,6 +365,8 @@ class RedisDB(_BaseDatabase):
     def usage(self):
         return sum(self.db.memory_usage(x) for x in self.keys())
 
+
+"""
     def real(self, key):
         try:
             return self.db.get(key)
@@ -376,7 +378,7 @@ class RedisDB(_BaseDatabase):
                     return self.db.hgetall(key)
                 except Exception as exc:
                     return exc
-
+"""
 
 # --------------------------------------------------------------------------------------------- #
 
