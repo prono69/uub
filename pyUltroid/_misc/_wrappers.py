@@ -78,16 +78,16 @@ async def copy_message(msg, to_chat, **kwargs):
 
 
 def get_message_link(self):
-    if isinstance(self.chat, User):
+    if isinstance(self.chat, User) or self.is_private:
         fmt = "tg://openmessage?user_id={user_id}&message_id={msg_id}"
         return fmt.format(user_id=self.chat_id, msg_id=self.id)
     if getattr(self.chat, "username", None):
         return f"https://t.me/{self.chat.username}/{self.id}"
+
     if self.chat_id:
-        if str(self.chat_id).startswith(("-", "-100")):
-            chat = int(str(self.chat_id).replace("-100", "").replace("-", ""))
-        else:
-            chat = self.chat_id
+        chat = self.chat_id
+        if str(chat).startswith(("-", "-100")):
+            chat = int(str(chat).lstrip("-100").lstrip("-"))
     elif self.chat and self.chat.id:
         chat = self.chat.id
     else:
@@ -95,8 +95,13 @@ def get_message_link(self):
     return f"https://t.me/c/{chat}/{self.id}"
 
 
-Message.message_link = property(get_message_link)
-
-setattr(Message, "eor", eor)
 setattr(Message, "try_delete", _try_delete)
-setattr(Message, "copy", copy_message)
+
+if not hasattr(Message, "message_link"):
+    Message.message_link = property(get_message_link)
+
+if not hasattr(Message, "eor"):
+    setattr(Message, "eor", eor)
+
+if not hasattr(Message, "copy"):
+    setattr(Message, "copy", copy_message)

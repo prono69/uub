@@ -67,6 +67,7 @@ def startup_tasks():
 
 
 def extra_tasks():
+    # for pillow v10
     try:
         from PIL import Image
 
@@ -77,7 +78,7 @@ def extra_tasks():
 
 
 startup_tasks()
-extra_tasks()
+# extra_tasks()
 
 
 # startup part 2

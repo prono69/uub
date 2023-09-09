@@ -5,18 +5,14 @@
 # PLease read the GNU Affero General Public License in
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
-import os
 import time
 
 start_time = time.time()
 
-if os.getenv("__TELEPATCH__") == "true":
-    try:
-        import telethonpatch
-    except ImportError:
-        print("Telethon Patch Missing..")
-    else:
-        print("Telethon Patched!")
+try:
+    import telethonpatch as _telepatch
+except ImportError:
+    print("Telethon Patch Missing..")
 
 
 from .version import __version__, ultroid_version
