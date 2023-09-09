@@ -204,6 +204,7 @@ def un_plug(shortname):
     from .. import asst, ultroid_bot
 
     try:
+        name = f"addons.{shortname}"
         all_func = LOADED[shortname]
         for client in (ultroid_bot, asst):
             for x, _ in client.list_event_handlers()[::-1]:
@@ -213,7 +214,6 @@ def un_plug(shortname):
         LIST.pop(shortname, None)
         ADDONS.remove(shortname)
     except (ValueError, KeyError):
-        name = f"addons.{shortname}"
         for client in (ultroid_bot, asst):
             builders = client._event_builders
             for i in range(len(builders) - 1, -1, -1):
@@ -226,6 +226,8 @@ def un_plug(shortname):
                         ADDONS.remove(shortname)
                     except (ValueError, IndexError, KeyError):
                         pass
+    finally:
+        sys.modules.pop(name, None)
 
 
 async def safeinstall(event):

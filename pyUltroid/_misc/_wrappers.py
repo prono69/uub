@@ -87,7 +87,7 @@ def get_message_link(self):
     if self.chat_id:
         chat = self.chat_id
         if str(chat).startswith(("-", "-100")):
-            chat = int(str(chat).lstrip("-100").lstrip("-"))
+            chat = int(str(chat).removeprefix("-100").removeprefix("-"))
     elif self.chat and self.chat.id:
         chat = self.chat.id
     else:
