@@ -1,6 +1,6 @@
 # Important Requirements here.
+https://github.com/lanowde/telethon/archive/main.zip
 https://github.com/lanowde/telethon-patch/archive/main.zip
-https://github.com/lanowde/telethon-testing/archive/main.zip
 python-decouple
 python-dotenv
 

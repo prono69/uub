@@ -94,9 +94,15 @@ def ultroid_cmd(
     def out_wrapper(dec):
         @wraps(dec)
         async def in_wrapper(ult):
-            if (ult.media and not isinstance(ult.media, MessageMediaWebPage)) or (
-                isinstance(ult, MessageEdited.Event)
-                and getattr(ult.message, "edit_hide", None)
+            # ignore media captions
+            if ult.media and not isinstance(ult.media, MessageMediaWebPage):
+                return
+
+            # ignore edits that are triggered by reaction and
+            # ignore edits on messages older than 30 minutes.
+            if isinstance(ult, MessageEdited.Event) and (
+                getattr(ult.message, "edit_hide", None)
+                or (ult.message.edit_date - ult.message.date).seconds > 1800
             ):
                 return
 

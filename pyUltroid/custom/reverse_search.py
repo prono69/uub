@@ -65,16 +65,29 @@ class GoogleReverseSearch:
 
     def generate_output(self, parsed_data, extra):
         data = {"match": {}, "similar": []}
-        base_index0 = (
-            parsed_data[0][0][0][3]
-            if type(parsed_data[0][0][0]) == list
-            else parsed_data[0]
-        )
-        base_index1 = (
-            parsed_data[0][2][0]
-            if type(parsed_data[0][2]) == list
-            else parsed_data[0][2]
-        )
+        try:
+            base_index0 = (
+                parsed_data[0][0][0][3]
+                if type(parsed_data[0][0][0]) == list
+                else parsed_data[0]
+            )
+
+            if len(parsed_data) == 1:
+                if "No results for" in base_index0[0][0]:
+                    return data
+                elif base_index0[0][0] == "Visual matches":
+                    # no search results, only similar images..
+                    return data  # impl similar thingy here.
+
+            base_index1 = (
+                parsed_data[0][2][0]
+                if type(parsed_data[0][2]) == list
+                else parsed_data[0][2]
+            )
+        except Exception as exc:
+            LOGS.exception(exc)
+            return data
+
         tmp_dict = {
             "title": (0, (0, 0)),
             "info": (0, (0, 1)),
@@ -82,24 +95,16 @@ class GoogleReverseSearch:
             "thumbnail": (1, (0,)),
             "page_url": (1, (4,)),
         }
-
-        if len(parsed_data) == 1:
-            if "No results for" in base_index0[0][0]:
-                return data
-            elif base_index0[0][0] == "Visual matches":
-                # no search results, only similar images..
-                pass
-        else:
-            for k, v in tmp_dict.items():
-                index, v = v
-                try:
-                    tmp_data = base_index0 if index == 0 else base_index1
-                    for i in v:
-                        tmp_data = tmp_data[i]
-                except (IndexError, TypeError):
-                    continue
-                else:
-                    data["match"][k] = tmp_data
+        for k, v in tmp_dict.items():
+            index, v = v
+            try:
+                tmp_data = base_index0 if index == 0 else base_index1
+                for i in v:
+                    tmp_data = tmp_data[i]
+            except (IndexError, TypeError):
+                continue
+            else:
+                data["match"][k] = tmp_data
 
         return data
 
