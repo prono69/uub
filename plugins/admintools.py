@@ -310,7 +310,7 @@ async def pin_message(ult):
 async def fastpurger(purg):
     match = purg.pattern_match.group(2)
     match = int(match) if match else None
-    reply_id = purg.reply_to_msg_id or 0
+    reply_id = (purg.reply_to_msg_id or 1) - 1
     if not (match or reply_id):
         return await eor(purg, get_string("purge_1"), time=5)
 
@@ -397,7 +397,7 @@ async def _(e):
         return await e.eor(str(er), time=5)
 
 
-@ultroid_cmd(pattern="pinned", manager=True, groups_only=True)
+@ultroid_cmd(pattern="pinned$", manager=True, groups_only=True)
 async def djshsh(event):
     chat = await event.get_chat()
     if isinstance(chat, types.Chat):
