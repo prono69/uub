@@ -10,6 +10,7 @@ from . import get_help
 __doc__ = get_help("help_beautify")
 
 
+import asyncio
 import os
 import random
 
@@ -65,6 +66,7 @@ async def crbn(event):
     match = event.pattern_match.group(1).strip()
     if not match:
         return await event.eor(get_string("carbon_3"))
+
     msg = await event.eor(get_string("com_1"))
     if event.reply_to_msg_id:
         temp = await event.get_reply_message()
@@ -82,14 +84,17 @@ async def crbn(event):
         except IndexError:
             return await msg.eor(get_string("carbon_2"))
     xx = await Carbon(code=code, backgroundColor=match)
-    await msg.delete()
-    await event.reply(
-        f"Carbonised by {inline_mention(event.sender)}",
-        file=xx,
+    await asyncio.gather(
+        msg.delete(),
+        event.respond(
+            f"Carbonised by {inline_mention(event.sender)}",
+            file=xx,
+            reply_to=msg.reply_to_msg_id,
+        ),
     )
 
 
-RaySoTheme = [
+RaySoTheme = (
     "meadow",
     "breeze",
     "raindrop",
@@ -98,12 +103,13 @@ RaySoTheme = [
     "falcon",
     "sunset",
     "midnight",
-]
+)
 
 
 @ultroid_cmd(pattern="rayso")
 async def pass_on(ult):
     spli = ult.text.split()
+    msg = await ult.eor(get_string("com_1"))
     theme, dark, title, text = None, True, get_display_name(ult.chat), None
     if len(spli) > 2:
         if spli[1] in RaySoTheme:
@@ -122,12 +128,17 @@ async def pass_on(ult):
                 text = ult.text.split(maxsplit=1)[1]
             except IndexError:
                 pass
+
     if not theme:
         theme = random.choice(RaySoTheme)
     if ult.is_reply:
         msg = await ult.get_reply_message()
         text = msg.message
         title = get_display_name(msg.sender)
-    await ult.reply(
-        file=await Carbon(text, rayso=True, title=title, theme=theme, darkMode=dark)
+
+    img = await Carbon(text, rayso=True, title=title, theme=theme, darkMode=dark)
+    caption = f"Rayso '{theme}' by {inline_mention(ult.sender)}"
+    await asyncio.gather(
+        ult.respond(caption, file=img, reply_to=msg.reply_to_msg_id),
+        msg.delete(),
     )

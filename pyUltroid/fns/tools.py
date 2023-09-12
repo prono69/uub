@@ -11,6 +11,7 @@ import os
 import re
 import secrets
 import ssl
+from base64 import b64decode
 from random import choice, shuffle
 from io import BytesIO
 from json.decoder import JSONDecodeError
@@ -615,15 +616,18 @@ async def Carbon(
     rayso=False,
     **kwargs,
 ):
+    kwargs["code"] = code
     if rayso:
-        base_url = "https://rayso-api-desvhu-33.koyeb.app/generate"
-        kwargs["text"] = code
+        base_url = "https://api.safone.me/rayso"
         kwargs["theme"] = kwargs.get("theme", "breeze")
         kwargs["darkMode"] = kwargs.get("darkMode", True)
         kwargs["title"] = kwargs.get("title", "Ultroid")
+        con = await async_searcher(base_url, post=True, json=kwargs, re_json=True)
+        if con and "image" in con:
+            con = b64decode(con["image"])
     else:
-        kwargs["code"] = code
-    con = await async_searcher(base_url, post=True, json=kwargs, re_content=True)
+        con = await async_searcher(base_url, post=True, json=kwargs, re_content=True)
+
     if not download:
         file = BytesIO(con)
         file.name = file_name + ".jpg"
@@ -632,8 +636,8 @@ async def Carbon(
             return json_parser(con.decode())
         except Exception:
             pass
-        file = file_name + ".jpg"
-        await asyncwrite(file, con, mode="wb")
+        file = check_filename(file_name + ".jpg")
+        await asyncwrite(file, con, mode="wb+")
     return file
 
 
