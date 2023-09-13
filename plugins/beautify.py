@@ -65,7 +65,7 @@ async def crbn(event):
 
     caption = f"Carbonised by {inline_mention(event.sender)}"
     await asyncio.gather(
-        msg.delete(),
+        msg.try_delete(),
         event.respond(caption, file=xx, reply_to=reply_to),
     )
 
@@ -98,6 +98,11 @@ async def custom_crbn(event):
         elif temp.text:
             code = temp.message
     else:
+        if match == "list":
+            return await msg.edit(
+                f"[List of All Carbon Themes!](https://graph.org/Ultroid-09-13-11)"
+            )
+
         try:
             match, code = match.split(" ", maxsplit=1)
             if not code:
@@ -113,7 +118,7 @@ async def custom_crbn(event):
     caption = f"Carbonised by {inline_mention(event.sender)}"
     await asyncio.gather(
         event.respond(caption, file=xx, reply_to=reply_to),
-        msg.delete(),
+        msg.try_delete(),
     )
 
 
@@ -161,7 +166,7 @@ async def rayso_on(ult):
             f"`Gimme text or Reply to message to make Rayso..`", time=6
         )
 
-    dark_mode = bool(args.kwargs.get("d"))
+    dark_mode = bool(args.kwargs.get("d", 1))
     theme = args.kwargs.get("t", random.choice(RaySoThemes))
     if text == "list":
         text = "**List of Rayso Themes:**\n" + "\n".join(
@@ -178,5 +183,5 @@ async def rayso_on(ult):
     caption = f"Rayso by {inline_mention(ult.sender)}\nTheme - `{theme}`"
     await asyncio.gather(
         ult.respond(caption, file=img, reply_to=reply_to),
-        msg.delete(),
+        msg.try_delete(),
     )

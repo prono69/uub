@@ -104,4 +104,4 @@ async def _get_colors(pick=True):
         data = await asyncread(path)
         data = data.splitlines()
         return choice(data) if pick else data
-    return "White" if pick else ["White"]
+    return "RoyalBlue" if pick else ["RoyalBlue"]
