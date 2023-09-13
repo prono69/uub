@@ -25,6 +25,7 @@ from pyUltroid.custom.multi_db import *
 from pyUltroid.custom._transfer import pyroUL, pyroDL
 
 from . import *
+from . import _get_colors
 
 try:
     from yaml import safe_load
@@ -44,7 +45,7 @@ fn = functions
 @ultroid_cmd(
     pattern="(sysinfo|neofetch)$",
 )
-async def _(e):
+async def neo_fetch(e):
     xx = await e.eor(get_string("com_1"))
     x, y = await bash("neofetch|sed 's/\x1B\\[[0-9;\\?]*[a-zA-Z]//g' >> neo.txt")
     if y and y.endswith("NOT_FOUND"):
@@ -97,12 +98,12 @@ async def _(event):
         err = f"**• ERROR:** \n`{stderr}`\n\n"
     if stdout:
         if is_preview:
-            colors = (await asyncread("resources/colorlist.txt")).splitlines()
+            color = await _get_colors(pick=True)
             li = await Carbon(
                 code=stdout,
                 file_name="_bash",
                 download=True,
-                backgroundColor=choice(colors),
+                backgroundColor=color,
                 rayso=rayso or udB.get_key("RAYSO_ON_BASH"),
             )
             if isinstance(li, dict):
@@ -309,13 +310,13 @@ async def _(event):
     timef = time_formatter(tmt)
     timeform = timef if not timef == "0s" else f"{tmt:.3f}ms"
     if mode in ("carb", "rayso"):
-        colors = (await asyncread("resources/colorlist.txt")).splitlines()
+        color = await _get_colors(pick=True)
         lin = await Carbon(
             code=evaluation,
             file_name="_eval",
             download=True,
             rayso=mode == "rayso",
-            backgroundColor=choice(colors),
+            backgroundColor=color,
         )
         url = await get_imgbb_link(
             "_eval.jpg",

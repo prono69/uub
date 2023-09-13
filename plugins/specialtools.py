@@ -47,6 +47,7 @@ from pyUltroid.fns.tools import get_google_images, metadata
 from . import (
     HNDLR,
     ULTConfig,
+    _get_colors,
     async_searcher,
     bash,
     downloader,
@@ -58,8 +59,6 @@ from . import (
     ultroid_cmd,
     uploader,
 )
-
-from .beautify import all_col
 
 
 File = []
@@ -342,7 +341,7 @@ async def quott_(event):
         else:
             match = match[0]
     if match == "random":
-        match = choice(all_col)
+        match = await _get_colors(pick=True)
     try:
         file = await quotly.create_quotly(
             reply_, bg=match, reply=replied_to, sender=user

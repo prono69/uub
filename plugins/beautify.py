@@ -11,90 +11,113 @@ __doc__ = get_help("help_beautify")
 
 
 import asyncio
-import os
 import random
 
 from telethon.utils import get_display_name
 
-from . import asyncread, Carbon, get_string, inline_mention, ultroid_cmd
-
-
-_colorspath = "resources/colorlist.txt"
-
-if os.path.exists(_colorspath):
-    with open(_colorspath, "r") as f:
-        all_col = f.read().splitlines()
-else:
-    all_col = []
+from . import (
+    LOGS,
+    Carbon,
+    _get_colors,
+    asyncread,
+    get_string,
+    inline_mention,
+    mediainfo,
+    osremove,
+    unix_parser,
+    ultroid_cmd,
+)
 
 
 @ultroid_cmd(
-    pattern="(rc|c)arbon",
+    pattern="(r)?carbon( ([\s\S]*)|$)",
 )
 async def crbn(event):
-    xxxx = await event.eor(get_string("com_1"))
+    msg = await event.eor(get_string("com_1"))
     te = event.pattern_match.group(1)
-    col = random.choice(all_col)  # if te[0] == "r" else "White"
-    if event.reply_to_msg_id:
+    code = event.pattern_match.group(3)
+    reply_to = event.reply_to_msg_id or event.id
+    all_colors = await _get_colors(pick=False)
+    col = random.choice(all_colors)  # if te[0] == "r" else "White"
+    if not code and event.reply_to:
         temp = await event.get_reply_message()
-        if temp.media:
-            b = await event.client.download_media(temp)
-            with open(b) as a:
-                code = a.read()
-            os.remove(b)
-        else:
+        if (
+            temp.media
+            and mediainfo(temp.media) == "document"
+            and temp.file.size < 10 * 1024 * 1024
+        ):
+            dl = await temp.download_media()
+            try:
+                code = await asyncread(dl)
+            except Exception as exc:
+                return await msg.edit(f"**Error:**  `{exc}`")
+            finally:
+                osremove(dl)
+        elif temp.text:
             code = temp.message
-    else:
-        try:
-            code = event.text.split(" ", maxsplit=1)[1]
-        except IndexError:
-            return await xxxx.eor(get_string("carbon_2"))
+
+    if not code:
+        return await msg.eor(get_string("carbon_2"))
+
     xx = await Carbon(code=code, file_name="ultroid_carbon", backgroundColor=col)
     if isinstance(xx, dict):
-        return await xxxx.edit(f"`{xx}`")
-    await xxxx.delete()
-    await event.reply(
-        f"Carbonised by {inline_mention(event.sender)}",
-        file=xx,
+        return await msg.edit(f"`{xx}`")
+
+    caption = f"Carbonised by {inline_mention(event.sender)}"
+    await asyncio.gather(
+        msg.delete(),
+        event.respond(caption, file=xx, reply_to=reply_to),
     )
 
 
 @ultroid_cmd(
     pattern="ccarbon( (.*)|$)",
 )
-async def crbn(event):
-    match = event.pattern_match.group(1).strip()
+async def custom_crbn(event):
+    match = event.pattern_match.group(2)
     if not match:
         return await event.eor(get_string("carbon_3"))
 
     msg = await event.eor(get_string("com_1"))
+    code, reply_to = "", event.reply_to_msg_id or event.id
+
     if event.reply_to_msg_id:
         temp = await event.get_reply_message()
-        if temp.media:
-            b = await event.client.download_media(temp)
-            code = await asyncread(b)
-            os.remove(b)
-        else:
+        if (
+            temp.media
+            and mediainfo(temp.media) == "document"
+            and temp.file.size < 10 * 1024 * 1024
+        ):
+            dl = await temp.download_media()
+            try:
+                code = await asyncread(dl)
+            except Exception as exc:
+                return await msg.edit(f"**Error:**  `{exc}`")
+            finally:
+                osremove(dl)
+        elif temp.text:
             code = temp.message
     else:
         try:
-            match = match.split(" ", maxsplit=1)
-            code = match[1]
-            match = match[0]
-        except IndexError:
+            match, code = match.split(" ", maxsplit=1)
+            if not code:
+                raise TypeError
+        except Exception:
+            LOGS.exception("ccarbon error")
             return await msg.eor(get_string("carbon_2"))
+
     xx = await Carbon(code=code, backgroundColor=match)
+    if isinstance(xx, dict):
+        return await msg.edit(f"`{xx}`")
+
+    caption = f"Carbonised by {inline_mention(event.sender)}"
     await asyncio.gather(
+        event.respond(caption, file=xx, reply_to=reply_to),
         msg.delete(),
-        event.respond(
-            f"Carbonised by {inline_mention(event.sender)}",
-            file=xx,
-            reply_to=msg.reply_to_msg_id,
-        ),
     )
 
 
-RaySoTheme = (
+RaySoThemes = (
     "meadow",
     "breeze",
     "raindrop",
@@ -106,39 +129,54 @@ RaySoTheme = (
 )
 
 
-@ultroid_cmd(pattern="rayso")
-async def pass_on(ult):
-    spli = ult.text.split()
+@ultroid_cmd(
+    pattern="rayso( ([\s\S]*)|$)",
+)
+async def rayso_on(ult):
     msg = await ult.eor(get_string("com_1"))
-    theme, dark, title, text = None, True, get_display_name(ult.chat), None
-    if len(spli) > 2:
-        if spli[1] in RaySoTheme:
-            theme = spli[1]
-        dark = spli[2].lower().strip() in ["true", "t"]
-    elif len(spli) > 1:
-        if spli[1] in RaySoTheme:
-            theme = spli[1]
-        elif spli[1] == "list":
-            text = "**List of Rayso Themes:**\n" + "\n".join(
-                [f"- `{th_}`" for th_ in RaySoTheme]
-            )
-            return await ult.eor(text)
-        else:
+    args = unix_parser(ult.pattern_match.group(2) or "")
+    text, title = args.args, get_display_name(ult.chat)
+    reply_to = ult.reply_to_msg_id or ult.id
+
+    if not text and ult.reply_to:
+        reply = await ult.get_reply_message()
+        title = get_display_name(reply.sender)
+        if (
+            reply.media
+            and mediainfo(reply.media) == "document"
+            and reply.file.size < 10 * 1024 * 1024
+        ):
+            dl = await reply.download_media()
             try:
-                text = ult.text.split(maxsplit=1)[1]
-            except IndexError:
-                pass
+                text = await asyncread(dl)
+            except Exception as exc:
+                return await msg.edit(f"**Error:**  `{exc}`")
+            finally:
+                osremove(dl)
+        elif reply.text:
+            text = reply.message
 
-    if not theme:
-        theme = random.choice(RaySoTheme)
-    if ult.is_reply:
-        msg = await ult.get_reply_message()
-        text = msg.message
-        title = get_display_name(msg.sender)
+    if not text:
+        return await msg.eor(
+            f"`Gimme text or Reply to message to make Rayso..`", time=6
+        )
 
-    img = await Carbon(text, rayso=True, title=title, theme=theme, darkMode=dark)
-    caption = f"Rayso '{theme}' by {inline_mention(ult.sender)}"
+    dark_mode = bool(args.kwargs.get("d"))
+    theme = args.kwargs.get("t", random.choice(RaySoThemes))
+    if text == "list":
+        text = "**List of Rayso Themes:**\n" + "\n".join(
+            [f"- `{th_}`" for th_ in RaySoThemes]
+        )
+        return await ult.edit(text)
+
+    img = await Carbon(
+        code=text, rayso=True, title=title, theme=theme, darkMode=dark_mode
+    )
+    if isinstance(img, dict):
+        return await msg.edit(f"`{img}`")
+
+    caption = f"Rayso by {inline_mention(ult.sender)}\nTheme - `{theme}`"
     await asyncio.gather(
-        ult.respond(caption, file=img, reply_to=msg.reply_to_msg_id),
+        ult.respond(caption, file=img, reply_to=reply_to),
         msg.delete(),
     )

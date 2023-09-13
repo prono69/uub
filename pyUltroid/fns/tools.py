@@ -628,6 +628,8 @@ async def Carbon(
     else:
         con = await async_searcher(base_url, post=True, json=kwargs, re_content=True)
 
+    if type(con) == dict:
+        return con
     if not download:
         file = BytesIO(con)
         file.name = file_name + ".jpg"

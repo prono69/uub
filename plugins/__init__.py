@@ -96,3 +96,12 @@ ATRA_COL = (
     "Moccasin",
     "PowderBlue",
 )
+
+
+async def _get_colors(pick=True):
+    path = "resources/colorlist.txt"
+    if os.path.exists(path):
+        data = await asyncread(path)
+        data = data.splitlines()
+        return choice(data) if pick else data
+    return "White" if pick else ["White"]
