@@ -41,6 +41,7 @@ from . import (
 
 async def _url_downloader(link, filename, event):
     start = time.time()
+    link = link if len(link) < 201 else (link[:200] + " ...")
     task = lambda d, t: asyncio.create_task(
         progress(d, t, event, start, f"Downloading from {link}")
     )

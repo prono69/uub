@@ -25,7 +25,7 @@ from pyUltroid.fns.misc import *
 from pyUltroid.fns.tools import *
 
 # from pyUltroid.startup._database import _BaseDatabase
-from pyUltroid.version import __version__, ultroid_version, moi_version
+from pyUltroid.version import __version__, ultroid_version
 from strings import get_help, get_string
 
 # custom

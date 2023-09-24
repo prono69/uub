@@ -165,7 +165,7 @@ async def play_music_(event):
     ultSongs = Player(chat, event)
     count = 0
     async for song in event.client.iter_messages(
-        fromchat.id, limit=limit, wait_time=5, filter=InputMessagesFilterMusic
+        fromchat.id, limit=limit, filter=InputMessagesFilterMusic
     ):
         count += 1
         song, thumb, song_name, link, duration = await file_download(

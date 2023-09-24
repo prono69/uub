@@ -41,7 +41,7 @@ except ImportError:
     Image = None
     LOGS.info(f"{__file__}: PIL  not Installed.")
 
-from PyPDF2 import PdfMerger, PdfFileReader, PdfFileWriter
+from PyPDF2 import PdfMerger, PdfReader, PdfWriter
 from telethon.errors.rpcerrorlist import PhotoSaveFileInvalidError
 
 from pyUltroid.fns.tools import four_point_transform
@@ -81,11 +81,11 @@ async def pdfseimg(event):
     await xx.delete()
     pdfp = "pdf/hehe.pdf"
     pdfp.replace(".pdf", "")
-    pdf = PdfFileReader(pdfp)
+    pdf = PdfReader(pdfp)
     if not msg:
         ok = []
         for num in range(pdf.numPages):
-            pw = PdfFileWriter()
+            pw = PdfWriter()
             pw.addPage(pdf.getPage(num))
             fil = os.path.join(f"pdf/ult{num + 1}.png")
             ok.append(fil)
@@ -101,7 +101,7 @@ async def pdfseimg(event):
     elif "-" in msg:
         ok = int(msg.split("-")[-1]) - 1
         for o in range(ok):
-            pw = PdfFileWriter()
+            pw = PdfWriter()
             pw.addPage(pdf.getPage(o))
             with open(os.path.join("ult.png"), "wb") as f:
                 pw.write(f)
@@ -110,7 +110,7 @@ async def pdfseimg(event):
         osremove(pdfp)
     else:
         o = int(msg) - 1
-        pw = PdfFileWriter()
+        pw = PdfWriter()
         pw.addPage(pdf.getPage(o))
         with open(os.path.join("ult.png"), "wb") as f:
             pw.write(f)
@@ -139,7 +139,7 @@ async def pdfsetxt(event):
     await xx.delete()
     dl = result.name
     if not msg:
-        pdf = PdfFileReader(dl)
+        pdf = PdfReader(dl)
         text = f"{dl.split('.')[0]}.txt"
         with open(text, "w") as f:
             for page_num in range(pdf.numPages):
@@ -157,12 +157,12 @@ async def pdfsetxt(event):
         return
     if "-" in msg:
         u, d = msg.split("-")
-        a = PdfFileReader(dl)
+        a = PdfReader(dl)
         str = "".join(a.getPage(i).extractText() for i in range(int(u) - 1, int(d)))
         text = f"{dl.split('.')[0]} {msg}.txt"
     else:
         u = int(msg) - 1
-        a = PdfFileReader(dl)
+        a = PdfReader(dl)
         str = a.getPage(u).extractText()
         text = f"{dl.split('.')[0]} Pg-{msg}.txt"
 
