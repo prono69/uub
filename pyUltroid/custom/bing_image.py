@@ -95,14 +95,8 @@ class BingScrapper:
                 timeout=aiohttp.ClientTimeout(total=10),
                 evaluate=partial(self._handle_download, filename),
             )
-        except (
-            asyncio.TimeoutError,
-            aiohttp.ClientResponseError,
-            aiohttp.ClientConnectorCertificateError,
-        ):
-            pass
         except Exception as exc:
-            LOGS.debug(f"Bing: Error in downloading {link}", exc_info=True)
+            LOGS.debug(f"Bing: error in downloading {link} – {exc}")
 
     async def get_links(self):
         cached_urls = set()
@@ -111,7 +105,7 @@ class BingScrapper:
             request_url = f"https://www.bing.com/images/async?q={quote_plus(self.query)}{extra_args}"
             try:
                 response = await async_searcher(request_url, headers=self.headers)
-            except Excpetion:
+            except Exception:
                 response = ""
                 LOGS.debug(
                     f"Skipping searching images for - {self.query}, page - {self.page_counter}",

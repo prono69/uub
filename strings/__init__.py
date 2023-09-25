@@ -37,7 +37,6 @@ languages[ULTConfig.lang or "en"] = _load_string(ULTConfig.lang or "en")
 
 
 def get_string(key: str, _res: bool = True) -> Any:
-    global languages
     lang = ULTConfig.lang or "en"
     if not (lang_data := languages.get(lang)):
         languages[lang] = _load_string(lang)

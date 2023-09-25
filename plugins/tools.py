@@ -99,12 +99,12 @@ async def _(event):
         input = input[0]
     if txt:
         text = txt
-    elif event.is_reply:
+    elif event.reply_to:
         previous_message = await event.get_reply_message()
         text = previous_message.message
     else:
-        return await eor(
-            event, f"`{HNDLR}tr LanguageCode` as reply to a message", time=5
+        return await event.eor(
+            f"`{HNDLR}tr LanguageCode` as reply to a message", time=5
         )
     lan = input or "en"
     try:
@@ -113,7 +113,7 @@ async def _(event):
         await event.eor(output_str)
     except Exception as exc:
         LOGS.exception(exc)
-        await event.eor(str(exc), time=5)
+        await event.eor(str(exc), time=10)
 
 
 @ultroid_cmd(
@@ -257,7 +257,7 @@ async def _(e):
         await e.eor("`Reply to a gif or audio file only.`")
 
 
-FilesEMOJI = {
+_FilesEMOJI = {
     "py": "🐍",
     "json": "🔮",
     ("sh", "bat"): "⌨️",
@@ -292,9 +292,9 @@ async def _(e):
         if os.path.isdir(file):
             folders.append(f"📂 {file}")
         else:
-            for ext in FilesEMOJI.keys():
+            for ext in _FilesEMOJI.keys():
                 if file.endswith(ext):
-                    allfiles.append(f"{FilesEMOJI[ext]} {file}")
+                    allfiles.append(f"{_FilesEMOJI[ext]} {file}")
                     break
             else:
                 if "." in str(file)[1:]:
@@ -443,11 +443,10 @@ async def webss(event):
     await xx.delete()
 
 
-@ultroid_cmd(pattern="shorturl")
+@ultroid_cmd(pattern="shorturl( (.*)|$)")
 async def magic(event):
-    try:
-        match = event.text.split(maxsplit=1)[1].strip()
-    except IndexError:
+    match = event.pattern_match.group(2)
+    if not match:
         return await event.eor("`Provide url to turn into tiny...`")
     data = {
         "url": match.split()[0],
