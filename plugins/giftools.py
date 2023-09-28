@@ -4,70 +4,81 @@
 # This file is a part of < https://github.com/TeamUltroid/Ultroid/ >
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
+
 """
 ✘ Commands Available
 
-•`{i}invertgif`
+• `{i}invertgif`
   Make Gif Inverted(negative).
 
-•`{i}bwgif`
+• `{i}bwgif`
   Make Gif black and white
 
-•`{i}rvgif`
+• `{i}rvgif`
   Reverse a gif
 
-•`{i}vtog`
+• `{i}vtog`
   Reply To Video , It will Create Gif
   Video to Gif
 
-•`{i}gif <query>`
+• `{i}gif <query>`
    Send video regarding to query.
 """
-import os
-import random
-import time
-from datetime import datetime as dt
 
-from . import HNDLR, LOGS, bash, downloader, get_string, mediainfo, ultroid_cmd
+import random
+from shelx import quote
+
+from . import (
+    HNDLR,
+    LOGS,
+    bash,
+    check_filename,
+    genss,
+    get_string,
+    mediainfo,
+    osremove,
+    tg_downloader,
+    ultroid_cmd,
+)
 
 
 @ultroid_cmd(pattern="(bw|invert)gif$")
 async def igif(e):
     match = e.pattern_match.group(1).strip()
     a = await e.get_reply_message()
-    if not (a and a.media):
+    if not (a and a.media and "gif" in mediainfo(a.media)):
         return await e.eor("`Reply To gif only`", time=5)
-    wut = mediainfo(a.media)
-    if "gif" not in wut:
-        return await e.eor("`Reply To Gif Only`", time=5)
+
     xx = await e.eor(get_string("com_1"))
     z = await a.download_media()
+    out = check_filename("ult.gif")
     if match == "bw":
-        cmd = f'ffmpeg -i "{z}" -vf format=gray ult.gif -y'
+        cmd = f"ffmpeg -i {quote(z)} -vf format=gray {quote(out)} -y"
     else:
-        cmd = f'ffmpeg -i "{z}" -vf lutyuv="y=negval:u=negval:v=negval" ult.gif -y'
+        cmd = f'ffmpeg -i {quote(z)} -vf lutyuv="y=negval:u=negval:v=negval" {quote(out)} -y'
     try:
         await bash(cmd)
-        await e.client.send_file(e.chat_id, "ult.gif", supports_streaming=True)
-        os.remove(z)
-        os.remove("ult.gif")
+        await e.client.send_file(e.chat_id, out, supports_streaming=True)
         await xx.delete()
     except Exception as er:
         LOGS.info(er)
+    finally:
+        osremove(z, out)
 
 
 @ultroid_cmd(pattern="rvgif$")
 async def reverse_gif(event):
     a = await event.get_reply_message()
-    if not (a and a.media) and "video" not in mediainfo(a.media):
+    if not (a and a.media and "video" not in mediainfo(a.media)):
         return await event.eor("`Reply To Video only`", time=5)
+
     msg = await event.eor(get_string("com_1"))
     file = await a.download_media()
-    await bash(f'ffmpeg -i "{file}" -vf reverse -af areverse reversed.mp4 -y')
-    await event.respond("- **Reversed Video/GIF**", file="reversed.mp4")
+    out = check_filename("reversed.mp4")
+    await bash(f"ffmpeg -i {quote(file)} -vf reverse -af areverse {quote(out)} -y")
+    await event.respond("- **Reversed Video/GIF**", file=out)
+    osremove(out, file)
     await msg.delete()
-    os.remove(file)
-    os.remove("reversed.mp4")
 
 
 @ultroid_cmd(pattern="gif( (.*)|$)")
@@ -99,30 +110,22 @@ async def gifs(ult):
 @ultroid_cmd(pattern="vtog$")
 async def vtogif(e):
     a = await e.get_reply_message()
-    if not (a and a.media):
+    if not (a and a.media and "video" in mediainfo(a.media)):
         return await e.eor("`Reply To video only`", time=5)
-    wut = mediainfo(a.media)
-    if "video" not in wut:
-        return await e.eor("`Reply To Video Only`", time=5)
+
     xx = await e.eor(get_string("com_1"))
-    dur = a.media.document.attributes[0].duration
-    tt = time.time()
+    out = check_filename("videotogif.gif")
+    z, _ = await tg_downloader(media=a, event=xx, show_progress=True)
+    dur = await genss(z)
     if int(dur) < 120:
-        z = await a.download_media()
         await bash(
-            f'ffmpeg -i {z} -vf "fps=10,scale=320:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 ult.gif -y'
+            f'ffmpeg -i {quote(z)} -vf "fps=10,scale=320:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 {quote(out)} -y'
         )
     else:
-        filename = a.file.name
-        if not filename:
-            filename = "video_" + dt.now().isoformat("_", "seconds") + ".mp4"
-        vid = await downloader(filename, a.media.document, xx, tt, get_string("com_5"))
-        z = vid.name
         await bash(
-            f'ffmpeg -ss 3 -t 100 -i {z} -vf "fps=10,scale=320:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 ult.gif'
+            f'ffmpeg -ss 3 -t 100 -i {quote(z)} -vf "fps=10,scale=320:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 {quote(out)} -y'
         )
 
-    await e.client.send_file(e.chat_id, "ult.gif", support_stream=True)
-    os.remove(z)
-    os.remove("ult.gif")
+    await e.client.send_file(e.chat_id, out, support_stream=True)
+    osremove(z, out)
     await xx.delete()

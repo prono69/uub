@@ -114,6 +114,7 @@ from . import (
     json_parser,
     mediainfo,
     osremove,
+    tg_downloader,
     udB,
     ultroid_cmd,
 )
@@ -720,21 +721,13 @@ async def get_restriced_msg(event):
     except ChatForwardsRestrictedError:
         pass
     if message.media:
-        thumb = None
+        thumb, attributes = None, []
+        media, _ = await tg_downloader(media=message, event=xx, show_progress=True)
         if doc := message.document:
             attributes = doc.attributes
             if doc.thumbs:
                 thumb = await message.download_media(thumb=-1)
-            media, _ = await event.client.fast_downloader(
-                doc,
-                show_progress=True,
-                event=xx,
-                message=f"Downloading {message.file.name}...",
-            )
-            media = media.name
-        else:
-            attributes = []
-            media = await message.download_media("resources/downloads/")
+
         await xx.edit("`Uploading...`")
         uploaded, _ = await event.client.fast_uploader(
             media, event=xx, show_progress=True, to_delete=True

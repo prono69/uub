@@ -23,7 +23,7 @@ import glob
 import os
 from shlex import quote
 
-from pyUltroid.fns.tools import set_attributes
+from pyUltroid.fns.tools import set_attributes, _stdr
 from pyUltroid.custom._transfer import pyroDL, pyroUL
 
 from . import (
@@ -34,7 +34,6 @@ from . import (
     genss,
     get_string,
     mediainfo,
-    stdr,
     ultroid_cmd,
     unix_parser,
 )
@@ -146,7 +145,7 @@ async def gen_sample(e):
         if int(b) > int(await genss(file.name)):
             os.remove(file.name)
             return await eod(msg, get_string("audiotools_6"))
-        ss, dd = stdr(int(a)), stdr(int(b))
+        ss, dd = _stdr(int(a)), _stdr(int(b))
         xxx = await msg.edit(f"Trimming Video from `{ss}` to `{dd}`...")
         cmd = f"ffmpeg -i {quote(file.name)} -preset ultrafast -ss {ss} -to {dd} -codec copy -map 0 {quote(out)} -y"
         await bash(cmd)

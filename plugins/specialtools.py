@@ -37,6 +37,7 @@ import os
 import time
 from datetime import datetime as dt
 from random import choice
+from shlex import quote
 
 import pytz
 from bs4 import BeautifulSoup as bs
@@ -50,40 +51,33 @@ from . import (
     _get_colors,
     async_searcher,
     bash,
-    downloader,
-    eod,
+    check_filename,
     get_string,
     mediainfo,
+    osremove,
+    set_attributes,
     quotly,
+    tg_downloader,
     ultroid_bot,
     ultroid_cmd,
-    uploader,
 )
 
 
-File = []
+_ADD_AUDIO = []
 
 
 @ultroid_cmd(
     pattern="getaudio$",
 )
 async def daudtoid(e):
-    if not e.reply_to:
-        return await eod(e, get_string("spcltool_1"))
     r = await e.get_reply_message()
-    if not mediainfo(r.media).startswith(("audio", "video")):
-        return await eod(e, get_string("spcltool_1"))
+    if not (r and r.media and mediainfo(r.media).startswith(("audio", "video"))):
+        return await e.eor(get_string("spcltool_1"), time=5)
+
     xxx = await e.eor(get_string("com_1"))
-    dl = r.file.name or "input.mp4"
-    c_time = time.time()
-    file = await downloader(
-        f"resources/downloads/{dl}",
-        r.media.document,
-        xxx,
-        c_time,
-        f"Downloading {dl}...",
-    )
-    File.append(file.name)
+    _ADD_AUDIO.clear()
+    path, _ = await tg_downloader(media=r, event=xxx, show_progress=True)
+    _ADD_AUDIO.append(path)
     await xxx.edit(get_string("spcltool_2"))
 
 
@@ -91,59 +85,41 @@ async def daudtoid(e):
     pattern="addaudio$",
 )
 async def adaudroid(e):
-    if not e.reply_to:
-        return await eod(e, get_string("spcltool_3"))
     r = await e.get_reply_message()
-    if not mediainfo(r.media).startswith("video"):
-        return await eod(e, get_string("spcltool_3"))
-    if not (File and os.path.exists(File[0])):
-        return await e.edit(f"`First reply an audio with {HNDLR}addaudio`")
-    xxx = await e.eor(get_string("com_1"))
-    dl = r.file.name or "input.mp4"
-    c_time = time.time()
-    file = await downloader(
-        f"resources/downloads/{dl}",
-        r.media.document,
-        xxx,
-        c_time,
-        f"Downloading {dl}...",
-    )
+    if not (r and r.media and mediainfo(r.media).startswith("video")):
+        return await e.eor(get_string("spcltool_3"), time=5)
 
+    if not (_ADD_AUDIO and os.path.exists(_ADD_AUDIO[0])):
+        return await e.eor(f"`First reply an audio with {HNDLR}addaudio`")
+
+    xxx = await e.eor(get_string("com_1"))
+    out = check_filename("ffmpeg_ult.mp4")
+    path, _ = await tg_downloader(media=r, event=xxx, show_progress=True)
     await xxx.edit(get_string("spcltool_5"))
     await bash(
-        f'ffmpeg -i "{file.name}" -i "{File[0]}" -shortest -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 output.mp4'
+        f"ffmpeg -i {quote(path)} -i {quote(_ADD_AUDIO[0])} -shortest -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 {quote(out)}"
     )
-    out = "output.mp4"
-    mmmm = await uploader(out, out, time.time(), xxx, f"Uploading {out}...")
-    data = await metadata(out)
-    width = data["width"]
-    height = data["height"]
-    duration = data["duration"]
-    attributes = [
-        DocumentAttributeVideo(
-            duration=duration, w=width, h=height, supports_streaming=True
-        )
-    ]
-    await e.client.send_file(
-        e.chat_id,
-        mmmm,
+    attributes = await set_attributes(out)
+    mmmm, _ = await event.client.fast_uploader(
+        out, show_progress=True, event=xxx, save_cache=False
+    )
+    await r.reply(
+        f"`{path}`",
+        file=mmmm,
         thumb=ULTConfig.thumb,
         attributes=attributes,
         force_document=False,
-        reply_to=e.reply_to_msg_id,
     )
+    osremove(_ADD_AUDIO[0], path, out)
+    _ADD_AUDIO.clear()
     await xxx.delete()
-    os.remove(out)
-    os.remove(file.name)
-    File.clear()
-    os.remove(File[0])
 
 
 @ultroid_cmd(
-    pattern=r"dob( (.*)|$)",
+    pattern="dob( (.*)|$)",
 )
 async def hbd(event):
-    match = event.pattern_match.group(1).strip()
+    match = event.pattern_match.group(2)
     if not match:
         return await event.eor(get_string("spcltool_6"))
     if event.reply_to_msg_id:
@@ -255,7 +231,7 @@ Zodiac -: {sign}
 
 @ultroid_cmd(pattern="sticker( (.*)|$)")
 async def _(event):
-    x = event.pattern_match.group(1).strip()
+    x = event.pattern_match.group(2)
     if not x:
         return await event.eor("`Give something to search`")
     uu = await event.eor(get_string("com_1"))
@@ -349,6 +325,5 @@ async def quott_(event):
     except Exception as er:
         return await msg.edit(str(er))
     message = await reply.reply("Quotly by Ultroid", file=file)
-    os.remove(file)
+    osremove(file)
     await msg.delete()
-    return message

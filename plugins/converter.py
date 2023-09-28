@@ -37,9 +37,9 @@ from . import (
     bash,
     check_filename,
     con,
-    downloader,
     get_paste,
     get_string,
+    tg_downloader,
     udB,
     ultroid_cmd,
     unix_parser,
@@ -75,23 +75,16 @@ async def imak(event):
     reply = await event.get_reply_message()
     if not (reply and reply.media):
         return await event.eor(get_string("cvt_1"))
+
     args = event.pattern_match.group(2)
     args = unix_parser(args or "")
     if not (inp := args.args):
         return await event.eor(get_string("cvt_2"))
 
     xx = await event.eor(get_string("com_1"))
-    if reply.media:
-        if hasattr(reply.media, "document"):
-            dl = pyroDL(event=xx, source=reply)
-            file = await dl.download(auto_edit=False, _log=False, **args.kwargs)
-            if isinstance(file, Exception):
-                return await xx.edit(f"**Error while downloading** \n`{file}`")
-        else:
-            file = await event.client.download_media(reply.media)
-
+    file, _ = await tg_downloader(media=reply, event=xx, show_progress=True)
     inp = check_filename(inp)
-    await bash(f"mv {quote(file)} {quote(inp)}")
+    await bash(f"mv -f {quote(file)} {quote(inp)}")
     if not os.path.exists(inp) or (os.path.exists(inp) and not os.path.getsize(inp)):
         os.rename(file, inp)
     ul = pyroUL(event=xx, _path=inp)
@@ -123,10 +116,11 @@ conv_keys = {
 async def uconverter(event):
     xx = await event.eor(get_string("com_1"))
     a = await event.get_reply_message()
-    if a is None:
-        return await event.eor("`Reply to Photo or media with thumb...`")
-    input_ = event.pattern_match.group(1).strip()
-    b = await a.download_media("resources/downloads/")
+    if not (a and a.media):
+        return await xx.eor("`Reply to Photo or media with thumb...`", time=6)
+
+    input_ = event.pattern_match.group(2)
+    b, _ = await tg_downloader(media=a, event=xx, show_progress=True)
     if not b and (a.document and a.document.thumbs):
         b = await a.download_media(thumb=-1)
     if not b:
@@ -180,13 +174,14 @@ async def d_doc(event):
 )
 async def _(event):
     a = await event.get_reply_message()
-    b = event.pattern_match.group(1).strip()
+    b = event.pattern_match.group(2)
     if not ((a and a.media) or (b and os.path.exists(b))):
         return await event.eor(get_string("cvt_7"), time=5)
+
     xx = await event.eor(get_string("com_1"))
     rem = None
     if not b:
-        b = await a.download_media()
+        b, _ = await tg_downloader(media=a, event=xx, show_progress=False)
         rem = True
     try:
         with open(b) as c:

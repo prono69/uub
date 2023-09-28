@@ -28,10 +28,11 @@ from . import (
     LOGS,
     Telegraph,
     bash,
-    downloader,
     get_string,
     is_url_ok,
     mediainfo,
+    osremove,
+    tg_downloader,
     ultroid_cmd,
 )
 
@@ -47,7 +48,6 @@ async def mi(e):
     r = await e.get_reply_message()
     match = e.pattern_match.group(1).strip()
     msg = await e.eor(f"`Loading Mediainfo...`")
-    taime = time.time()
     extra = ""
 
     if r and r.media:
@@ -55,27 +55,11 @@ async def mi(e):
         murl = r.media.stringify()
         url = await make_html_telegraph("Mediainfo", f"<pre>{murl}</pre>")
         extra = f"[{xx}]({url})"
-
-        if hasattr(r.media, "document"):
-            file = r.media.document
-            mime_type = file.mime_type
-            filename = r.file.name
-            if not filename:
-                if "audio" in mime_type:
-                    filename = "audio_" + dt.now().isoformat("_", "seconds") + ".ogg"
-                elif "video" in mime_type:
-                    filename = "video_" + dt.now().isoformat("_", "seconds") + ".mp4"
-            dl = await downloader(
-                f"resources/downloads/{filename}",
-                file,
-                msg,
-                taime,
-                get_string("com_5") + filename,
-            )
-            naam = dl.name
-        else:
-            naam = await r.download_media()
-
+        naam, _ = await tg_downloader(
+            media=r,
+            event=msg,
+            show_progress=True,
+        )
     elif match and (
         os.path.isfile(match)
         or (match.startswith("https://") and await is_url_ok(match))
@@ -89,7 +73,7 @@ async def mi(e):
         LOGS.info(er)
         out = extra or str(er)
         if not match:
-            os.remove(naam)
+            osremove(naam)
         return await msg.edit(out, link_preview=False)
 
     makehtml = ""
@@ -114,7 +98,7 @@ async def mi(e):
         return await msg.edit(f"**Error:** `{er}`")
     await msg.edit(f"{extra} \n\n[{get_string('mdi_1')}]({urll})", link_preview=False)
     if not match:
-        os.remove(naam)
+        osremove(naam)
 
 
 @ultroid_cmd(pattern="rotate( (.*)|$)")

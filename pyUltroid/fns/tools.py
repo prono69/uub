@@ -492,12 +492,12 @@ async def duration_s(file, stime):
     rnd = choice((0.33, 0.5, 0.6, 0.75, 0.25, 0.45))
     x = round(tsec * rnd)
     y = round(tsec * rnd + int(stime))
-    pin = stdr(x)
-    pon = stdr(y) if y < tsec else stdr(tsec)
+    pin = _stdr(x)
+    pon = _stdr(y) if y < tsec else _stdr(tsec)
     return pin, pon
 
 
-def stdr(seconds):
+def _stdr(seconds):
     minutes, seconds = divmod(seconds, 60)
     hours, minutes = divmod(minutes, 60)
     if len(str(minutes)) == 1:
@@ -989,7 +989,6 @@ __all__ = (
     "saavn_search",
     "safe_load",
     "set_attributes",
-    "stdr",
     "telegraph_client",
     "text_set",
     "translate",

@@ -13,7 +13,6 @@ import asyncio
 import glob
 import os
 import time
-from datetime import datetime as dt
 
 from aiohttp.client_exceptions import InvalidURL
 from telethon.errors.rpcerrorlist import MessageNotModifiedError
@@ -26,7 +25,6 @@ from . import (
     LOGS,
     ULTConfig,
     check_filename,
-    downloader,
     fast_download,
     get_all_files,
     get_string,
@@ -34,6 +32,7 @@ from . import (
     progress,
     string_is_url,
     time_formatter,
+    tg_downloader,
     ultroid_cmd,
     unix_parser,
 )
@@ -78,38 +77,27 @@ async def download(event):
             return await event.eor(get_string("gms_1"))
         match = ""
         ok = await event.client.get_messages(chat, ids=msg)
-    elif event.reply_to_msg_id:
+    elif event.reply_to:
         ok = await event.get_reply_message()
+        if not (ok and ok.media):
+            return await event.eor(get_string("udl_1"), time=5)
     else:
         return await event.eor(get_string("cvt_3"), time=8)
+
     xx = await event.eor(get_string("com_1"))
-    if not (ok and ok.media):
-        return await xx.eor(get_string("udl_1"), time=5)
-    s = dt.now()
-    k = time.time()
-    if hasattr(ok.media, "document"):
-        file = ok.media.document
-        filename = match or ok.file.name or get_tg_filename(ok)
-        result = await downloader(
-            f"resources/downloads/{filename}",
-            file,
-            xx,
-            k,
-            f"Downloading {filename}...",
-        )
-        file_name = result.name
-    else:
-        d = "resources/downloads/"
-        file_name = await event.client.download_media(
-            ok,
-            d,
-            progress_callback=lambda d, t: asyncio.create_task(
-                progress(d, t, xx, k, get_string("com_5"))
-            ),
-        )
-    e = dt.now()
-    t = time_formatter(((e - s).seconds) * 1000)
-    await xx.eor(get_string("udl_2").format(file_name, t))
+    filename = (
+        (match if "resources/downloads/" in match else f"resources/downloads/{match}")
+        if match
+        else None
+    )
+    path, t_time = await tg_downloader(
+        media=ok,
+        event=xx,
+        filename=filename,
+        show_progress=True,
+    )
+    t = time_formatter(t_time * 1000)
+    await xx.edit(get_string("udl_2").format(path, t))
 
 
 @ultroid_cmd(pattern="xdl(?: |$)(.*)")
@@ -148,7 +136,7 @@ async def umplomder(event):
         delete = True
     if "--no-thumb" in match:
         thumb = None
-    arguments = ["--stream", "--delete", "--no-thumb"]
+    arguments = ("--stream", "--delete", "--no-thumb")
     if any(item in match for item in arguments):
         match = (
             match.replace("--stream", "")
@@ -200,6 +188,8 @@ async def umplomder(event):
                     s += 1
                 except (ValueError, IsADirectoryError):
                     c += 1
+                finally:
+                    await asyncio.sleep(3)
             break
         if os.path.getsize(result) == 0:
             return await msg.edit(f"`file size is 0B..`\n`{result}`")

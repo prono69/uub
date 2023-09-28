@@ -117,6 +117,7 @@ class UltroidClient(TelegramClient):
         message = kwargs.get("message", f"Uploading {filename}...")
         by_bot = self._bot
         size = path.stat().st_size
+        start_time = time.time()
         # Don't show progress bar when file size is less than 5MB.
         if size < 5 * 2**20:
             show_progress = False
@@ -136,8 +137,6 @@ class UltroidClient(TelegramClient):
         from pyUltroid.fns.helper import progress
 
         raw_file, edit_missed = None, 0
-        start_time = time.time()
-
         while not raw_file:
             with open(file, "rb") as f:
                 try:
@@ -156,9 +155,11 @@ class UltroidClient(TelegramClient):
                 except MessageNotModifiedError as exc:
                     edit_missed += 1
                     if edit_missed >= 6:
-                        raise UploadError(exc)
+                        raise UploadError(exc) from None
                 except MessageIdInvalidError:
-                    raise UploadError(f"Upload Cancelled for {file} because message was deleted.")
+                    raise UploadError(
+                        f"Upload Cancelled for {file} because message was deleted."
+                    ) from None
 
         if kwargs.get("save_cache", True):
             cache = {
@@ -190,7 +191,7 @@ class UltroidClient(TelegramClient):
         from pyUltroid.fns.helper import progress, check_filename, get_tg_filename
 
         # Auto-generate Filename
-        filename = check_filename(filename if filename else get_tg_filename(file))
+        filename = check_filename(filename or get_tg_filename(file))
         message = kwargs.get("message", f"Downloading {filename}...")
         raw_file, edit_missed = None, 0
         start_time = time.time()
@@ -213,9 +214,11 @@ class UltroidClient(TelegramClient):
                 except MessageNotModifiedError as exc:
                     edit_missed += 1
                     if edit_missed >= 6:
-                        raise DownloadError(exc)
+                        raise DownloadError(exc) from None
                 except MessageIdInvalidError:
-                    raise DownloadError(f"Download Cancelled for {filename} because message was deleted.")
+                    raise DownloadError(
+                        f"Download Cancelled for {filename} because message was deleted."
+                    ) from None
 
         return raw_file, time.time() - start_time
 

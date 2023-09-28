@@ -401,6 +401,8 @@ async def updater():
 
 # @1danish_00 @new-dev0 @buddhhu
 
+"""
+# alternative -> client.fast_download/upload
 
 async def uploader(file, name, taime, event, msg):
     edit_missed = 0
@@ -423,9 +425,11 @@ async def uploader(file, name, taime, event, msg):
         except MessageNotModifiedError as exc:
             edit_missed += 1
             if edit_missed >= 6:
-                raise UploadError(exc)
+                raise UploadError(str(exc)) from None
         except MessageIdInvalidError:
-            raise UploadError(f"Upload Cancelled for {name} because message was deleted.")
+            raise UploadError(
+                f"Upload Cancelled for '{name}' because message was deleted."
+            ) from None
 
     return result
 
@@ -451,11 +455,49 @@ async def downloader(filename, file, event, taime, msg):
         except MessageNotModifiedError as exc:
             edit_missed += 1
             if edit_missed >= 6:
-                raise DownloadError(exc)
+                raise DownloadError(str(exc)) from None
         except MessageIdInvalidError:
-            raise DownloadError(f"Dowload Cancelled for {filename} because message was deleted.")
+            raise DownloadError(
+                f"Dowload Cancelled for '{filename}' because message was deleted."
+            ) from None
 
     return result
+"""
+
+
+async def tg_downloader(
+    media,
+    event,
+    show_progress=False,
+    filename=None,
+    **kwargs,
+):
+    assert media.media and mediainfo(media.media) not in (
+        "",
+        "web",
+    ), "Wrong Media type to Download.."
+    if getattr(media.media, "document", None):
+        dlxx = await event.client.fast_downloader(
+            media.document,
+            event=event,
+            filename=filename,
+            show_progress=show_progress,
+            **kwargs,
+        )
+        return dlxx[0].name, dlxx[1]
+
+    s_time = time.time()
+    _callback = None
+    if show_progress and not getattr(media, "photo", None):
+        _callback = lambda d, t: asyncio.create_task(
+            progress(d, t, event, s_time, "Downloading ...")
+        )
+    path = await event.client.download_media(
+        media,
+        filename,
+        progress_callback=_callback,
+    )
+    return path, time.time() - s_time
 
 
 # ~~~~~~~~~~~~~~~ Async Searcher ~~~~~~~~~~~~~~~
@@ -729,7 +771,6 @@ __all__ = (
     "check_filename",
     "def_logs",
     "download_file",
-    "downloader",
     "fast_download",
     "gen_chlog",
     "get_filename_from_url",
@@ -746,8 +787,8 @@ __all__ = (
     "run_async",
     "safeinstall",
     "shutdown",
+    "tg_downloader",
     "time_formatter",
     "un_plug",
     "updater",
-    "uploader",
 )

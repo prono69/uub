@@ -39,10 +39,11 @@ from pyUltroid._misc._decorators import compile_pattern
 from pyUltroid.fns.helper import (
     bash,
     check_filename,
-    downloader,
+    get_tg_filename,
     inline_mention,
     mediainfo,
     osremove,
+    tg_downloader,
     time_formatter,
 )
 from pyUltroid.fns.admins import admin_check
@@ -425,19 +426,13 @@ async def dl_playlist(chat, from_user, link):
 async def file_download(event, reply, fast_download=True):
     thumb = "https://telegra.ph/file/22bb2349da20c7524e4db.mp4"
     title = reply.file.title or reply.file.name or str(time()) + (reply.file.ext or "")
-    file = reply.file.name or str(time()) + (reply.file.ext or "")
-    dl_loc = check_filename(f"vcbot/downloads/{file}")
-    if fast_download:
-        dl = await downloader(
-            dl_loc,
-            reply.media.document,
-            event,
-            time(),
-            f"Downloading {title}...",
-        )
-        dl = dl.name
-    else:
-        dl = await reply.download_media(dl_loc)
+    dl_loc = check_filename(f"vcbot/downloads/{get_tg_filename(reply)}")
+    dl, _ = await tg_downloader(
+        media=reply,
+        event=event,
+        filename=dl_loc,
+        show_progress=fast_download,
+    )
     duration = (
         time_formatter(reply.file.duration * 1000) if reply.file.duration else "🤷‍♂️"
     )
