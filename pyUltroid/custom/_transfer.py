@@ -34,6 +34,7 @@ from telethon.errors import (
 from pyrog import app
 from .mediainfo import gen_mediainfo
 from .functions import cleargif, run_async_task
+from pyUltroid.exceptions import DownloadError, UploadError
 from pyUltroid.fns.tools import humanbytes
 from pyUltroid.startup import LOGS
 from pyUltroid import asst, udB, ultroid_bot
@@ -64,19 +65,6 @@ DUMP_CHANNEL = udB.get_key("TAG_LOG")
 PROGRESS_LOG = {}
 LOGGER_MSG = "Uploading {} | Path: {} | DC: {} | Size: {}"
 DEFAULT_THUMB = str(Path.cwd().joinpath("resources/extras/ultroid.jpg"))
-
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-# custom exceptions
-
-
-class UploadError(Exception):
-    pass
-
-
-class DownloadError(Exception):
-    pass
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

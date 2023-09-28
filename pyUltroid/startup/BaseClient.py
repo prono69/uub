@@ -21,9 +21,12 @@ from telethon.errors import (
     AccessTokenInvalidError,
     ApiIdInvalidError,
     AuthKeyDuplicatedError,
+    MessageNotModifiedError,
+    MessageIdInvalidError,
 )
 
 from ..configs import Var
+from ..exceptions import DownloadError, UploadError
 from ._logger import TelethonLogger
 from . import *
 
@@ -101,7 +104,6 @@ class UltroidClient(TelegramClient):
 
     async def fast_uploader(self, file, **kwargs):
         """Upload files in a faster way"""
-        start_time = time.time()
         path = Path(file)
         filename = kwargs.get("filename", path.name)
         # Set to True and pass event to show progress bar.
@@ -133,21 +135,30 @@ class UltroidClient(TelegramClient):
         from pyUltroid.fns.FastTelethon import upload_file
         from pyUltroid.fns.helper import progress
 
-        raw_file = None
+        raw_file, edit_missed = None, 0
+        start_time = time.time()
+
         while not raw_file:
             with open(file, "rb") as f:
-                raw_file = await upload_file(
-                    client=self,
-                    file=f,
-                    filename=filename,
-                    progress_callback=(
-                        lambda completed, total: self.loop.create_task(
-                            progress(completed, total, event, start_time, message)
+                try:
+                    raw_file = await upload_file(
+                        client=self,
+                        file=f,
+                        filename=filename,
+                        progress_callback=(
+                            lambda completed, total: self.loop.create_task(
+                                progress(completed, total, event, start_time, message)
+                            )
                         )
+                        if show_progress
+                        else None,
                     )
-                    if show_progress
-                    else None,
-                )
+                except MessageNotModifiedError as exc:
+                    edit_missed += 1
+                    if edit_missed >= 6:
+                        raise UploadError(exc)
+                except MessageIdInvalidError:
+                    raise UploadError(f"Upload Cancelled for {file} because message was deleted.")
 
         if kwargs.get("save_cache", True):
             cache = {
@@ -161,6 +172,7 @@ class UltroidClient(TelegramClient):
             self._cache["upload_cache"] = _cache.append(cache) if _cache else [cache]
         if to_delete:
             path.unlink(missing_ok=True)
+
         return raw_file, time.time() - start_time
 
     async def fast_downloader(self, file, **kwargs):
@@ -177,26 +189,34 @@ class UltroidClient(TelegramClient):
         from pyUltroid.fns.FastTelethon import download_file
         from pyUltroid.fns.helper import progress, check_filename, get_tg_filename
 
-        start_time = time.time()
         # Auto-generate Filename
         filename = check_filename(filename if filename else get_tg_filename(file))
         message = kwargs.get("message", f"Downloading {filename}...")
+        raw_file, edit_missed = None, 0
+        start_time = time.time()
 
-        raw_file = None
         while not raw_file:
             with open(filename, "wb") as f:
-                raw_file = await download_file(
-                    client=self,
-                    location=file,
-                    out=f,
-                    progress_callback=(
-                        lambda completed, total: self.loop.create_task(
-                            progress(completed, total, event, start_time, message)
+                try:
+                    raw_file = await download_file(
+                        client=self,
+                        location=file,
+                        out=f,
+                        progress_callback=(
+                            lambda completed, total: self.loop.create_task(
+                                progress(completed, total, event, start_time, message)
+                            )
                         )
+                        if show_progress
+                        else None,
                     )
-                    if show_progress
-                    else None,
-                )
+                except MessageNotModifiedError as exc:
+                    edit_missed += 1
+                    if edit_missed >= 6:
+                        raise DownloadError(exc)
+                except MessageIdInvalidError:
+                    raise DownloadError(f"Download Cancelled for {filename} because message was deleted.")
+
         return raw_file, time.time() - start_time
 
     def run_in_loop(self, function):
@@ -209,8 +229,9 @@ class UltroidClient(TelegramClient):
 
     def add_handler(self, func, *args, **kwargs):
         """Add new event handler, ignoring if exists"""
-        if func in [_[0] for _ in self.list_event_handlers()]:
-            return
+        for i in self.list_event_handlers():
+            if func == i[0]:
+                return
         self.add_event_handler(func, *args, **kwargs)
 
     @property

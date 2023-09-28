@@ -346,10 +346,8 @@ async def _internal_transfer_to_telegram(
     buffer = bytearray()
     for data in stream_file(response):
         if progress_callback:
-            try:
-                await _maybe_await(progress_callback(response.tell(), file_size))
-            except BaseException:
-                pass
+            # don't handle exceptions here
+            await _maybe_await(progress_callback(response.tell(), file_size))
         if not is_large:
             hash_md5.update(data)
         if len(buffer) == 0 and len(data) == part_size:
@@ -386,10 +384,8 @@ async def download_file(
     async for x in downloaded:
         out.write(x)
         if progress_callback:
-            try:
-                await _maybe_await(progress_callback(out.tell(), size))
-            except BaseException:
-                pass
+            await _maybe_await(progress_callback(out.tell(), size))
+
     return out
 
 

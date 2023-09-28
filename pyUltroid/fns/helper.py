@@ -48,7 +48,7 @@ from functools import partial, wraps
 from telethon.helpers import _maybe_await
 from telethon.tl import types
 from telethon.utils import get_display_name
-from telethon.errors import MessageNotModifiedError
+from telethon.errors import MessageNotModifiedError, MessageIdInvalidError
 
 from .._misc import CMD_HELP
 from .._misc._wrappers import eod, eor
@@ -58,7 +58,7 @@ from . import *
 from ..dB._core import ADDONS, HELP, LIST, LOADED
 
 from ..version import ultroid_version
-from ..exceptions import DependencyMissingError
+from ..exceptions import DownloadError, UploadError, DependencyMissingError
 from .FastTelethon import download_file as downloadable
 from .FastTelethon import upload_file as uploadable
 
@@ -262,7 +262,7 @@ async def safeinstall(event):
     try:
         load_addons(dl)  # dl.split("/")[-1].replace(".py", ""))
     except BaseException:
-        os.remove(dl)
+        osremove(dl)
         return await eor(ok, f"**ERROR**\n\n`{format_exc()}`", time=30)
     plug = sm.replace(".py", "")
     if plug in HELP:
@@ -403,44 +403,62 @@ async def updater():
 
 
 async def uploader(file, name, taime, event, msg):
+    edit_missed = 0
     with open(file, "rb") as f:
-        result = await uploadable(
-            client=event.client,
-            file=f,
-            filename=name,
-            progress_callback=lambda d, t: asyncio.get_event_loop().create_task(
-                progress(
-                    d,
-                    t,
-                    event,
-                    taime,
-                    msg,
+        try:
+            result = await uploadable(
+                client=event.client,
+                file=f,
+                filename=name,
+                progress_callback=lambda d, t: asyncio.get_event_loop().create_task(
+                    progress(
+                        d,
+                        t,
+                        event,
+                        taime,
+                        msg,
+                    ),
                 ),
-            ),
-        )
+            )
+        except MessageNotModifiedError as exc:
+            edit_missed += 1
+            if edit_missed >= 6:
+                raise UploadError(exc)
+        except MessageIdInvalidError:
+            raise UploadError(f"Upload Cancelled for {name} because message was deleted.")
+
     return result
 
 
 async def downloader(filename, file, event, taime, msg):
+    edit_missed = 0
     with open(filename, "wb") as fk:
-        result = await downloadable(
-            client=event.client,
-            location=file,
-            out=fk,
-            progress_callback=lambda d, t: asyncio.get_event_loop().create_task(
-                progress(
-                    d,
-                    t,
-                    event,
-                    taime,
-                    msg,
+        try:
+            result = await downloadable(
+                client=event.client,
+                location=file,
+                out=fk,
+                progress_callback=lambda d, t: asyncio.get_event_loop().create_task(
+                    progress(
+                        d,
+                        t,
+                        event,
+                        taime,
+                        msg,
+                    ),
                 ),
-            ),
-        )
+            )
+        except MessageNotModifiedError as exc:
+            edit_missed += 1
+            if edit_missed >= 6:
+                raise DownloadError(exc)
+        except MessageIdInvalidError:
+            raise DownloadError(f"Dowload Cancelled for {filename} because message was deleted.")
+
     return result
 
 
-# ~~~~~~~~~~~~~~~Async Searcher~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~ Async Searcher ~~~~~~~~~~~~~~~
 # @buddhhu
 
 

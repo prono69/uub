@@ -90,17 +90,13 @@ async def download(event):
     if hasattr(ok.media, "document"):
         file = ok.media.document
         filename = match or ok.file.name or get_tg_filename(ok)
-        try:
-            result = await downloader(
-                f"resources/downloads/{filename}",
-                file,
-                xx,
-                k,
-                f"Downloading {filename}...",
-            )
-
-        except MessageNotModifiedError as err:
-            return await xx.edit(str(err))
+        result = await downloader(
+            f"resources/downloads/{filename}",
+            file,
+            xx,
+            k,
+            f"Downloading {filename}...",
+        )
         file_name = result.name
     else:
         d = "resources/downloads/"

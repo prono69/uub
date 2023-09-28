@@ -96,7 +96,7 @@ class BingScrapper:
                 evaluate=partial(self._handle_download, filename),
             )
         except Exception as exc:
-            LOGS.debug(f"Bing: error in downloading {link} – {exc}")
+            LOGS.debug(f"Error: {exc}")
 
     async def get_links(self):
         cached_urls = set()
