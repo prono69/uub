@@ -17,8 +17,6 @@ from . import (
     ULTConfig,
     bash,
     check_filename,
-    eod,
-    eor,
     genss,
     get_help,
     get_string,

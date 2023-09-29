@@ -60,8 +60,8 @@ async def igif(e):
         await bash(cmd)
         await e.client.send_file(e.chat_id, out, supports_streaming=True)
         await xx.delete()
-    except Exception as er:
-        LOGS.info(er)
+    except Exception as exc:
+        LOGS.info(exc)
     finally:
         osremove(z, out)
 
@@ -69,16 +69,20 @@ async def igif(e):
 @ultroid_cmd(pattern="rvgif$")
 async def reverse_gif(event):
     a = await event.get_reply_message()
-    if not (a and a.media and "video" not in mediainfo(a.media)):
+    if not (a and a.media and "video" in mediainfo(a.media)):
         return await event.eor("`Reply To Video only`", time=5)
 
     msg = await event.eor(get_string("com_1"))
     file = await a.download_media()
     out = check_filename("reversed.mp4")
-    await bash(f"ffmpeg -i {quote(file)} -vf reverse -af areverse {quote(out)} -y")
-    await event.respond("- **Reversed Video/GIF**", file=out)
-    osremove(out, file)
-    await msg.delete()
+    try:
+        await bash(f"ffmpeg -i {quote(file)} -vf reverse -af areverse {quote(out)} -y")
+        await event.respond("- **Reversed Video/GIF**", file=out)
+    except Exception as exc:
+        LOGS.info(exc)
+    finally:
+        osremove(out, file)
+        await msg.delete()
 
 
 @ultroid_cmd(pattern="gif( (.*)|$)")
@@ -126,6 +130,10 @@ async def vtogif(e):
             f'ffmpeg -ss 3 -t 100 -i {quote(z)} -vf "fps=10,scale=320:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 {quote(out)} -y'
         )
 
-    await e.client.send_file(e.chat_id, out, support_stream=True)
-    osremove(z, out)
-    await xx.delete()
+    try:
+        await e.client.send_file(e.chat_id, out, support_streaming=True)
+    except Exception as exc:
+        LOGS.info(exc)
+    finally:
+        osremove(z, out)
+        await xx.delete()

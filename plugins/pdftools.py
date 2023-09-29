@@ -132,6 +132,10 @@ async def pdfseimg(event):
             await xx.respond(file=out)
         except PhotoSaveFileInvalidError:
             await xx.respond(file=out, force_document=True)
+        except Exception:
+            LOGS.exception("Error in Extracting PDF.!!!")
+        finally:
+            osremove(out)
 
     osremove(pdf, pdfp, folders=True)
     os.makedirs("pdf", exist_ok=True)

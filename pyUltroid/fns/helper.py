@@ -477,6 +477,11 @@ async def tg_downloader(
         "web",
     ), "Wrong Media type to Download.."
     if getattr(media.media, "document", None):
+        if filename:
+            if Path(filename).is_dir():
+                filename = str(Path(filename) / get_tg_filename(media))
+        else:
+            filename = "resources/downloads/" + get_tg_filename(media)
         dlxx = await event.client.fast_downloader(
             media.document,
             event=event,
