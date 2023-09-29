@@ -158,7 +158,7 @@ class UltroidClient(TelegramClient):
                         raise UploadError(exc) from None
                 except MessageIdInvalidError:
                     raise UploadError(
-                        f"Upload Cancelled for {file} because message was deleted."
+                        f"Upload Cancelled for '{file}' because message was deleted."
                     ) from None
 
         if kwargs.get("save_cache", True):
@@ -217,7 +217,7 @@ class UltroidClient(TelegramClient):
                         raise DownloadError(exc) from None
                 except MessageIdInvalidError:
                     raise DownloadError(
-                        f"Download Cancelled for {filename} because message was deleted."
+                        f"Download Cancelled for '{filename}' because message was deleted."
                     ) from None
 
         return raw_file, time.time() - start_time

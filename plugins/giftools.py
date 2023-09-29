@@ -25,6 +25,7 @@
    Send video regarding to query.
 """
 
+import asyncio
 import random
 from shlex import quote
 
@@ -33,6 +34,7 @@ from . import (
     LOGS,
     bash,
     check_filename,
+    cleargif,
     genss,
     get_string,
     mediainfo,
@@ -50,15 +52,16 @@ async def igif(e):
         return await e.eor("`Reply To gif only`", time=5)
 
     xx = await e.eor(get_string("com_1"))
-    z = await a.download_media()
-    out = check_filename("ult.gif")
+    z, _ = await tg_downloader(media=a, event=xx, show_progress=True)
+    out = check_filename("bw_invert.gif")
     if match == "bw":
         cmd = f"ffmpeg -i {quote(z)} -vf format=gray {quote(out)} -y"
     else:
         cmd = f'ffmpeg -i {quote(z)} -vf lutyuv="y=negval:u=negval:v=negval" {quote(out)} -y'
     try:
         await bash(cmd)
-        await e.client.send_file(e.chat_id, out, supports_streaming=True)
+        x = await a.reply(file=out, supports_streaming=True)
+        await cleargif(x)
         await xx.delete()
     except Exception as exc:
         LOGS.info(exc)
@@ -73,11 +76,12 @@ async def reverse_gif(event):
         return await event.eor("`Reply To Video only`", time=5)
 
     msg = await event.eor(get_string("com_1"))
-    file = await a.download_media()
+    file, _ = await tg_downloader(media=a, event=msg, show_progress=True)
     out = check_filename("reversed.mp4")
     try:
         await bash(f"ffmpeg -i {quote(file)} -vf reverse -af areverse {quote(out)} -y")
-        await event.respond("- **Reversed Video/GIF**", file=out)
+        x = await a.reply("- **Reversed Video/GIF**", file=out)
+        await cleargif(x)
     except Exception as exc:
         LOGS.info(exc)
     finally:
@@ -100,14 +104,17 @@ async def gifs(ult):
     m = await ult.eor(get_string("com_2"))
     gifs = await ult.client.inline_query("gif", get)
     if not n:
-        await gifs[xx].click(
+        x = await gifs[xx].click(
             ult.chat_id, reply_to=ult.reply_to_msg_id, silent=True, hide_via=True
         )
+        await cleargif(x)
     else:
         for x in range(n):
-            await gifs[x].click(
+            x = await gifs[x].click(
                 ult.chat_id, reply_to=ult.reply_to_msg_id, silent=True, hide_via=True
             )
+            await cleargif(x)
+            await asyncio.sleep(3)
     await m.delete()
 
 
@@ -118,9 +125,9 @@ async def vtogif(e):
         return await e.eor("`Reply To video only`", time=5)
 
     xx = await e.eor(get_string("com_1"))
-    out = check_filename("videotogif.gif")
     z, _ = await tg_downloader(media=a, event=xx, show_progress=True)
     dur = await genss(z)
+    out = check_filename("videotogif.gif")
     if int(dur) < 120:
         await bash(
             f'ffmpeg -i {quote(z)} -vf "fps=10,scale=320:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 {quote(out)} -y'
@@ -131,7 +138,10 @@ async def vtogif(e):
         )
 
     try:
-        await e.client.send_file(e.chat_id, out, support_streaming=True)
+        x = await a.reply(
+            f"`Converted Video to GIF..`", file=out, support_streaming=True
+        )
+        await cleargif(x)
     except Exception as exc:
         LOGS.info(exc)
     finally:

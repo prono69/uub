@@ -34,6 +34,7 @@ from . import (
     ULTConfig,
     bash,
     check_filename,
+    cleargif,
     get_all_files,
     get_string,
     osremove,
@@ -94,12 +95,14 @@ async def unzipp(event):
         xxx, _ = await event.client.fast_uploader(
             x, show_progress=True, event=xx, save_cache=False
         )
-        await xx.respond(
+        y = await xx.respond(
             f"`{xxx.name}`",
             file=xxx,
             force_document=True,
             thumb=ULTConfig.thumb,
         )
+        await cleargif(y)
+        await asyncio.sleep(4.5)
     osremove("unzip", folders=True)
     await xx.delete()
 
@@ -112,7 +115,9 @@ async def azipp(event):
 
     xx = await event.eor(get_string("com_1"))
     os.makedirs("zip", exist_ok=True)
-    file, _ = await tg_downloader(media=reply, filename="zip", event=xx, show_progress=True)
+    file, _ = await tg_downloader(
+        media=reply, filename="zip", event=xx, show_progress=True
+    )
     await xx.edit(
         f"Downloaded `{file}` succesfully\nNow Reply To Other Files To Add And Zip all at once",
     )
@@ -126,9 +131,13 @@ async def do_zip(event):
     xx = await event.eor(get_string("com_1"))
     out = check_filename("ultroid.zip")
     if passw := event.pattern_match.group(2):
-        await bash(f"zip -r --password {passw} {quote(out)} zip/*")
+        sout, err = await bash(f"zip -r --password {passw} {quote(out)} zip/*")
     else:
-        await bash(f"zip -r {quote(out)} zip/*")
+        sout, err = await bash(f"zip -r {quote(out)} zip/*")
+
+    if not os.path.exists(out):
+        LOGS.warning(f"Error in dozip: {err}")
+        return await xx.edit(f"`Could not Compress files..`")
 
     xxx, _ = await event.client.fast_uploader(
         out, show_progress=True, event=xx, save_cache=True

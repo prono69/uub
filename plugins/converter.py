@@ -36,6 +36,7 @@ from . import (
     asyncwrite,
     bash,
     check_filename,
+    cleargif,
     con,
     get_paste,
     get_string,
@@ -130,10 +131,9 @@ async def uconverter(event):
         return await xx.edit(get_string("sts_3").format("gif/img/sticker/webm"))
     file = await con.convert(b, outname="ultroid", convert_to=convert)
     if file:
-        await event.client.send_file(
-            event.chat_id, file, reply_to=event.reply_to_msg_id or event.id
-        )
+        x = await a.reply(file=file)
         os.remove(file)
+        await cleargif(x)
     await xx.delete()
 
 

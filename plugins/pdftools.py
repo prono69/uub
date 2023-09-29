@@ -88,11 +88,11 @@ async def pdfseimg(event):
     pdfp = "pdf/" + Path(path).stem
     pdf = PdfReader(pdfp)
     if not msg:
-        for num in range(pdf.numPages):
+        for num in range(len(pdf.pages)):
             try:
                 pw = PdfWriter()
-                fil = f"pdf/ult_{num + 1}.png"
-                pw.addPage(pdf.getPage(num))
+                fil = check_filename(f"pdf/ult_{num + 1}.png")
+                pw.addPage(pdf.pages[num])
                 with open(fil, "wb") as f:
                     pw.write(f)
                 await xx.respond(file=fil)
@@ -108,7 +108,7 @@ async def pdfseimg(event):
         ok = int(msg.split("-")[-1]) - 1
         for o in range(ok):
             pw = PdfWriter()
-            pw.addPage(pdf.getPage(o))
+            pw.addPage(pdf.pages[o])
             out = check_filename("ult.png")
             with open(out, "wb") as f:
                 pw.write(f)
@@ -125,7 +125,7 @@ async def pdfseimg(event):
     else:
         o = int(msg) - 1
         pw = PdfWriter()
-        pw.addPage(pdf.getPage(o))
+        pw.addPage(pdf.pages[o])
         out = check_filename("ult.png")
         with open(out, "wb") as f:
             pw.write(f)
@@ -159,32 +159,33 @@ async def pdfsetxt(event):
     await xx.edit(f"`Extracting text from PDF...`")
     if not msg:
         pdf = PdfReader(path)
-        text = Path(path).with_suffix(".txt")
+        text = check_filename(Path(path).stem + "_extracted.txt")
         with open(text, "w") as f:
-            for page_num in range(pdf.numPages):
-                pageObj = pdf.getPage(page_num)
+            for page_num in range(len(pdf.pages)):
+                pageObj = pdf.pages[page_num]
                 txt = pageObj.extractText()
                 f.write(f"Page {page_num + 1}\n")
                 f.write("".center(100, "-"))
                 f.write(txt)
-        await xx.respond(f"`{Path(text).name}`", file=text, thumb=ULTConfig.thumb)
+        await xx.respond(f"`{text}`", file=text, thumb=ULTConfig.thumb)
         osremove(text, path)
         return
 
     if "-" in msg:
         u, d = msg.split("-")
         a = PdfReader(path)
-        str = "".join(a.getPage(i).extractText() for i in range(int(u) - 1, int(d)))
-        text = f"{path.split('.')[0]} {msg}.txt"
+        str = "".join(a.pages[i].extractText() for i in range(int(u) - 1, int(d)))
+        text = check_filename(Path(path).stem + f"_extracted_{msg}.txt")
+
     else:
         u = int(msg) - 1
         a = PdfReader(path)
         str = a.getPage(u).extractText()
-        text = f"{path.split('.')[0]} Pg-{msg}.txt"
+        text = check_filename(Path(path).stem + f"_extracted_{msg}.txt")
 
     with open(text, "w") as f:
         f.write(str)
-    await xx.respond(file=text, thumb=ULTConfig.thumb)
+    await xx.respond(f"`{text}`", file=text, thumb=ULTConfig.thumb)
     osremove(text, path)
     await xx.delete()
 
@@ -247,9 +248,9 @@ async def imgscan(event):
     cv2.imwrite(out, ok)
     image1 = Image.open(out)
     im1 = image1.convert("RGB")
-    scann = f"scanned_{ultt.split('.')[0]}.pdf"
+    scann = check_filename("pdf/scanned.pdf")
     im1.save(scann)
-    await reply.reply("`Scanned Successfully!`", file=scann, thumb=ULTConfig.thumb)
+    await ok.reply("`Scanned Successfully!`", file=scann, thumb=ULTConfig.thumb)
     osremove(ultt, out, scann)
     await xx.delete()
 
@@ -359,3 +360,4 @@ async def sendpdf(event):
     )
     osremove(ok, "pdf", folders=True)
     os.makedirs("pdf", exist_ok=True)
+    await xx.delete()

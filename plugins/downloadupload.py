@@ -25,6 +25,7 @@ from . import (
     LOGS,
     ULTConfig,
     check_filename,
+    cleargif,
     fast_download,
     get_all_files,
     get_string,
@@ -175,7 +176,7 @@ async def umplomder(event):
                     file, _ = await event.client.fast_uploader(
                         files, show_progress=True, event=msg, to_delete=delete
                     )
-                    await event.client.send_file(
+                    y = await event.client.send_file(
                         event.chat_id,
                         file,
                         supports_streaming=stream,
@@ -186,6 +187,7 @@ async def umplomder(event):
                         reply_to=event.reply_to_msg_id or event,
                     )
                     s += 1
+                    await cleargif(y)
                 except (ValueError, IsADirectoryError):
                     c += 1
                 finally:
@@ -202,7 +204,7 @@ async def umplomder(event):
         file, _ = await event.client.fast_uploader(
             result, show_progress=True, event=msg, to_delete=delete
         )
-        await event.client.send_file(
+        y = await event.client.send_file(
             event.chat_id,
             file,
             supports_streaming=stream,
@@ -211,6 +213,7 @@ async def umplomder(event):
             attributes=attributes,
             caption=f"`Uploaded` `{result}` `in {time_formatter(_*1000)}`",
         )
+        await cleargif(y)
     await msg.try_delete()
 
 
