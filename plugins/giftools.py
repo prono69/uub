@@ -26,7 +26,7 @@
 """
 
 import random
-from shelx import quote
+from shlex import quote
 
 from . import (
     HNDLR,

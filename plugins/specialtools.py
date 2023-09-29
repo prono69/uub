@@ -100,7 +100,7 @@ async def adaudroid(e):
         f"ffmpeg -i {quote(path)} -i {quote(_ADD_AUDIO[0])} -shortest -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 {quote(out)}"
     )
     attributes = await set_attributes(out)
-    mmmm, _ = await event.client.fast_uploader(
+    mmmm, _ = await e.client.fast_uploader(
         out, show_progress=True, event=xxx, save_cache=False
     )
     await r.reply(

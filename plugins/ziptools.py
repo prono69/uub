@@ -84,11 +84,10 @@ async def unzipp(event):
         if not reply.file.name.endswith(("zip", "rar", "exe")):
             return await xx.edit(get_string("zip_3"))
         file, _ = await tg_downloader(media=reply, event=xx, show_progress=True)
-    if os.path.isdir("unzip"):
-        await bash("rm -rf unzip")
-    os.mkdir("unzip")
+    osremove("unzip", folders=True)
+    os.makedirs("unzip")
     await xx.edit("`Unzipping files...`")
-    await bash(f"7z x {quote(file)} -aoa -o unzip")
+    await bash(f"7z x {quote(file)} -aoa -ounzip")
     await asyncio.sleep(5)
     ok = get_all_files("unzip")
     for x in ok:
@@ -101,7 +100,7 @@ async def unzipp(event):
             force_document=True,
             thumb=ULTConfig.thumb,
         )
-    await bash("rm -rf unzip")
+    osremove("unzip", folders=True)
     await xx.delete()
 
 
@@ -113,7 +112,7 @@ async def azipp(event):
 
     xx = await event.eor(get_string("com_1"))
     os.makedirs("zip", exist_ok=True)
-    file, _ = await tg_downloader(media=reply, event=xx, show_progress=True)
+    file, _ = await tg_downloader(media=reply, filename="zip", event=xx, show_progress=True)
     await xx.edit(
         f"Downloaded `{file}` succesfully\nNow Reply To Other Files To Add And Zip all at once",
     )
@@ -140,5 +139,5 @@ async def do_zip(event):
         force_document=True,
         thumb=ULTConfig.thumb,
     )
-    osremove("pdf", folders=True)
+    osremove("zip", folders=True)
     await xx.delete()

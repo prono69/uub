@@ -55,6 +55,7 @@ from . import (
     check_filename,
     eor,
     get_string,
+    mediainfo,
     osremove,
     tg_downloader,
     ultroid_cmd,

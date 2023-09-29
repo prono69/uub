@@ -43,7 +43,6 @@ from . import (
     udB,
     ultroid_cmd,
     unix_parser,
-    uploader,
 )
 
 opn = []
