@@ -13,10 +13,6 @@ test*
 /*.png
 /*.mp4
 *.log
-run
-init
-web.py
-config.env
 target/npmlist.json
 package-lock.json
 ultroid.json
@@ -52,3 +48,16 @@ bin-release/
 
 # fly.io configs
 fly.toml
+
+# others
+.nomedia
+.env
+mirror
+script.sh
+init.sh
+init
+run
+runner.py
+config.env
+web.py
+*.out

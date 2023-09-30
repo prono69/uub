@@ -102,7 +102,7 @@ async def unzipp(event):
             thumb=ULTConfig.thumb,
         )
         await cleargif(y)
-        await asyncio.sleep(4.5)
+        await asyncio.sleep(5)
     osremove("unzip", folders=True)
     await xx.delete()
 

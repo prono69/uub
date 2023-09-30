@@ -29,20 +29,12 @@
 
 import asyncio
 import glob
-import os
 import time
 from pathlib import Path
 from shlex import quote
 
 import cv2
 import numpy as np
-
-try:
-    from PIL import Image
-except ImportError:
-    Image = None
-    LOGS.info(f"{__file__}: PIL  not Installed.")
-
 from PyPDF2 import PdfMerger, PdfReader, PdfWriter
 from telethon.errors.rpcerrorlist import PhotoSaveFileInvalidError
 
@@ -53,7 +45,6 @@ from . import (
     ULTConfig,
     bash,
     check_filename,
-    eor,
     get_string,
     mediainfo,
     osremove,
@@ -61,8 +52,11 @@ from . import (
     ultroid_cmd,
 )
 
-
-os.makedirs("pdf", exist_ok=True)
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
+    LOGS.info(f"{__file__}: PIL  not Installed.")
 
 
 @ultroid_cmd(
@@ -73,26 +67,20 @@ async def pdfseimg(event):
     if not (
         ok and ok.media and ok.document and ok.document.mime_type == "application/pdf"
     ):
-        return await event.eor("`Reply The pdf u Want to Download..`")
+        return await event.eor("`Reply to PDF you want to extract as Image..`")
 
     xx = await event.eor(get_string("com_1"))
     msg = event.pattern_match.group(2)
-    filename = check_filename("pdf/hehe.pdf")
-    path, _ = await tg_downloader(
-        media=ok,
-        event=xx,
-        filename=filename,
-        show_progress=True,
-    )
+    path, _ = await tg_downloader(media=ok, event=xx, show_progress=True)
     await xx.edit(f"`Extracting Image from {Path(path).name}..`")
-    pdfp = "pdf/" + Path(path).stem
-    pdf = PdfReader(pdfp)
+    pdf = PdfReader(path)
+
     if not msg:
         for num in range(len(pdf.pages)):
             try:
                 pw = PdfWriter()
-                fil = check_filename(f"pdf/ult_{num + 1}.png")
-                pw.addPage(pdf.pages[num])
+                fil = check_filename(f"pdf_extract_{num + 1}.png")
+                pw.add_page(pdf.pages[num])
                 with open(fil, "wb") as f:
                     pw.write(f)
                 await xx.respond(file=fil)
@@ -102,14 +90,13 @@ async def pdfseimg(event):
                 LOGS.exception("Error in Extracting PDF.!")
             finally:
                 osremove(fil)
-                await asyncio.sleep(3)
-
+                await asyncio.sleep(5)
     elif "-" in msg:
         ok = int(msg.split("-")[-1]) - 1
         for o in range(ok):
             pw = PdfWriter()
-            pw.addPage(pdf.pages[o])
-            out = check_filename("ult.png")
+            pw.add_page(pdf.pages[o])
+            out = check_filename("pdf_extract.png")
             with open(out, "wb") as f:
                 pw.write(f)
             try:
@@ -120,13 +107,12 @@ async def pdfseimg(event):
                 LOGS.exception("Error in Extracting PDF.!!")
             finally:
                 osremove(out)
-                await asyncio.sleep(3)
-
+                await asyncio.sleep(5)
     else:
         o = int(msg) - 1
         pw = PdfWriter()
-        pw.addPage(pdf.pages[o])
-        out = check_filename("ult.png")
+        pw.add_page(pdf.pages[o])
+        out = check_filename("pdf_extract.png")
         with open(out, "wb") as f:
             pw.write(f)
         try:
@@ -138,7 +124,7 @@ async def pdfseimg(event):
         finally:
             osremove(out)
 
-    osremove(pdf, pdfp, folders=True)
+    osremove("pdf", path, folders=True)
     os.makedirs("pdf", exist_ok=True)
     await xx.delete()
 
@@ -152,7 +138,7 @@ async def pdfsetxt(event):
     if not (
         ok and ok.media and ok.document and ok.document.mime_type == "application/pdf"
     ):
-        return await event.eor("`Reply The PDF u Want to extract text from..`")
+        return await event.eor("`Reply the PDF you want to extract text from..`")
 
     xx = await event.eor(get_string("com_1"))
     path, _ = await tg_downloader(media=ok, event=xx, show_progress=True)
@@ -163,29 +149,35 @@ async def pdfsetxt(event):
         with open(text, "w") as f:
             for page_num in range(len(pdf.pages)):
                 pageObj = pdf.pages[page_num]
-                txt = pageObj.extractText()
-                f.write(f"Page {page_num + 1}\n")
+                txt = pageObj.extract_text()
+                f.write(f">>> Page {page_num + 1}\n")
                 f.write("".center(100, "-"))
-                f.write(txt)
-        await xx.respond(f"`{text}`", file=text, thumb=ULTConfig.thumb)
+                f.write("\n\n" + txt + "\n\n")
+        await ok.reply(
+            "`Succesfully Extracted text from the PDF!`",
+            file=text,
+            thumb=ULTConfig.thumb,
+        )
         osremove(text, path)
+        await xx.delete()
         return
 
     if "-" in msg:
         u, d = msg.split("-")
         a = PdfReader(path)
-        str = "".join(a.pages[i].extractText() for i in range(int(u) - 1, int(d)))
+        content = "".join(a.pages[i].extract_text() for i in range(int(u) - 1, int(d)))
         text = check_filename(Path(path).stem + f"_extracted_{msg}.txt")
-
     else:
         u = int(msg) - 1
         a = PdfReader(path)
-        str = a.getPage(u).extractText()
+        content = a.pages[u].extract_text()
         text = check_filename(Path(path).stem + f"_extracted_{msg}.txt")
 
     with open(text, "w") as f:
-        f.write(str)
-    await xx.respond(f"`{text}`", file=text, thumb=ULTConfig.thumb)
+        f.write(content)
+    await ok.reply(
+        "`Succesfully Extracted text from the PDF!`", file=text, thumb=ULTConfig.thumb
+    )
     osremove(text, path)
     await xx.delete()
 
@@ -196,7 +188,7 @@ async def pdfsetxt(event):
 async def imgscan(event):
     ok = await event.get_reply_message()
     if not ((ok and ok.media) and "pic" in mediainfo(ok.media)):
-        return await event.eor("`Reply to Photo u Want to Scan as PDF..`")
+        return await event.eor("`Reply to Media u Want to Scan as PDF..`")
 
     xx = await event.eor(get_string("com_1"))
     ultt, _ = await tg_downloader(media=ok, event=xx, show_progress=False)
@@ -262,10 +254,11 @@ async def savepdf(event):
     ok = await event.get_reply_message()
     if not (ok and ok.media):
         return await event.eor(
-            "`Reply to Images/pdf which u want to merge as a single pdf..`",
+            "`Reply to Images/pdf which u want to merge as single pdf..`",
         )
 
     xx = await event.eor(get_string("com_1"))
+    Path("pdf").mkdir(exist_ok=True)
     ultt, _ = await tg_downloader(media=ok, event=xx, show_progress=False)
     if ultt.endswith(("png", "jpg", "jpeg", "webp")):
         image = cv2.imread(ultt)
@@ -340,16 +333,16 @@ async def savepdf(event):
     pattern="pdsend( (.*)|$)",
 )
 async def sendpdf(event):
-    if not os.path.exists("pdf/scan_merged.pdf"):
+    afl = glob.glob("pdf/*_merged*pdf")
+    if not afl:
         return await event.eor(
             "first select pages by replying .pdsave of which u want to make multi page pdf file",
         )
 
     xx = await event.eor(get_string("com_1"))
-    msg = event.pattern_match.group(2) or "My PDF File.pdf"
+    msg = event.pattern_match.group(2) or "Merged PDF file.pdf"
     ok = msg if msg.lower().endswith(".pdf") else f"{msg}.pdf"
     merger = PdfMerger()
-    afl = glob.glob("pdf/*_merged*pdf")
     for item in sorted(afl):
         merger.append(item)
     merger.write(ok)
@@ -359,5 +352,4 @@ async def sendpdf(event):
         thumb=ULTConfig.thumb,
     )
     osremove(ok, "pdf", folders=True)
-    os.makedirs("pdf", exist_ok=True)
     await xx.delete()
