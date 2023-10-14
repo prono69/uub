@@ -85,7 +85,7 @@ class TGMediaInfo:
         try:
             res, output, err = await self.execute(cmd)
             if res.returncode == 0:
-                if frame := findall("[\d\.]+", output):
+                if frame := findall(r"[\d\.]+", output):
                     return int(frame[0])
         except Exception:
             LOGS.exception(f"Error in getting frame count via ffprobe: {file} | {err}")
@@ -97,7 +97,7 @@ class TGMediaInfo:
         try:
             res, output, err = await self.execute(cmd)
             if res.returncode == 0:
-                if b_rate := findall("[\d\.]+", output):
+                if b_rate := findall(r"[\d\.]+", output):
                     return int(b_rate[0])
         except Exception:
             LOGS.exception(f"Error in getting bitrate via ffprobe: {file} | {err}")
@@ -108,7 +108,7 @@ class TGMediaInfo:
         cmd = f"ffprobe -hide_banner -v error -show_entries format=duration -of default=noprint_wrappers=1 {quote(file)}"
         try:
             res, output, err = await self.execute(cmd)
-            _dur = findall("[\d\.]+", output) if res.returncode == 0 else None
+            _dur = findall(r"[\d\.]+", output) if res.returncode == 0 else None
             return round(float(_dur[0])) if _dur else 0
         except Exception:
             LOGS.exception(f"Error in getting duration via ffprobe: {file} | {err}")

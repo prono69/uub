@@ -310,7 +310,7 @@ async def pin_message(ult):
 async def fastpurger(purg):
     match = purg.pattern_match.group(2)
     match = int(match) if match else None
-    reply_id = (purg.reply_to_msg_id or 1) - 1
+    reply_id = purg.reply_to_msg_id
     if not (match or reply_id):
         return await eor(purg, get_string("purge_1"), time=5)
 
@@ -318,64 +318,53 @@ async def fastpurger(purg):
         p = 0
         async for msg in purg.client.iter_messages(
             purg.chat_id,
-            limit=match if not reply_id else None,
-            min_id=reply_id,
+            limit=match,
             max_id=purg.id,
+            min_id=0 if match else reply_id - 1,
         ):
-            await msg.delete()
-            p += 1
+            try:
+                await msg.delete()
+                p += 1
+            except Exception:
+                pass
         await purg.eor(f"__Purged {p} Messages!__", time=5)
         return
 
-    purge_range = list(range(reply_id or purg.id - match, purg.id))
+    from_id = reply_id or purg.id - match
+    purge_range = list(range(from_id, purg.id))
     try:
         await purg.client.delete_messages(purg.chat_id, purge_range)
     except Exception as er:
-        LOGS.info(er)
+        LOGS.exception(er)
     await purg.eor("__Fast purge complete!__", time=5)
 
 
 @ultroid_cmd(
-    pattern="purgeme( (.*)|$)",
+    pattern="purgeme( (\d*)|$)",
 )
-async def fastpurgerme(purg):
-    if num := purg.pattern_match.group(1).strip():
-        try:
-            nnt = int(num)
-        except BaseException:
-            await eor(purg, get_string("com_3"), time=5)
-            return
-        mp = 0
-        async for mm in purg.client.iter_messages(
-            purg.chat_id,
-            limit=nnt,
-            from_user="me",
-            max_id=purg.id,
-        ):
-            await mm.delete()
-            mp += 1
-        await eor(purg, f"__Purged {mp} Messages!__", time=5)
-        return
-    elif not purg.reply_to_msg_id:
-        return await eod(
-            purg,
-            "`Reply to a message to purge from or use it like ``purgeme <num>`",
-            time=10,
+async def fastpurgeme(purg):
+    num = purg.pattern_match.group(2)
+    num = int(num) if num else None
+    if not (num or purg.reply_to):
+        return await purg.eor(
+            "__Reply to a message to Purge from or use it like__ `.purgeme <num>`", time=10,
         )
-    chat = await purg.get_input_chat()
-    mp = 0
+
+    count = 0
     async for msg in purg.client.iter_messages(
-        chat,
+        purg.chat_id,
+        limit=num,
         from_user="me",
-        min_id=purg.reply_to_msg_id,
         max_id=purg.id,
+        min_id=0 if num else purg.reply_to_msg_id - 1,
     ):
-        await msg.delete()
-        mp += 1
-    await purg.eor(
-        f"__Fast purge complete!__\n**Purged** `{mp}` **Messages!**",
-        time=5,
-    )
+        try:
+            await msg.delete()
+            count += 1
+        except Exception:
+            pass
+
+    return await purg.eor(f"__Purged {count} Messages!__", time=5)
 
 
 @ultroid_cmd(

@@ -35,8 +35,7 @@ from shlex import quote
 
 import cv2
 import numpy as np
-from PyPDF2 import PdfMerger, PdfReader, PdfWriter
-from telethon.errors.rpcerrorlist import PhotoSaveFileInvalidError
+from telethon.errors import PhotoSaveFileInvalidError, ImageProcessFailedError
 
 from pyUltroid.fns.tools import four_point_transform
 from . import (
@@ -51,6 +50,11 @@ from . import (
     tg_downloader,
     ultroid_cmd,
 )
+
+try:
+    from pypdf import PdfMerger, PdfReader, PdfWriter
+except ImportError:
+    from PyPDF2 import PdfMerger, PdfReader, PdfWriter
 
 try:
     from PIL import Image
@@ -75,39 +79,32 @@ async def pdfseimg(event):
     await xx.edit(f"`Extracting Image from {Path(path).name}..`")
     pdf = PdfReader(path)
 
-    if not msg:
-        for num in range(len(pdf.pages)):
+    if not msg or "-" in msg:
+        if msg and "-" in msg:
+            r1, r2 = map(lambda i: int(i.strip()), msg.split("-", 1))
+            _range = range(r1 - 1, r2)
+        else:
+            _range = range(len(pdf.pages))
+
+        for num in _range:
             try:
                 pw = PdfWriter()
-                fil = check_filename(f"pdf_extract_{num + 1}.png")
                 pw.add_page(pdf.pages[num])
-                with open(fil, "wb") as f:
+                file = check_filename(f"pdf_extract_{num + 1}.png")
+                with open(file, "wb") as f:
                     pw.write(f)
-                await xx.respond(file=fil)
-            except PhotoSaveFileInvalidError:
-                await xx.respond(file=fil, force_document=True)
+                pw.close()
+                await xx.respond(f"`Page {num + 1}`", file=file)
+            except (PhotoSaveFileInvalidError, ImageProcessFailedError):
+                _file = check_filename(Path(file).with_suffix(".pdf"))
+                Path(file).rename(_file)
+                await xx.respond(f"`Page {num + 1}`", file=_file)
             except Exception:
                 LOGS.exception("Error in Extracting PDF.!")
             finally:
-                osremove(fil)
+                osremove(file)
                 await asyncio.sleep(5)
-    elif "-" in msg:
-        ok = int(msg.split("-")[-1]) - 1
-        for o in range(ok):
-            pw = PdfWriter()
-            pw.add_page(pdf.pages[o])
-            out = check_filename("pdf_extract.png")
-            with open(out, "wb") as f:
-                pw.write(f)
-            try:
-                await xx.respond(file=out)
-            except PhotoSaveFileInvalidError:
-                await xx.respond(file=out, force_document=True)
-            except Exception:
-                LOGS.exception("Error in Extracting PDF.!!")
-            finally:
-                osremove(out)
-                await asyncio.sleep(5)
+
     else:
         o = int(msg) - 1
         pw = PdfWriter()
@@ -115,17 +112,19 @@ async def pdfseimg(event):
         out = check_filename("pdf_extract.png")
         with open(out, "wb") as f:
             pw.write(f)
+        pw.close()
         try:
-            await xx.respond(file=out)
-        except PhotoSaveFileInvalidError:
-            await xx.respond(file=out, force_document=True)
+            await xx.respond(f"`Successfully extracted Page {o}.`", file=out)
+        except (PhotoSaveFileInvalidError, ImageProcessFailedError):
+            _out = check_filename(Path(out).with_suffix(".pdf"))
+            Path(out).rename(_out)
+            await xx.respond(f"`Page {num + 1}`", file=_out)
         except Exception:
             LOGS.exception("Error in Extracting PDF.!!!")
         finally:
             osremove(out)
 
-    osremove("pdf", path, folders=True)
-    os.makedirs("pdf", exist_ok=True)
+    osremove(path)
     await xx.delete()
 
 
@@ -346,6 +345,7 @@ async def sendpdf(event):
     for item in sorted(afl):
         merger.append(item)
     merger.write(ok)
+    merger.close()
     await xx.respond(
         f"`Merged {len(afl)} files into single PDF file.`",
         file=ok,
