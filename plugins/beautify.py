@@ -30,7 +30,7 @@ from . import (
 
 
 @ultroid_cmd(
-    pattern="(r)?carbon( ([\s\S]*)|$)",
+    pattern=r"(r)?carbon( ([\s\S]*)|$)",
 )
 async def crbn(event):
     msg = await event.eor(get_string("com_1"))
@@ -135,7 +135,7 @@ RaySoThemes = (
 
 
 @ultroid_cmd(
-    pattern="rayso( ([\s\S]*)|$)",
+    pattern=r"rayso( ([\s\S]*)|$)",
 )
 async def rayso_on(ult):
     msg = await ult.eor(get_string("com_1"))
@@ -169,7 +169,7 @@ async def rayso_on(ult):
     dark_mode = bool(args.kwargs.get("d", 1))
     theme = args.kwargs.get("t", random.choice(RaySoThemes))
     if text == "list":
-        text = "**List of Rayso Themes:**\n" + "\n".join(
+        text = r"**List of Rayso Themes:**\n" + r"\n".join(
             [f"- `{th_}`" for th_ in RaySoThemes]
         )
         return await ult.edit(text)
@@ -180,7 +180,7 @@ async def rayso_on(ult):
     if isinstance(img, dict):
         return await msg.edit(f"`{img}`")
 
-    caption = f"Rayso by {inline_mention(ult.sender)}\nTheme - `{theme}`"
+    caption = rf"Rayso by {inline_mention(ult.sender)}\nTheme - `{theme}`"
     await asyncio.gather(
         ult.respond(caption, file=img, reply_to=reply_to),
         msg.try_delete(),

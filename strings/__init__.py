@@ -46,7 +46,7 @@ def get_string(key: str, _res: bool = True) -> Any:
     except KeyError:
         try:
             en_ = languages["en"][key]
-            tr = translate(en_, lang_tgt=lang).replace("\ N", "\n")
+            tr = translate(en_, lang_tgt=lang).replace(r"\ N", r"\n")
             if en_.count("{}") != tr.count("{}"):
                 tr = en_
             if languages.get(lang):

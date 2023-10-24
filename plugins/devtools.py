@@ -401,7 +401,7 @@ int main(){
 
 
 @ultroid_cmd(
-    pattern="cpp( ([\s\S]*)|$)",
+    pattern=r"cpp( ([\s\S]*)|$)",
     only_devs=True,
     fullsudo=True,
 )
@@ -444,7 +444,7 @@ async def cpp_compiler(e):
 
 # for running C code with gcc (w/o dummy cpp)
 @ultroid_cmd(
-    pattern="gcc( ([\s\S]*)|$)",
+    pattern=r"gcc( ([\s\S]*)|$)",
     only_devs=True,
     fullsudo=True,
 )

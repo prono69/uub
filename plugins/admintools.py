@@ -306,7 +306,7 @@ async def pin_message(ult):
         LOGS.exception(er)
 
 
-@ultroid_cmd(pattern="purge( (\d*)|$)", manager=True, require="delete_messages")
+@ultroid_cmd(pattern=r"purge( (\d*)|$)", manager=True, require="delete_messages")
 async def fastpurger(purg):
     match = purg.pattern_match.group(2)
     match = int(match) if match else None
@@ -340,7 +340,7 @@ async def fastpurger(purg):
 
 
 @ultroid_cmd(
-    pattern="purgeme( (\d*)|$)",
+    pattern=r"purgeme( (\d*)|$)",
 )
 async def fastpurgeme(purg):
     num = purg.pattern_match.group(2)
@@ -421,13 +421,13 @@ async def get_all_pinned(event):
             txt = f"{t}...."
         else:
             txt = "Go to message."
-        a += f"{c}. <a href=https://t.me/c/{chat_id}/{i.id}>{txt}</a>\n"
+        a += rf"{c}. <a href=https://t.me/c/{chat_id}/{i.id}>{txt}</a>\n"
         c += 1
 
     if c == 1:
-        m = f"<b>The pinned message in {chat_name}:</b>\n\n"
+        m = rf"<b>The pinned message in {chat_name}:</b>\n\n"
     else:
-        m = f"<b>List of pinned message(s) in {chat_name}:</b>\n\n"
+        m = rf"<b>List of pinned message(s) in {chat_name}:</b>\n\n"
 
     if not a:
         return await eor(x, get_string("listpin_1"), time=5)

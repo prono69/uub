@@ -13,7 +13,7 @@ pytgcalls>=3.0.0.dev24
 # optional
 akinator
 apscheduler
-aiohttp
+aiohttp[speedups]
 bs4
 enhancer>=0.3.4
 git+https://github.com/buddhhu/img2html.git@c44170d#egg=img2html
@@ -63,7 +63,6 @@ pyrogram
 pymediainfo
 music_tag
 uvloop
-aiodns
 
 # Extras:
 # - spotdl, pygithub, imgur_python, openai
