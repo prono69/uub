@@ -12,11 +12,14 @@ from ast import literal_eval
 from copy import deepcopy
 import os
 
-from pyrogram import Client
-
 from pyUltroid import LOGS
 from pyUltroid.configs import Var
 from pyUltroid.custom.init import run_async_task
+
+try:
+    from pyrogram import Client
+except ImportError:
+    pass
 
 
 PYROG_CLIENTS = {}

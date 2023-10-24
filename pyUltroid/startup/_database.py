@@ -6,36 +6,21 @@
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
 from ast import literal_eval
-from os import environ, system
+from os import environ, path, system
 from copy import deepcopy
+import json
 from sys import executable
-
-from redis.exceptions import ResponseError
 
 from ..configs import Var
 from .. import LOGS, HOSTED_ON
 
-
-# ---------------------------------------------------------------------------------------------
-
-# DB Imports!
 try:
-    from redis import Redis
-    from pymongo import MongoClient
-except ModuleNotFoundError:
-    LOGS.info("Installing Redis and pymongo for database.")
-    system(f"{executable} -m pip install -q redis[hiredis] pymongo[srv]")
-    from redis import Redis
-    from pymongo import MongoClient
+    from redis.exceptions import ResponseError
+except ImportError:
 
+    class ResponseError(FileNotFoundError):
+        pass
 
-if Var.DATABASE_URL:
-    try:
-        import psycopg2
-    except ImportError:
-        LOGS.info("Installing 'pyscopg2' for database.")
-        system(f"{executable} -m pip install -q psycopg2-binary")
-        import psycopg2
 
 # ---------------------------------------------------------------------------------------------
 
@@ -68,7 +53,7 @@ class _BaseDatabase:
             except ResponseError:
                 return "WRONGTYPE"
             except Exception:
-                return LOGS.debug("Error getting key from DB", exc_info=True)
+                return LOGS.debug(f"Error getting key '{key}' from DB.", exc_info=True)
         if data and type(data) == str:
             try:
                 data = literal_eval(data)
@@ -144,6 +129,8 @@ class MongoDB(_BaseDatabase):
     __slots__ = ("dB", "db", "to_cache", "_name")
 
     def __init__(self, key, to_cache, _name="MongoDB", dbname="UltroidDB"):
+        from pymongo import MongoClient
+
         self.dB = MongoClient(key, serverSelectionTimeoutMS=5000)
         self.db = self.dB[dbname]
         self.to_cache = to_cache
@@ -152,7 +139,7 @@ class MongoDB(_BaseDatabase):
 
     def __repr__(self):
         info = f"-cached_keys: {len(self._cache)}" if self.to_cache else ""
-        return f"<Ultroid.MonGoDB \n-name: {self.name} \n{info}\n>"
+        return f"<Ultroid.MongoDB \n\n-name: {self.name} \n{info}\n>"
 
     @property
     def name(self):
@@ -216,6 +203,8 @@ class SqlDB(_BaseDatabase):
         self.to_cache = to_cache
         self._name = _name
         try:
+            import psycopg2
+
             self._connection = psycopg2.connect(dsn=url)
             self._connection.autocommit = True
             self._cursor = self._connection.cursor()
@@ -223,11 +212,10 @@ class SqlDB(_BaseDatabase):
                 "CREATE TABLE IF NOT EXISTS Ultroid (ultroidCli varchar(70))"
             )
         except Exception as error:
-            LOGS.exception(error)
-            LOGS.info("Invaid SQL Database")
+            LOGS.critical("Invaid SQL Database!")
             if self._connection:
                 self._connection.close()
-            quit("SQL Error..")
+            quit(0)
         super().__init__()
 
     @property
@@ -236,7 +224,7 @@ class SqlDB(_BaseDatabase):
 
     def __repr__(self):
         info = f"-cached_keys: {len(self._cache)}" if self.to_cache else ""
-        return f"<Ultroid.SQLDB \n-name: {self.name} \n{info}\n>"
+        return f"<Ultroid.SQLDB \n\n-name: {self.name} \n{info}\n>"
 
     @property
     def usage(self):
@@ -341,6 +329,8 @@ class RedisDB(_BaseDatabase):
                 kwargs["port"] = environ.get(f"QOVERY_REDIS_{hash_}_PORT")
                 kwargs["password"] = environ.get(f"QOVERY_REDIS_{hash_}_PASSWORD")
 
+        from redis import Redis
+
         self.db = Redis(**kwargs)
         self.set = self.db.set
         self.get = self.db.get
@@ -359,7 +349,7 @@ class RedisDB(_BaseDatabase):
 
     def __repr__(self):
         info = f"-cached_keys: {len(self._cache)}" if self.to_cache else ""
-        return f"<Ultroid.RedisDB \n-name: {self._name} \n{info}\n>"
+        return f"<Ultroid.RedisDB \n\n-name: {self._name} \n{info}\n>"
 
     @property
     def usage(self):
@@ -367,50 +357,116 @@ class RedisDB(_BaseDatabase):
 
 
 """
-    def real(self, key):
+def real(self, key):
+    try:
+        return self.db.get(key)
+    except ResponseError:
         try:
-            return self.db.get(key)
+            return self.db.lrange(key, 0, -1)
         except ResponseError:
             try:
-                return self.db.lrange(key, 0, -1)
-            except ResponseError:
-                try:
-                    return self.db.hgetall(key)
-                except Exception as exc:
-                    return exc
+                return self.db.hgetall(key)
+            except Exception as exc:
+                return exc
 """
 
 # --------------------------------------------------------------------------------------------- #
 
 
-class LocalDB(_BaseDatabase):
-    __slots__ = ("db", "to_cache", "_name", "get", "set", "delete")
+# Source: https://github.com/buddhhu/localdb.json
+class LocalDB:
+    __slots__ = ("_cache", "name", "db", "to_cache")
 
     def __init__(self):
-        try:
-            from localdb import Database
-        except ModuleNotFoundError:
-            LOGS.info("Using local file as database.")
-            system("pip3 install -q localdb.json")
-            from localdb import Database
-
-        self.db = Database("ultroid")
-        self._name = "LocalDB"
+        self.db = self
         self.to_cache = True
-        self.get = self.db.get
-        self.set = self.db.set
-        self.delete = self.db.delete
-        super().__init__()
+        self._cache = {}  # Why to read file again and again?
+        self.name = "localdb.json"
+        if self.ping():
+            self._re_cache()
+        else:
+            self._rewrite_db()
+
+    @property
+    def _name(self):
+        # self.name == self._name
+        return self.name
+
+    def ping(self):
+        """ping db - check if database file exists"""
+        return path.exists(self.name)
+
+    def __repr__(self):
+        info = f"-cached_keys: {len(self._cache)}"
+        return f"<Ultroid.LocalDB\n\n-filename: {self.name}\n{info}\n>"
+
+    def _re_cache(self):
+        """Load JSON database file in cache"""
+        if not self.ping():
+            raise FileNotFoundError("DB File has been deleted...")
+        with open(self.name, "r", encoding="utf-8") as file:
+            try:
+                data = json.load(file)
+            except Exception as exc:
+                return LOGS.exception(f"Error while decoding local database file..")
+        for k, v in data.items():
+            try:
+                val = literal_eval(str(v))
+            except Exception:
+                val = v
+            self._cache[k] = val
+
+    def _rewrite_db(self):
+        """Save data to database file"""
+        to_write = {k: str(v) for k, v in self._cache.items()}
+        with open(self.name, "w", encoding="utf-8") as file:
+            try:
+                return json.dump(to_write, file, indent=4)
+            except Exception as exc:
+                LOGS.exception(f"Error while writing to local database file..")
 
     def keys(self):
         return self._cache.keys()
 
-    @property
-    def name(self):
-        return self._name
+    def get_key(self, key, force=False):
+        """Get the requested key, uses cache before reading database file."""
+        return self._cache.get(key)
 
-    def __repr__(self):
-        return f"<Ultroid.LocalDB\n -total_keys: {len(self.keys())}\n>"
+    def get(self, key, force=False):
+        """Copy of self.get_key"""
+        return self.get_key(key, force=force)
+
+    def set_key(self, key, value):
+        """Set key with given value"""
+        self._cache[key] = value
+        self._rewrite_db()
+        return True
+
+    def set(self, key):
+        """Copy of self.set_key"""
+        return self.set_key(key)
+
+    def rename(self, key1, key2):
+        """Rename a key with different name."""
+        if val := self._cache.get(key1):
+            self.del_key(key1)
+            return self.set_key(key2, val)
+        return False
+
+    def del_key(self, key):
+        """Delete a key from database."""
+        if self._cache.pop(key, None):
+            self._rewrite_db()
+            return True
+
+    def delete(self, key):
+        """Copy of self.del_key"""
+        return self.del_key(key)
+
+    @property
+    def usage(self):
+        """Size of database file."""
+        return path.getsize(self.name) if self.ping() else 0
 
 
 # ---------------------------------------------------------------------------------------------
@@ -419,6 +475,13 @@ class LocalDB(_BaseDatabase):
 def UltroidDB():
     try:
         if Var.REDIS_URI or Var.REDISHOST:
+            try:
+                from redis import Redis
+            except ImportError:
+                LOGS.info("Installing 'Redis' for Database..")
+                system(f"{executable} -m pip install -q redis[hiredis]")
+                from redis import Redis
+
             return RedisDB(
                 host=Var.REDIS_URI or Var.REDISHOST,
                 password=Var.REDIS_PASSWORD or Var.REDISPASSWORD,
@@ -431,13 +494,29 @@ def UltroidDB():
                 _name="Redis",
             )
         elif Var.MONGO_URI:
+            try:
+                from pymongo import MongoClient
+            except ImportError:
+                LOGS.info("Installing 'PyMongo' for Database..")
+                system(f"{executable} -m pip install -q pymongo[srv]")
+                from pymongo import MongoClient
+
             return MongoDB(key=Var.MONGO_URI, _name="Mongo", to_cache=True)
         elif Var.DATABASE_URL:
+            try:
+                import psycopg2
+            except ImportError:
+                LOGS.info("Installing 'pyscopg2' for Database.")
+                system(f"{executable} -m pip install -q psycopg2-binary")
+                import psycopg2
+
             return SqlDB(url=Var.DATABASE_URL, to_cache=True, _name="SQL")
         else:
-            LOGS.critical(
-                "No DB requirement fullfilled!\nPlease install redis, mongo or sql dependencies...\nTill then using local file as database."
-            )
+            # exit Here !!!
+            if not path.exists("localdb.json"):
+                LOGS.warning(
+                    "No DB requirements fullfilled!\nPlease install Redis, Mongo or SQL dependencies.\n\nTill then using LocalDB as your Database."
+                )
             return LocalDB()
     except BaseException as err:
         LOGS.exception(err)

@@ -5,10 +5,8 @@ from os import environ, system
 from pathlib import Path
 from subprocess import run, Popen
 from sys import executable, exit
-from time import tzset
 
 from ._loop import loop, run_async_task, tasks_db
-
 
 try:
     from dotenv import load_dotenv
@@ -50,7 +48,12 @@ def setup_timezone():
     except Exception:
         environ["TZ"] = "UTC"
     finally:
-        tzset()
+        try:
+            from time import tzset
+
+            tzset()
+        except ImportError:
+            pass
 
 
 def startup_tasks():

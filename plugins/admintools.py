@@ -347,7 +347,8 @@ async def fastpurgeme(purg):
     num = int(num) if num else None
     if not (num or purg.reply_to):
         return await purg.eor(
-            "__Reply to a message to Purge from or use it like__ `.purgeme <num>`", time=10,
+            "__Reply to a message to Purge from or use it like__ `.purgeme <num>`",
+            time=10,
         )
 
     count = 0

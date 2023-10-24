@@ -41,18 +41,18 @@ from .. import LOGS, ULTConfig
 from ..fns.helper import bash, download_file, inline_mention, updater
 
 
-db_url = 0
+_db_url = 0
 
 
 async def autoupdate_local_database():
     from .. import asst, udB, ultroid_bot, Var
 
-    global db_url
-    db_url = (
+    global _db_url
+    _db_url = (
         udB.get_key("TGDB_URL") or Var.TGDB_URL or ultroid_bot._cache.get("TGDB_URL")
     )
-    if db_url:
-        _split = db_url.split("/")
+    if _db_url:
+        _split = _db_url.split("/")
         _channel = _split[-2]
         _id = _split[-1]
         try:
@@ -586,7 +586,6 @@ __all__ = (
     "_version_changes",
     "autobot",
     "autopilot",
-    "autoupdate_local_database",
     "customize",
     "enable_inline",
     "fetch_ann",
