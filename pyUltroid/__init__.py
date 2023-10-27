@@ -30,9 +30,8 @@ _ult_cache = {}
 _ignore_eval = []
 
 # database stuff
-from .startup._database import UltroidDB as _UltroidDB
+from .startup._database import _UltroidDB
 
-LOGS.info("Connecting to Database..")
 udB = _UltroidDB()
 LOGS.info(f"Connected to {udB.name} Successfully!")
 

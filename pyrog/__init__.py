@@ -46,9 +46,7 @@ def setup_clients():
     var = "PYROGRAM_CLIENTS"
     stuff = os.environ.get(var)
     if not stuff:
-        LOGS.warning(
-            "'PYROGRAM_CLIENTS' ENV wasn't found, Skipping PyroGram Initialisation."
-        )
+        LOGS.warning("Var 'PYROGRAM_CLIENTS' not found; skipping pyrogram setup..")
         return True
     data = literal_eval(stuff)
     if Var.HOST.lower() == "heroku":

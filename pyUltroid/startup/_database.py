@@ -25,6 +25,17 @@ except ImportError:
 # ---------------------------------------------------------------------------------------------
 
 
+# just testing
+xyzdb = {}
+
+
+def xyz(key):
+    try:
+        xyzdb[key] += 1
+    except KeyError:
+        xyzdb[key] = 1
+
+
 class _BaseDatabase:
     __slots__ = ("_cache",)
 
@@ -49,6 +60,7 @@ class _BaseDatabase:
     def _get_data(self, key=None, data=None):
         if key:
             try:
+                xyz(key)
                 data = self.get(str(key))
             except ResponseError:
                 return "WRONGTYPE"
@@ -79,6 +91,7 @@ class _BaseDatabase:
             if key in self.keys():
                 return self._get_data(key=key)
         elif key in self._cache:
+            xyz(key)
             return deepcopy(self._cache[key])
         elif force:
             if key in self.keys():
@@ -472,9 +485,10 @@ class LocalDB:
 # ---------------------------------------------------------------------------------------------
 
 
-def UltroidDB():
+def _UltroidDB():
     try:
         if Var.REDIS_URI or Var.REDISHOST:
+            LOGS.info("Connecting to Redis Database..")
             try:
                 from redis import Redis
             except ImportError:
@@ -494,6 +508,7 @@ def UltroidDB():
                 _name="Redis",
             )
         elif Var.MONGO_URI:
+            LOGS.info("Connecting to Mongo Database..")
             try:
                 from pymongo import MongoClient
             except ImportError:
@@ -503,6 +518,7 @@ def UltroidDB():
 
             return MongoDB(key=Var.MONGO_URI, _name="Mongo", to_cache=True)
         elif Var.DATABASE_URL:
+            LOGS.info("Connecting to SQL Database..")
             try:
                 import psycopg2
             except ImportError:
@@ -512,12 +528,16 @@ def UltroidDB():
 
             return SqlDB(url=Var.DATABASE_URL, to_cache=True, _name="SQL")
         else:
-            # exit Here !!!
-            if not path.exists("localdb.json"):
-                LOGS.warning(
-                    "No DB requirements fullfilled!\nPlease install Redis, Mongo or SQL dependencies.\n\nTill then using LocalDB as your Database."
-                )
-            return LocalDB()
+            # remove this to use Local DB
+            quit(0)
+
+            if path.exists("localdb.json"):
+                LOGS.info("Connecting to Local Database..")
+                return LocalDB()
+            LOGS.critical(
+                "No DB requirements fullfilled!\nPlease install Redis, Mongo or SQL dependencies.\n\nTill then using LocalDB as your Database."
+            )
+            quit(0)
     except BaseException as err:
         LOGS.exception(err)
     quit(0)

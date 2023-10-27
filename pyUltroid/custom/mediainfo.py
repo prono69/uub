@@ -19,15 +19,9 @@ class TGMediaInfo:
     __slots__ = ("path", "obj", "general_track", "track")
 
     def __init__(self, path):
-        try:
-            self.path = path
-            self.obj = MediaInfo.parse(self.path)
-            self.general_track = self.obj.general_tracks[0]
-        except FileNotFoundError:
-            return "File doesn't exist.."
-        except (RuntimeError, OSError, Exception) as exc:
-            LOGS.exception(f"Error in Parsing: {path}")
-            return "MediaInfo failed to Parse the File."
+        self.path = path
+        self.obj = MediaInfo.parse(self.path)
+        self.general_track = self.obj.general_tracks[0]
 
     async def run(self):
         out = {}
