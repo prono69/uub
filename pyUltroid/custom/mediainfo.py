@@ -77,11 +77,11 @@ class TGMediaInfo:
         cmd = f"ffprobe -hide_banner -v error -select_streams v:0 -show_entries stream=nb_read_packets -of default=noprint_wrappers=1 {quote(file)}"
         # -count_frames ~ slow
         try:
-            res, output, err = await self.execute(cmd)
+            res, output, err = await TGMediaInfo.execute(cmd)
             if res.returncode == 0:
                 if frame := findall(r"[\d\.]+", output):
                     return int(frame[0])
-        except Exception:
+        except Exception as err:
             LOGS.exception(f"Error in getting frame count via ffprobe: {file} | {err}")
 
     # alternate method for getting bitrate from video stream
@@ -89,11 +89,11 @@ class TGMediaInfo:
     async def _get_bitrate(file):
         cmd = f"ffprobe -hide_banner -v error -select_streams v:0 -show_entries stream=bit_rate -of default=noprint_wrappers=1 {quote(file)}"
         try:
-            res, output, err = await self.execute(cmd)
+            res, output, err = await TGMediaInfo.execute(cmd)
             if res.returncode == 0:
                 if b_rate := findall(r"[\d\.]+", output):
                     return int(b_rate[0])
-        except Exception:
+        except Exception as err:
             LOGS.exception(f"Error in getting bitrate via ffprobe: {file} | {err}")
 
     # alternate method for getting duration from video or audio stream
@@ -101,10 +101,10 @@ class TGMediaInfo:
     async def _get_duration(file):
         cmd = f"ffprobe -hide_banner -v error -show_entries format=duration -of default=noprint_wrappers=1 {quote(file)}"
         try:
-            res, output, err = await self.execute(cmd)
+            res, output, err = await TGMediaInfo.execute(cmd)
             _dur = findall(r"[\d\.]+", output) if res.returncode == 0 else None
             return round(float(_dur[0])) if _dur else 0
-        except Exception:
+        except Exception as err:
             LOGS.exception(f"Error in getting duration via ffprobe: {file} | {err}")
             return 0
 
