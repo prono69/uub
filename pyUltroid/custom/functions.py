@@ -13,7 +13,7 @@ from telethon.utils import get_display_name, get_input_document
 from telethon.tl.types import InputMessagesFilterPhotos
 
 from ._loop import loop, run_async_task, tasks_db
-from pyUltroid.startup import LOGS, HOSTED_ON
+from pyUltroid.startup import LOGS
 from pyUltroid.fns.helper import async_searcher, osremove, asyncread, asyncwrite
 from pyUltroid.fns.misc import random_string
 from pyUltroid import asst, udB, ultroid_bot

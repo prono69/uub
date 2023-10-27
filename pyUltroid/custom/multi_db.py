@@ -52,7 +52,7 @@ def _init_multi_dbs(var):
 
     stuff = os.getenv(var)
     if not stuff:
-        return LOGS.warning(f"Var {var} is not filled..")
+        return LOGS.warning(f"Var '{var}' not found; not loading multi DB..")
 
     LOGS.info("Loading Multi DB's..")
     if Var.HOST.lower() == "heroku":
