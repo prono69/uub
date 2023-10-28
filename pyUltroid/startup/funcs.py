@@ -108,9 +108,10 @@ async def startup_stuff():
     CT = udB.get_key("CUSTOM_THUMBNAIL")
     if CT:
         path = "resources/extras/thumbnail.jpg"
-        ULTConfig.thumb = path
+        Path(path).unlink(missing_ok=True)
         try:
-            await download_file(CT, path)
+            path, _ = await download_file(CT, path)
+            ULTConfig.thumb = path
         except Exception as er:
             LOGS.exception(er)
     elif CT is False:

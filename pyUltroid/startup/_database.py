@@ -424,10 +424,10 @@ class LocalDB:
                 return LOGS.exception(f"Error while decoding local database file..")
         for k, v in data.items():
             try:
-                val = literal_eval(str(v))
+                v = literal_eval(str(v))
             except Exception:
-                val = v
-            self._cache[k] = val
+                pass
+            self._cache[k] = v
 
     def _rewrite_db(self):
         """Save data to database file"""

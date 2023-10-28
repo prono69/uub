@@ -555,23 +555,16 @@ def four_point_transform(image, pts):
 # ------------------------------------- Telegraph ---------------------------------- #
 
 
-TELEGRAPH = []
-
-
 def telegraph_client():
     if not Telegraph:
         LOGS.info("'Telegraph' is not Installed!")
         return
-
-    if TELEGRAPH:
-        return TELEGRAPH[0]
 
     from .. import udB, ultroid_bot
 
     token = udB.get_key("_TELEGRAPH_TOKEN")
     TelegraphClient = Telegraph(token)
     if token:
-        TELEGRAPH.append(TelegraphClient)
         return TelegraphClient
 
     gd_name = ultroid_bot.full_name
@@ -594,7 +587,6 @@ def telegraph_client():
             return LOGS.exception(er)
 
     udB.set_key("_TELEGRAPH_TOKEN", TelegraphClient.get_access_token())
-    TELEGRAPH.append(TelegraphClient)
     return TelegraphClient
 
 
@@ -618,7 +610,7 @@ async def Carbon(
 ):
     kwargs["code"] = code
     if rayso:
-        base_url = "https://api.safone.me/rayso"
+        base_url = "https://api.safone.dev/rayso"
         kwargs["theme"] = kwargs.get("theme", "breeze")
         kwargs["darkMode"] = kwargs.get("darkMode", True)
         kwargs["title"] = kwargs.get("title", "Ultroid")

@@ -218,7 +218,6 @@ async def imgscan(event):
     if len(simplified_cnt) == 4:
         try:
             from skimage.filters import threshold_local
-
         except ImportError:
             LOGS.info(f"Scikit-Image is not Installed.")
             await xx.edit("`Installing Scikit-Image, This may take some time...`")
@@ -235,6 +234,7 @@ async def imgscan(event):
     else:
         ok = cv2.detailEnhance(original_image, sigma_s=10, sigma_r=0.15)
 
+    Path("pdf").mkdir(exist_ok=True)
     out = check_filename("scanned.png")
     cv2.imwrite(out, ok)
     image1 = Image.open(out)

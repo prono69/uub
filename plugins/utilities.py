@@ -87,6 +87,7 @@ from telethon.tl.types import (
     Channel,
     Chat,
     InputMediaPoll,
+    PhotoSize,
     Poll,
     PollAnswer,
     TLObject,
@@ -687,15 +688,23 @@ async def toothpaste(event):
 @ultroid_cmd(pattern="thumb$")
 async def thumb_dl(event):
     reply = await event.get_reply_message()
-    if not (reply and reply.file):
+    if not (reply and reply.media and mediainfo(reply.media) not in ("web", "")):
         return await eod(event, get_string("th_1"), time=5)
-    if not reply.file.media.thumbs:
-        return await eod(event, get_string("th_2"))
-    await event.eor(get_string("com_1"))
-    x = await event.get_reply_message()
-    m = await x.download_media(thumb=-1)
-    await event.reply(file=m)
-    osremove(m)
+
+    myy = await event.eor(get_string("com_1"))
+    thumbs = filter(
+        lambda i: isinstance(i, PhotoSize),
+        reply.photo.sizes if reply.photo else reply.document.thumbs,
+    )
+    if not (thumbs := list(thumbs)):
+        return await eod(myy, get_string("th_2"))
+
+    thumb_index = len(thumbs) - 1
+    m = await reply.download_media(thumb=thumb_index, file=bytes)
+    m = io.BytesIO(m)
+    m.name = "thumb.jpg"
+    await reply.reply(f"`Generated Thumbnail`", file=m)
+    await myy.delete()
 
 
 @ultroid_cmd(pattern="getmsg( ?(.*)|$)")
