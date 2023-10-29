@@ -61,7 +61,7 @@ if BOT_MODE:
 
     if not udB.get_key("BOT_TOKEN"):
         LOGS.critical('"BOT_TOKEN" not Found! Please add it, in order to use "BOTMODE"')
-        quit()
+        quit(1)
 else:
     ultroid_bot = _UltroidClient(
         _validate_session(Var.SESSION, LOGS),
@@ -69,13 +69,16 @@ else:
         app_version=ultroid_version,
         device_model="Ultroid",
         proxy=udB.get_key("TG_PROXY"),
+        entity_cache_limit=2000,
     )
     ultroid_bot.run_in_loop(_autobot())
 
 if USER_MODE:
     asst = ultroid_bot
 else:
-    asst = _UltroidClient(None, bot_token=udB.get_key("BOT_TOKEN"), udB=udB)
+    asst = _UltroidClient(
+        None, bot_token=udB.get_key("BOT_TOKEN"), udB=udB, entity_cache_limit=500
+    )
 
 if BOT_MODE:
     ultroid_bot = asst

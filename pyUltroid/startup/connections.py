@@ -112,24 +112,3 @@ def connect_ub(s):
             return er
         except Exception as er:
             LOGS.exception("Error while creating new Client.")
-
-
-# for Redis Telethon Session
-def _teleredis(data):
-    if data and data["_"] == True:
-        from redis import Redis
-        from pyUltroid.custom.redis_session import RedisSession
-
-        LOGS.debug(f"Starting Redis Session - {data['name']}")
-        redis = Redis(
-            host=data["host"],
-            port=data["port"],
-            password=data["password"],
-            decode_responses=True,
-        )
-        return RedisSession(
-            session_name=data["name"],
-            hive_prefix=data["prefix"],
-            redis_connection=redis,
-            add_timestamps=True,
-        )

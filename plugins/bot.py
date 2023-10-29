@@ -129,7 +129,7 @@ async def lol(ult):
     repo = _REPO.replace(".git", f"/tree/{_BRANCH}")
     kk = f" `[{_BRANCH}]({repo})` "
     if inline:
-        kk = f"<a href={rep}>{_BRANCH}</a>"
+        kk = f"<a href={repo}>{_BRANCH}</a>"
         parse = "html"
         als = in_alive.format(
             header,

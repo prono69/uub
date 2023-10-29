@@ -16,7 +16,7 @@ from telethon.tl.alltlobjects import LAYER
 
 from ..configs import Var
 from ._extra import _fix_logging, _ask_input
-from ..version import ultroid_version, moi_version, __version__ as __pyUltroid__
+from ..version import ultroid_version, __version__ as __pyUltroid__
 from pyUltroid.custom.tglogger import TGLogHandler
 
 # ----------------------------------------------------------------------------
@@ -143,9 +143,9 @@ if Var.HOST.lower() == "local":
 
 LOGS.info(
     f"""
-                --------------------------------------
-                      Starting Deployment - v{moi_version}
-                --------------------------------------
+                ------------------------------------
+                       Starting Deployment!
+                ------------------------------------
 """
 )
 
