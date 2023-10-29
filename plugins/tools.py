@@ -92,24 +92,23 @@ from . import (
 
 
 @ultroid_cmd(pattern="tr( (.*)|$)", manager=True)
-async def _(event):
-    input = event.pattern_match.group(1).strip().split(maxsplit=1)
-    txt = input[1] if len(input) > 1 else None
-    if input:
-        input = input[0]
-    if txt:
-        text = txt
-    elif event.reply_to:
-        previous_message = await event.get_reply_message()
-        text = previous_message.message
-    else:
+async def _translator(event):
+    if not event.reply_to:
         return await event.eor(
-            f"`{HNDLR}tr LanguageCode` as reply to a message", time=5
+            f"`{HNDLR}tr LanguageCode` as reply to a message", time=5,
         )
-    lan = input or "en"
+
+    lang = event.pattern_match.group(2) or "en"
+    reply_message = await event.get_reply_message()
+
     try:
-        tt = translate(text, lang_tgt=lan)
-        output_str = f"**TRANSLATED** to {lan}\n{tt}"
+        # tt = translate(text, lang_tgt=lan)
+        tt = ""
+        if hasattr(event.message, "translate"):
+            resp = await reply_message.translate(to_lang=lang)
+            if resp and type(resp) == tuple:
+                tt = resp[0]
+        output_str = f"**TRANSLATED** to {lang}\n{tt}"
         await event.eor(output_str)
     except Exception as exc:
         LOGS.exception(exc)
