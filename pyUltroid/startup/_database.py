@@ -25,17 +25,6 @@ except ImportError:
 # ---------------------------------------------------------------------------------------------
 
 
-# just testing
-xyzdb = {}
-
-
-def xyz(key):
-    try:
-        xyzdb[key] += 1
-    except KeyError:
-        xyzdb[key] = 1
-
-
 class _BaseDatabase:
     __slots__ = ("_cache",)
 
@@ -60,7 +49,6 @@ class _BaseDatabase:
     def _get_data(self, key=None, data=None):
         if key:
             try:
-                xyz(key)
                 data = self.get(str(key))
             except ResponseError:
                 return "WRONGTYPE"
@@ -91,7 +79,6 @@ class _BaseDatabase:
             if key in self.keys():
                 return self._get_data(key=key)
         elif key in self._cache:
-            xyz(key)
             return deepcopy(self._cache[key])
         elif force:
             if key in self.keys():

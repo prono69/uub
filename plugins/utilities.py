@@ -323,12 +323,13 @@ async def _(event):
         await event.client.get_profile_photos(user.id, limit=0)
     ).total or "NaN"
     user_id = user.id
-    first_name = html.escape(user.first_name)
-    if first_name is not None:
-        first_name = first_name.replace("\u2060", "")
+    first_name = user.first_name
+    if first_name:
+        first_name = html.escape(first_name)
+        first_name = first_name.replace(r"\u2060", "")
     last_name = user.last_name
     last_name = (
-        last_name.replace("\u2060", "") if last_name else ("Last Name not found")
+        last_name.replace(r"\u2060", "") if last_name else ("Last Name not found")
     )
     user_bio = full_user.about
     if user_bio is not None:

@@ -454,7 +454,7 @@ async def fetch_ann():
 
     try:
         updts = await async_searcher(
-            "https://ultroid-api.vercel.app/announcements", post=True, re_json=True
+            "https://ultroid-api.vercel.app/announcements", post=True, re_json=True,
         )
         for upt in updts:
             key = list(upt.keys())[0]
@@ -476,7 +476,7 @@ async def fetch_ann():
                 get_.append(key)
         udB.set_key("OLDANN", get_)
     except Exception as er:
-        LOGS.info(er)
+        LOGS.exception(er)
 
 
 async def WasItRestart(udb):
@@ -543,10 +543,17 @@ async def ready():
             spam_sent = None
             LOGS.error(ef)
 
-    re_purge()
-    await asyncio.gather(WasItRestart(udB), fetch_ann())
     # if spam_sent and not spam_sent.media:
     # udB.set_key("LAST_UPDATE_LOG_SPAM", spam_sent.id)
+
+    re_purge()
+    try:
+        await asyncio.gather(
+            WasItRestart(udB),
+            # fetch_ann(),
+        )
+    except Exception as exc:
+        LOGS.exception(exc)
 
 
 def _version_changes(udb):

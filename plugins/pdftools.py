@@ -230,19 +230,18 @@ async def imgscan(event):
         )
         gray_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2GRAY)
         T = threshold_local(gray_image, 11, offset=10, method="gaussian")
-        ok = (gray_image > T).astype("uint8") * 255
+        okk = (gray_image > T).astype("uint8") * 255
     else:
-        ok = cv2.detailEnhance(original_image, sigma_s=10, sigma_r=0.15)
+        okk = cv2.detailEnhance(original_image, sigma_s=10, sigma_r=0.15)
 
-    Path("pdf").mkdir(exist_ok=True)
-    out = check_filename("scanned.png")
-    cv2.imwrite(out, ok)
-    image1 = Image.open(out)
+    out_png = check_filename("scanned.png")
+    cv2.imwrite(out_png, okk)
+    image1 = Image.open(out_png)
     im1 = image1.convert("RGB")
-    scann = check_filename("pdf/scanned.pdf")
-    im1.save(scann)
-    await ok.reply("`Scanned Successfully!`", file=scann, thumb=ULTConfig.thumb)
-    osremove(ultt, out, scann)
+    out = check_filename("scanned.pdf")
+    im1.save(out)
+    await ok.reply("`Scanned Successfully!`", file=out, thumb=ULTConfig.thumb)
+    osremove(ultt, out_png, out)
     await xx.delete()
 
 

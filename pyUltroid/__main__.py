@@ -109,6 +109,7 @@ async def init_shutdown():
     if vcClient.uid != ultroid_bot.uid and vcClient.is_connected():
         tasks.append(vcClient.disconnect())
     if not BOT_MODE:
+        tasks.append(asst.disconnect())
         msg1, msg2 = (
             ("#restart", "Restarting Ultroid Bot.")
             if udB.get_key("_RESTART")
@@ -121,7 +122,6 @@ async def init_shutdown():
             )
         except Exception:
             pass
-        tasks.append(asst.disconnect())
 
     await asyncio.sleep(5)
     await asyncio.gather(*tasks, return_exceptions=True)
