@@ -95,7 +95,8 @@ from . import (
 async def _translator(event):
     if not event.reply_to:
         return await event.eor(
-            f"`{HNDLR}tr LanguageCode` as reply to a message", time=5,
+            f"`{HNDLR}tr LanguageCode` as reply to a message",
+            time=5,
         )
 
     lang = event.pattern_match.group(2) or "en"

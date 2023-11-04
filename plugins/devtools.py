@@ -25,7 +25,7 @@ from pyUltroid.custom.multi_db import *
 from pyUltroid.custom._transfer import pyroUL, pyroDL
 
 from . import *
-from . import _get_colors
+from plugins import _get_colors
 
 try:
     from yaml import safe_load
@@ -36,6 +36,13 @@ try:
     from telegraph import upload_file as uf
 except ImportError:
     uf = None
+
+try:
+    from rich.pretty import Pretty
+except ImportError:
+    Pretty = None
+else:
+    from rich.console import Console
 
 from telethon.tl import functions
 
@@ -51,9 +58,9 @@ async def neo_fetch(e):
     if y and y.endswith("NOT_FOUND"):
         return await xx.edit(f"Error: `{y}`")
     np = await asyncread("neo.txt")
-    all_col = (await asyncread("resources/colorlist.txt")).splitlines()
+    color = await _get_colors(pick=True)
     p = np.replace("\n\n", "")
-    haa = await Carbon(code=p, file_name="neofetch", backgroundColor=choice(all_col))
+    haa = await Carbon(code=p, file_name="neofetch", backgroundColor=color)
     if isinstance(haa, dict):
         return await xx.edit(f"`{haa}`")
     await e.reply(file=haa)
@@ -61,19 +68,27 @@ async def neo_fetch(e):
     await xx.delete()
 
 
-@ultroid_cmd(pattern="bash", fullsudo=True, only_devs=True)
-async def _(event):
-    carb, rayso, nolog, yamlf = False, False, False, False
+@ultroid_cmd(
+    pattern=r"bash( ([\s\S]*))",
+    fullsudo=True,
+    only_devs=True,
+)
+async def run_bash(event):
+    cmd = event.pattern_match.group(2)
+    if not cmd:
+        return await event.eor(get_string("devs_1"), time=5)
+
+    carb, rayso, nolog, _url = False, False, False, None
     try:
-        cmd = event.text.split(" ", maxsplit=1)[1]
-        if cmd.split()[0] == "-c":  # --carbon
-            cmd = cmd.split(maxsplit=1)[1]
+        _spl = cmd.split(maxsplit=1)
+        if _spl[0] == "-c":  # carbon
+            cmd = _spl[1]
             carb = True
-        elif cmd.split()[0] == "-r":  # --rayso
-            cmd = cmd.split(maxsplit=1)[1]
+        elif _spl[0] == "-r":  # rayso
+            cmd = _spl[1]
             rayso = True
-        elif cmd.split()[0] == "-nl":
-            cmd = cmd.split(maxsplit=1)[1]
+        elif _spl[0] == "-nl":  # nolog
+            cmd = _spl[1]
             nolog = True
     except IndexError:
         return await event.eor(get_string("devs_1"), time=10)
@@ -82,80 +97,61 @@ async def _(event):
         LOGS.debug(cmd)
     xx = await event.eor(get_string("com_1"))
 
-    is_preview = any(
-        (
-            carb,
-            rayso,
-            udB.get_key("CARBON_ON_BASH"),
-            udB.get_key("RAYSO_ON_BASH"),
-        )
-    )
-    reply_to_id = event.reply_to_msg_id or event.id
     stdout, stderr = await bash(cmd, run_code=1)
-    OUT = f"**☞ BASH\n\n• COMMAND:**\n`{cmd}` \n\n"
-    err, out = "", ""
-    if stderr:
-        err = f"**• ERROR:** \n`{stderr}`\n\n"
-    if stdout:
-        if is_preview:
-            color = await _get_colors(pick=True)
-            li = await Carbon(
-                code=stdout,
-                file_name="_bash",
-                download=True,
-                backgroundColor=color,
-                rayso=rayso or udB.get_key("RAYSO_ON_BASH"),
-            )
-            if isinstance(li, dict):
-                return await xx.edit(
-                    f"Unknown Response from Carbon: `{li}`\n\n**Output:** `{stdout}`\n**Error:** `{stderr}`"
-                )
-            url = await get_imgbb_link(
+    if stdout and (carb or rayso):
+        color = await _get_colors(pick=True)
+        li = await Carbon(
+            code=stdout,
+            file_name="_bash",
+            download=True,
+            backgroundColor=color,
+            rayso=rayso or udB.get_key("RAYSO_ON_BASH"),
+        )
+        if not isinstance(li, dict):
+            _url = await get_imgbb_link(
                 "_bash.jpg",
                 hq=True,
                 expire=7200,
                 delete=True,
                 preview=True,
             )
-            OUT = f"[\xad]({url}){OUT}"
-            out = "**• OUTPUT:**"
+            await asyncio.sleep(2)
+
+    if not (carb or rayso) and len(cmd + str(stderr) + str(stdout)) > 4000:
+        OUT = f"☞ BASH\n\n\n• COMMAND:\n{cmd} \n\n\n"
+        if not (stderr and stdout):
+            OUT += f"• OUTPUT:\nSuccess"
         else:
-            if "pip" in cmd and all(":" in line for line in stdout.split("\n")):
-                try:
-                    load = safe_load(stdout)
-                    stdout = ""
-                    for data in list(load.keys()):
-                        res = load[data] or ""
-                        if res and "http" not in str(res):
-                            res = f"`{res}`"
-                        stdout += f"**{data}**  :  {res}\n"
-                    yamlf = True
-                except Exception as er:
-                    stdout = f"`{stdout}`"
-                    LOGS.exception(er)
-            else:
-                stdout = f"`{stdout}`"
-            out = f"**• OUTPUT:**\n{stdout}"
-    if not stderr and not stdout:
-        out = "**• OUTPUT:**\n`Success`"
-    OUT += err + out
-    if len(OUT) > 4096:
-        for i in ("**", "__", "`"):
-            OUT = OUT.replace(i, "")
+            if stderr:
+                OUT += f"• ERROR:\n{stderr} \n\n\n"
+            OUT += f"• OUTPUT:\n{stdout}"
+
         with BytesIO(OUT.encode()) as out_file:
             out_file.name = "bash.txt"
+            caption = cmd if len(cmd) < 610 else cmd[:600] + " ..."
+            caption = f'''<pre><code class="language-python">{caption}</code></pre>'''
             await event.client.send_file(
                 event.chat_id,
                 out_file,
                 force_document=True,
                 thumb=ULTConfig.thumb,
                 allow_cache=False,
-                caption=f"```{cmd}```" if len(cmd) < 998 else None,
-                reply_to=reply_to_id,
+                caption=caption,
+                parse_mode="html",
+                reply_to=event.reply_to_msg_id,
             )
-            await xx.delete()
-    else:
-        await xx.edit(OUT, link_preview=is_preview)
+        await xx.delete()
+        return
+
+    OUT = f'''<b>☞ BASH\n\n• COMMAND:</b>\n<pre><code class="language-bash">{cmd}</code></pre> \n\n'''
+    if stderr:
+        OUT += f"<b>• ERROR:</b>\n<code>{stderr}</code> \n\n"
+    if not (stderr or stdout):
+        OUT += f"<b>• OUTPUT:</b>\n<code>Success</code>"
+    if stdout or _url:
+        OUT += "<b>• OUTPUT:</b>\n"
+        OUT += f"<a href='{_url}'>\xad</a>" if (carb or rayso) else f"<code>{stdout}</code>"
+    await xx.edit(OUT, parse_mode="html", link_preview=bool(_url))
     if not nolog:
         await evalogger(cmd, event)
 
@@ -171,35 +167,49 @@ class u:
 def _parse_eval(value=None):
     if not value:
         return value
+
+    if Pretty:
+        pretty_obj = Pretty(value, indent_guides=False, expand_all=True, indent_size=4, overflow="ignore")
+        tmp_file = StringIO()
+        rich_console = Console(file=tmp_file)
+        rich_console.print(pretty_obj, crop=False)
+        return tmp_file.getvalue()
+
     if hasattr(value, "stringify"):
         try:
             return value.stringify()
         except TypeError:
-            pass
+            return value
     elif isinstance(value, dict):
         try:
             return json_parser(value, indent=4)
         except Exception:
-            pass
-    elif isinstance(value, list):
-        newlist = "["
-        for index, child in enumerate(value):
+            return value
+    elif isinstance(value, (list, tuple, set)):
+        _dict = {list: ("[", "]"), tuple: ("(", ")"), set: ("{", "}")}
+        st_symbol, end_symbol = _dict[type(value)]
+        for child in value:
             if type(child) == str:
-                newlist += f"\n  '{_parse_eval(child)}'"
+                st_symbol += f'\n  "{child}",'
+            elif type(child) == int:
+                st_symbol += f"\n  {child},"
             else:
-                newlist += f"\n  {_parse_eval(child)}"
-            if index < len(value) - 1:
-                newlist += ","
-        newlist += "\n]"
-        return newlist
-    return str(value)
+                st_symbol += f"\n  {_parse_eval(child)},"
+            # if index < len(value) - 1:
+            # st_symbol += ","
+        st_symbol += "\n" + end_symbol
+        return st_symbol
+    return value
 
 
-@ultroid_cmd(pattern="eval", fullsudo=True, only_devs=True)
-async def _(event):
-    try:
-        cmd = event.text.split(maxsplit=1)[1]
-    except IndexError:
+@ultroid_cmd(
+    pattern=r"eval( ([\s\S]*))",
+    fullsudo=True,
+    only_devs=True,
+)
+async def run_eval(event):
+    cmd = event.pattern_match.group(2)
+    if not cmd:
         return await event.eor(get_string("devs_2"), time=5)
 
     xx, mode = None, ""
@@ -228,10 +238,10 @@ async def _(event):
         mode = "nolog"
     elif spli[0] == "-b":  # --black
         mode = "black"
-    elif spli[0] in ("-gs", "--source"):
+    elif spli[0] == "-gs":  # --gsource
         mode = "gsource"
-    elif spli[0] in ("-ga", "--args"):
-        mode = "g-args"
+    elif spli[0] == "-ga":  # --gargs
+        mode = "gargs"
     if mode:
         cmd = await get_()
 
@@ -250,7 +260,6 @@ async def _(event):
         except (ImportError, Exception):
             pass
 
-    reply_to_id = event.reply_to_msg_id or event
     if any(item in cmd for item in KEEP_SAFE().All) and (
         not (event.out or event.sender_id == ultroid_bot.uid)
     ):
@@ -265,17 +274,17 @@ async def _(event):
             )
     old_stderr = sys.stderr
     old_stdout = sys.stdout
+    stdout, stderr, exc, timeg = None, None, None, None
     redirected_output = sys.stdout = StringIO()
     redirected_error = sys.stderr = StringIO()
-    stdout, stderr, exc, timeg = None, None, None, None
     try:
-        tima = time.time()
+        tima = time.perf_counter()
         value = await aexec(cmd, event)
     except Exception:
         value = None
         exc = traceback.format_exc()
     finally:
-        tima = time.time() - tima
+        tima = time.perf_counter() - tima
     stdout = redirected_output.getvalue()
     stderr = redirected_error.getvalue()
     sys.stdout = old_stdout
@@ -284,7 +293,7 @@ async def _(event):
         try:
             if mode == "gsource":
                 exc = inspect.getsource(value)
-            elif mode == "g-args":
+            elif mode == "gargs":
                 args = inspect.signature(value).parameters.values()
                 name = ""
                 if hasattr(value, "__name__"):
@@ -292,24 +301,36 @@ async def _(event):
                 exc = f"**{name}**\n\n" + "\n ".join([str(arg) for arg in args])
         except Exception:
             exc = traceback.format_exc()
+
     evaluation = exc or stderr or stdout or _parse_eval(value) or get_string("instu_4")
     if mode == "silent":
         if exc:
-            msg = f"• <b>EVAL ERROR\n\n• CHAT:</b> <code>{get_display_name(event.chat)}</code> [<code>{event.chat_id}</code>]"
-            msg += f"\n\n∆ <b>CODE:</b>\n<code>{cmd}</code>\n\n∆ <b>ERROR:</b>\n<code>{exc}</code>"
             log_chat = udB.get_key("LOG_CHANNEL")
-            if len(msg) > 4000:
+            if len(exc + cmd) < 4000:
+                msg = f"• <b>EVAL ERROR\n\n• CHAT:</b> <code>{get_display_name(event.chat)}</code> [<code>{event.chat_id}</code>] \n\n"
+                msg += f'''∆ <b>CODE:</b>\n<pre><code class="language-python">{cmd}</code></pre>\n\n∆ <b>ERROR:</b>\n<code>{exc}</code>'''
+                await event.client.send_message(log_chat, msg, parse_mode="html")
+            else:
+                msg = f"• EVAL ERROR\n\n• CHAT: {get_display_name(event.chat)} [{event.chat_id}]\n\n∆ CODE:\n{cmd}\n\n∆ ERROR:\n{exc}"
                 with BytesIO(msg.encode()) as out_file:
                     out_file.name = "Eval-Error.txt"
-                return await event.client.send_message(
-                    log_chat, f"`{cmd}`", file=out_file
-                )
-            await event.client.send_message(log_chat, msg, parse_mode="html")
+                    caption = cmd if len(cmd) < 610 else cmd[:600] + " ..."
+                    caption = f'''<pre><code class="language-python">{caption}</code></pre>'''
+                    await event.client.send_file(
+                        log_chat,
+                        out_file,
+                        caption=caption,
+                        parse_mode="html",
+                        allow_cache=False,
+                        force_document=True,
+                        thumb=ULTConfig.thumb,
+                    )
         return
-    tmt = tima * 1000
+
+    _url, tmt = None, tima * 1000
     timef = time_formatter(tmt)
     timeform = timef if not timef == "0s" else f"{tmt:.3f}ms"
-    if mode in ("carb", "rayso"):
+    if mode in {"carb", "rayso"}:
         color = await _get_colors(pick=True)
         lin = await Carbon(
             code=evaluation,
@@ -318,36 +339,38 @@ async def _(event):
             rayso=mode == "rayso",
             backgroundColor=color,
         )
-        url = await get_imgbb_link(
-            "_eval.jpg",
-            hq=True,
-            expire=7200,
-            delete=True,
-            preview=True,
-        )
-        final_output = f"__►__ **EVAL** (__{timeform}__)\n```{cmd}``` \n\n __►__ **OUTPUT**: [⁮⁮⁮\xad]({url})"
-    else:
-        final_output = "__►__ **EVAL** (__{}__)\n```{}``` \n\n __►__ **OUTPUT**: \n```{}```".format(
-            timeform,
-            cmd,
-            evaluation,
-        )
-    if len(final_output) > 4096:
-        for i in ("**", "__", "`"):
-            final_output = final_output.replace(i, "")
+        if not isinstance(lin, dict):
+            _url = await get_imgbb_link(
+                "_eval.jpg",
+                hq=True,
+                expire=7200,
+                delete=True,
+                preview=True,
+            )
+            await asyncio.sleep(2)
+
+    if mode not in {"carb", "rayso"} and len(cmd + str(evaluation)) > 4000:
+        final_output = f"► EVAL  ({timeform})\n{cmd} \n\n\n ► OUTPUT: \n{evaluation}"
         with BytesIO(final_output.encode()) as out_file:
             out_file.name = "eval.txt"
+            caption = cmd if len(cmd) < 610 else cmd[:600] + " ..."
+            caption = f'''<pre><code class="language-python">{caption}</code></pre>'''
             await event.client.send_file(
                 event.chat_id,
                 out_file,
                 force_document=True,
                 thumb=ULTConfig.thumb,
                 allow_cache=False,
-                caption=f"```{cmd}```" if len(cmd) < 998 else None,
-                reply_to=reply_to_id,
+                caption=caption,
+                parse_mode="html",
+                reply_to=event.reply_to_msg_id,
             )
-        return await xx.delete()
-    await xx.edit(final_output, link_preview=mode == "carb")
+        await xx.delete()
+        return
+
+    final_output = f'''<i>►</i> <b>EVAL</b> (<i>{timeform}</i>)\n<pre><code class="language-python">{cmd}</code></pre> \n\n <i>►</i> <b>OUTPUT:</b> \n'''
+    final_output += f"<a href='{_url}'>⁮⁮⁮\xad</a>" if _url else f'''<pre><code class="language-python">{evaluation}</code></pre>'''
+    await xx.edit(final_output, parse_mode="html", link_preview=bool(_url))
     if mode != "nolog":
         await evalogger(cmd, event)
 
@@ -360,12 +383,14 @@ def _stringify(text=None, *args, **kwargs):
 
 
 async def evalogger(cmd, e):
-    await asyncio.sleep(1)
-    msg = "<b>CMD Executed!</b> \n\n<code>{0}</code> \n\n–  {1}:  {2} \n–  <a href='{3}'>{4}</a>"
+    await asyncio.sleep(2)
+    lang = "language-"
+    lang += "python" if "eval" in e.text[:6] else "cpp"
+    msg = "<b>CMD Executed!</b> \n\n{0}\n\n–  {1}:  {2} \n–  <a href='{3}'>{4}</a>"
     sndr = e.sender or await e.get_sender()
     try:
         _msg = msg.format(
-            cmd,
+            f'''<pre><code class="{lang}">{cmd}</code></pre>''',
             get_display_name(sndr),
             inline_mention(sndr, custom=sndr.id, html=True),
             e.message_link,
@@ -380,7 +405,8 @@ async def aexec(code, event):
     exec(
         (
             "async def __aexec(e, client): "
-            + "\n print = p = _stringify"
+            + "\n from builtins import print as ppp"
+            + "\n\n print = p = _stringify"
             + "\n message = event = e"
             + "\n u.r = reply = rm = await event.get_reply_message()"
             + "\n chat = event.chat_id"
@@ -416,30 +442,67 @@ async def cpp_compiler(e):
         match = DUMMY_CPP.replace("!code", new_m)
 
     await asyncwrite("cpp-ultroid.cpp", match, mode="w+")
+    osremove("CppUltroid")
     m = await bash("g++ -o CppUltroid cpp-ultroid.cpp")
-    o_cpp = f"• **Eval-Cpp**\n`{match}`"
     if m[1]:
-        o_cpp += f"\n\n**• Error :**\n`{m[1]}`"
-        if len(o_cpp) > 3000:
+        if len(match + m[1]) < 3000:
+            o_cpp = f'''• <b>Eval-Cpp</b>\n<pre><code class="language-cpp">{match}</code></pre>\n\n• <b>ERROR:</b>\n<code>{m[1]}</code>'''
+            await msg.edit(o_cpp, parse_mode="html")
+        else:
+            o_cpp = f"• Eval-Cpp:\n{match} \n\n\n• ERROR:\n{m[1]}"
             with BytesIO(o_cpp.encode()) as out_file:
                 out_file.name = "compile-error-cpp.txt"
-                await msg.reply(f"```{match[:512]}```", file=out_file)
-        else:
-            await msg.edit(o_cpp)
+                caption = match if len(match) < 610 else match[:600] + " ..."
+                caption = f'''<pre><code class="language-cpp">{caption}</code></pre>'''
+                await e.client.send_file(
+                    e.chat_id,
+                    out_file,
+                    force_document=True,
+                    thumb=ULTConfig.thumb,
+                    allow_cache=False,
+                    caption=caption,
+                    parse_mode="html",
+                    reply_to=e.reply_to_msg_id,
+                )
+            await msg.delete()
         return osremove("cpp-ultroid.cpp", "CppUltroid")
 
+    time_t = time.perf_counter()
     out, err = await bash("./CppUltroid")
-    if out != "":
-        o_cpp += f"\n\n**• Output :**\n```{out}```"
-    if err:
-        o_cpp += f"\n\n**• Error :**\n```{err}```"
-    if len(o_cpp) > 3000:
+    _time = (time.perf_counter() - time_t) * 1000
+    _tfime = time_formatter(_time)
+    time_t = _tfime if not _tfime == "0s" else f"{_time:.3f}ms"
+
+    if len(match + str(out) + str(err)) > 3000:
+        o_cpp = f"• Eval-Cpp: ({time_t})\n{match} \n\n\n"
+        if out != "":
+            o_cpp += f"• OUTPUT:\n{out}\n\n\n"
+        if err:
+            o_cpp += f"• ERROR:\n{err}"
         with BytesIO(o_cpp.encode()) as out_file:
             out_file.name = "cpp_output.txt"
-            await msg.reply(f"```{match[:512]}```", file=out_file)
+            caption = match if len(match) < 610 else match[:600] + " ..."
+            caption = f'''<pre><code class="language-cpp">{caption}</code></pre>'''
+            await e.client.send_file(
+                e.chat_id,
+                out_file,
+                force_document=True,
+                thumb=ULTConfig.thumb,
+                allow_cache=False,
+                caption=caption,
+                parse_mode="html",
+                reply_to=e.reply_to_msg_id,
+            )
+        await msg.delete()
     else:
-        await msg.edit(o_cpp)
+        o_cpp = f'''• <b>Eval-Cpp</b> (<i>{time_t}</i>)\n<pre><code class="language-cpp">{match}</code></pre>\n\n'''
+        if out != "":
+            o_cpp += f"• <b>OUTPUT:</b>\n<code>{out}</code>\n\n"
+        if err:
+            o_cpp += f"• <b>ERROR:</b>\n<code>{err}</code>"
+        await msg.edit(o_cpp, parse_mode="html")
     osremove("CppUltroid", "cpp-ultroid.cpp")
+    await evalogger(match, e)
 
 
 # for running C code with gcc (w/o dummy cpp)
@@ -455,27 +518,65 @@ async def _gcc_compiler(e):
 
     msg = await e.eor(get_string("com_1"))
     await asyncwrite("ultroid.c", match, mode="w+")
+    osremove("ultroid.out")
     m = await bash("gcc ultroid.c -o ultroid.out")
-    out = f"• **Eval-GCC**\n```{match}```"
+
     if m[1]:
-        out += f"\n\n**• Error:**\n```{m[1]}```"
-        if len(out) > 4000:
+        if len(match + m[1]) < 3000:
+            out = f'''• <b>Eval-Cpp</b>\n<pre><code class="language-cpp">{match}</code></pre>\n\n• <b>ERROR:</b>\n<code>{m[1]}</code>'''
+            await msg.edit(out, parse_mode="html")
+        else:
+            out = f"• Eval-GCC:\n{match} \n\n\n• ERROR:\n{m[1]}"
             with BytesIO(out.encode()) as out_file:
                 out_file.name = "compile-error-gcc.txt"
-                await msg.reply(f"```{match[:512]}```", file=out_file)
-        else:
-            await msg.edit(out)
+                caption = match if len(match) < 610 else match[:600] + " ..."
+                caption = f'''<pre><code class="language-cpp">{caption}</code></pre>'''
+                await e.client.send_file(
+                    e.chat_id,
+                    out_file,
+                    force_document=True,
+                    thumb=ULTConfig.thumb,
+                    allow_cache=False,
+                    caption=caption,
+                    parse_mode="html",
+                    reply_to=e.reply_to_msg_id,
+                )
+            await msg.delete()
         return osremove("ultroid.c", "ultroid.out")
 
+    time_t = time.perf_counter()
     stdout, err = await bash("./ultroid.out")
-    if stdout != "":
-        out += f"\n\n**• Output :**\n```{stdout}```"
-    if err:
-        out += f"\n\n**• Error :**\n```{err}```"
-    if len(out) > 4000:
+    _time = (time.perf_counter() - time_t) * 1000
+    _tfime = time_formatter(_time)
+    time_t = _tfime if not _tfime == "0s" else f"{_time:.3f}ms"
+
+    if len(match + str(stdout) + str(err)) > 3000:
+        out = f"• Eval-GCC: ({time_t})\n{match} \n\n\n"
+        if stdout != "":
+            out += f"• OUTPUT:\n{stdout}\n\n\n"
+        if err:
+            out += f"• ERROR:\n{err}"
         with BytesIO(out.encode()) as out_file:
             out_file.name = "gcc_output.txt"
-            await msg.reply(f"```{match[:512]}```", file=out_file)
+            caption = match if len(match) < 610 else match[:600] + " ..."
+            caption = f'''<pre><code class="language-cpp">{caption}</code></pre>'''
+            await e.client.send_file(
+                e.chat_id,
+                out_file,
+                force_document=True,
+                thumb=ULTConfig.thumb,
+                allow_cache=False,
+                caption=caption,
+                parse_mode="html",
+                reply_to=e.reply_to_msg_id,
+            )
+        await msg.delete()
     else:
-        await msg.edit(out)
-    osremove("ultroid.out", "ultroid.c")
+        out = f'''• <b>Eval-GCC</b> (<i>{time_t}</i>)\n<pre><code class="language-cpp">{match}</code></pre>\n\n'''
+        if stdout != "":
+            out += f"• <b>OUTPUT:</b>\n<code>{stdout}</code>\n\n"
+        if err:
+            out += f"• <b>ERROR:</b>\n<code>{err}</code>"
+        await msg.edit(out, parse_mode="html")
+    osremove("ultroid.c", "ultroid.out")
+    await evalogger(match, e)  
