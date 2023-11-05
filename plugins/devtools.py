@@ -68,6 +68,37 @@ async def neo_fetch(e):
     await xx.delete()
 
 
+class u:
+    _ = ""
+
+    @staticmethod
+    def _html(text, language):
+        try:
+            text = text.replace("<", "&lt;").replace(">", "&gt;")
+        except Exception:
+            pass
+        return f"""<pre><code class="language-{language}">{text}</code></pre>"""
+
+    @staticmethod
+    async def _evalogger(cmd, e, format_lang):
+        await asyncio.sleep(2)
+        msg = "<b>CMD Executed!</b> \n\n{0}\n\n–  {1}:  {2} \n–  <a href='{3}'>{4}</a>"
+        sndr = e.sender or await e.get_sender()
+        try:
+            _msg = msg.format(
+                u._html(cmd, format_lang),
+                get_display_name(sndr),
+                inline_mention(sndr, custom=sndr.id, html=True),
+                e.message_link,
+                get_display_name(e.chat or await e.get_chat()),
+            )
+            await asst.send_message(
+                TAG_LOG, _msg, link_preview=False, parse_mode="html",
+            )
+        except Exception:
+            return LOGS.exception("EVAL Logger error")
+
+
 @ultroid_cmd(
     pattern=r"bash( ([\s\S]*))",
     fullsudo=True,
@@ -128,8 +159,7 @@ async def run_bash(event):
 
         with BytesIO(OUT.encode()) as out_file:
             out_file.name = "bash.txt"
-            caption = cmd if len(cmd) < 610 else cmd[:600] + " ..."
-            caption = f'''<pre><code class="language-python">{caption}</code></pre>'''
+            caption = u._html(cmd if len(cmd) < 610 else cmd[:600] + " ...", "bash")
             await event.client.send_file(
                 event.chat_id,
                 out_file,
@@ -143,44 +173,48 @@ async def run_bash(event):
         await xx.delete()
         return
 
-    OUT = f'''<b>☞ BASH\n\n• COMMAND:</b>\n<pre><code class="language-bash">{cmd}</code></pre> \n\n'''
+    _cmd = u._html(cmd, "bash")
+    OUT = f"""<b>☞ BASH\n\n• COMMAND:</b>\n{_cmd}\n\n"""
     if stderr:
-        OUT += f"<b>• ERROR:</b>\n<code>{stderr}</code> \n\n"
+        OUT += f"<b>• ERROR:</b>\n<code>{stderr}</code>\n\n"
     if not (stderr or stdout):
         OUT += f"<b>• OUTPUT:</b>\n<code>Success</code>"
     if stdout or _url:
         OUT += "<b>• OUTPUT:</b>\n"
-        OUT += f"<a href='{_url}'>\xad</a>" if (carb or rayso) else f"<code>{stdout}</code>"
+        OUT += f"<a href='{_url}'>\xad</a>" if _url else f"<code>{stdout}</code>"
     await xx.edit(OUT, parse_mode="html", link_preview=bool(_url))
     if not nolog:
-        await evalogger(cmd, event)
+        await u._evalogger(cmd, event, "bash")
 
 
 pp = pprint  # ignore: pylint
 bot = ultroid = ultroid_bot
 
 
-class u:
-    _ = ""
-
-
 def _parse_eval(value=None):
     if not value:
         return value
-
-    if Pretty:
-        pretty_obj = Pretty(value, indent_guides=False, expand_all=True, indent_size=4, overflow="ignore")
-        tmp_file = StringIO()
-        rich_console = Console(file=tmp_file)
-        rich_console.print(pretty_obj, crop=False)
-        return tmp_file.getvalue()
 
     if hasattr(value, "stringify"):
         try:
             return value.stringify()
         except TypeError:
             return value
-    elif isinstance(value, dict):
+
+    if Pretty:
+        pretty_obj = Pretty(
+            value,
+            indent_guides=False,
+            expand_all=True,
+            indent_size=4,
+            overflow="ignore",
+        )
+        tmp_file = StringIO()
+        rich_console = Console(file=tmp_file)
+        rich_console.print(pretty_obj, crop=False)
+        return tmp_file.getvalue()
+
+    if isinstance(value, dict):
         try:
             return json_parser(value, indent=4)
         except Exception:
@@ -307,15 +341,19 @@ async def run_eval(event):
         if exc:
             log_chat = udB.get_key("LOG_CHANNEL")
             if len(exc + cmd) < 4000:
+                _cmd = u._html(cmd, "python")
                 msg = f"• <b>EVAL ERROR\n\n• CHAT:</b> <code>{get_display_name(event.chat)}</code> [<code>{event.chat_id}</code>] \n\n"
-                msg += f'''∆ <b>CODE:</b>\n<pre><code class="language-python">{cmd}</code></pre>\n\n∆ <b>ERROR:</b>\n<code>{exc}</code>'''
+                msg += (
+                    f"""∆ <b>CODE:</b>\n{_cmd}\n\n∆ <b>ERROR:</b>\n<code>{exc}</code>"""
+                )
                 await event.client.send_message(log_chat, msg, parse_mode="html")
             else:
                 msg = f"• EVAL ERROR\n\n• CHAT: {get_display_name(event.chat)} [{event.chat_id}]\n\n∆ CODE:\n{cmd}\n\n∆ ERROR:\n{exc}"
                 with BytesIO(msg.encode()) as out_file:
                     out_file.name = "Eval-Error.txt"
-                    caption = cmd if len(cmd) < 610 else cmd[:600] + " ..."
-                    caption = f'''<pre><code class="language-python">{caption}</code></pre>'''
+                    caption = u._html(
+                        cmd if len(cmd) < 610 else cmd[:600] + " ...", "python"
+                    )
                     await event.client.send_file(
                         log_chat,
                         out_file,
@@ -353,8 +391,7 @@ async def run_eval(event):
         final_output = f"► EVAL  ({timeform})\n{cmd} \n\n\n ► OUTPUT: \n{evaluation}"
         with BytesIO(final_output.encode()) as out_file:
             out_file.name = "eval.txt"
-            caption = cmd if len(cmd) < 610 else cmd[:600] + " ..."
-            caption = f'''<pre><code class="language-python">{caption}</code></pre>'''
+            caption = u._html(cmd if len(cmd) < 610 else cmd[:600] + " ...", "python")
             await event.client.send_file(
                 event.chat_id,
                 out_file,
@@ -368,37 +405,21 @@ async def run_eval(event):
         await xx.delete()
         return
 
-    final_output = f'''<i>►</i> <b>EVAL</b> (<i>{timeform}</i>)\n<pre><code class="language-python">{cmd}</code></pre> \n\n <i>►</i> <b>OUTPUT:</b> \n'''
-    final_output += f"<a href='{_url}'>⁮⁮⁮\xad</a>" if _url else f'''<pre><code class="language-python">{evaluation}</code></pre>'''
+    _cmd = u._html(cmd, "python")
+    final_output = f"""<i>►</i> <b>EVAL</b> (<i>{timeform}</i>)\n{_cmd}\n\n<i>►</i> <b>OUTPUT:</b>\n"""
+    final_output += (
+        f"<a href='{_url}'>⁮⁮⁮\xad</a>" if _url else u._html(evaluation, "python")
+    )
     await xx.edit(final_output, parse_mode="html", link_preview=bool(_url))
     if mode != "nolog":
-        await evalogger(cmd, event)
+        await u._evalogger(cmd, event, "python")
 
 
 def _stringify(text=None, *args, **kwargs):
     if text:
-        u._ = text
+        # u._ = text
         text = _parse_eval(text)
     return print(text, *args, **kwargs)
-
-
-async def evalogger(cmd, e):
-    await asyncio.sleep(2)
-    lang = "language-"
-    lang += "python" if "eval" in e.text[:6] else "cpp"
-    msg = "<b>CMD Executed!</b> \n\n{0}\n\n–  {1}:  {2} \n–  <a href='{3}'>{4}</a>"
-    sndr = e.sender or await e.get_sender()
-    try:
-        _msg = msg.format(
-            f'''<pre><code class="{lang}">{cmd}</code></pre>''',
-            get_display_name(sndr),
-            inline_mention(sndr, custom=sndr.id, html=True),
-            e.message_link,
-            get_display_name(e.chat or await e.get_chat()),
-        )
-        await asst.send_message(TAG_LOG, _msg, link_preview=False, parse_mode="html")
-    except Exception:
-        return LOGS.exception("EVAL Logger error")
 
 
 async def aexec(code, event):
@@ -408,9 +429,9 @@ async def aexec(code, event):
             + "\n from builtins import print as ppp"
             + "\n\n print = p = _stringify"
             + "\n message = event = e"
-            + "\n u.r = reply = rm = await event.get_reply_message()"
+            + "\n reply = rm = await event.get_reply_message()"
             + "\n chat = event.chat_id"
-            + "\n u.lr = locals()"
+            # + "\n u.lr = locals()"
         )
         + "".join(f"\n {l}" for l in code.split("\n"))
     )
@@ -446,14 +467,16 @@ async def cpp_compiler(e):
     m = await bash("g++ -o CppUltroid cpp-ultroid.cpp")
     if m[1]:
         if len(match + m[1]) < 3000:
-            o_cpp = f'''• <b>Eval-Cpp</b>\n<pre><code class="language-cpp">{match}</code></pre>\n\n• <b>ERROR:</b>\n<code>{m[1]}</code>'''
+            _match = u._html(match, "cpp")
+            o_cpp = f"""• <b>Eval-Cpp</b>\n{_match}\n\n• <b>ERROR:</b>\n<code>{m[1]}</code>"""
             await msg.edit(o_cpp, parse_mode="html")
         else:
             o_cpp = f"• Eval-Cpp:\n{match} \n\n\n• ERROR:\n{m[1]}"
             with BytesIO(o_cpp.encode()) as out_file:
                 out_file.name = "compile-error-cpp.txt"
-                caption = match if len(match) < 610 else match[:600] + " ..."
-                caption = f'''<pre><code class="language-cpp">{caption}</code></pre>'''
+                caption = u._html(
+                    match if len(match) < 610 else match[:600] + " ...", "cpp"
+                )
                 await e.client.send_file(
                     e.chat_id,
                     out_file,
@@ -481,8 +504,9 @@ async def cpp_compiler(e):
             o_cpp += f"• ERROR:\n{err}"
         with BytesIO(o_cpp.encode()) as out_file:
             out_file.name = "cpp_output.txt"
-            caption = match if len(match) < 610 else match[:600] + " ..."
-            caption = f'''<pre><code class="language-cpp">{caption}</code></pre>'''
+            caption = u._html(
+                match if len(match) < 610 else match[:600] + " ...", "cpp"
+            )
             await e.client.send_file(
                 e.chat_id,
                 out_file,
@@ -495,14 +519,15 @@ async def cpp_compiler(e):
             )
         await msg.delete()
     else:
-        o_cpp = f'''• <b>Eval-Cpp</b> (<i>{time_t}</i>)\n<pre><code class="language-cpp">{match}</code></pre>\n\n'''
+        _match = u._html(match, "cpp")
+        o_cpp = f"""• <b>Eval-Cpp</b> (<i>{time_t}</i>)\n{_match}\n\n"""
         if out != "":
             o_cpp += f"• <b>OUTPUT:</b>\n<code>{out}</code>\n\n"
         if err:
             o_cpp += f"• <b>ERROR:</b>\n<code>{err}</code>"
         await msg.edit(o_cpp, parse_mode="html")
     osremove("CppUltroid", "cpp-ultroid.cpp")
-    await evalogger(match, e)
+    await u._evalogger(match, e, "cpp")
 
 
 # for running C code with gcc (w/o dummy cpp)
@@ -523,14 +548,16 @@ async def _gcc_compiler(e):
 
     if m[1]:
         if len(match + m[1]) < 3000:
-            out = f'''• <b>Eval-Cpp</b>\n<pre><code class="language-cpp">{match}</code></pre>\n\n• <b>ERROR:</b>\n<code>{m[1]}</code>'''
+            _match = u._html(match, "c")
+            out = f"""• <b>Eval-GCC</b>\n{_match}\n\n• <b>ERROR:</b>\n<code>{m[1]}</code>"""
             await msg.edit(out, parse_mode="html")
         else:
             out = f"• Eval-GCC:\n{match} \n\n\n• ERROR:\n{m[1]}"
             with BytesIO(out.encode()) as out_file:
                 out_file.name = "compile-error-gcc.txt"
-                caption = match if len(match) < 610 else match[:600] + " ..."
-                caption = f'''<pre><code class="language-cpp">{caption}</code></pre>'''
+                caption = u._html(
+                    match if len(match) < 610 else match[:600] + " ...", "c"
+                )
                 await e.client.send_file(
                     e.chat_id,
                     out_file,
@@ -558,8 +585,7 @@ async def _gcc_compiler(e):
             out += f"• ERROR:\n{err}"
         with BytesIO(out.encode()) as out_file:
             out_file.name = "gcc_output.txt"
-            caption = match if len(match) < 610 else match[:600] + " ..."
-            caption = f'''<pre><code class="language-cpp">{caption}</code></pre>'''
+            caption = u._html(match if len(match) < 610 else match[:600] + " ...", "c")
             await e.client.send_file(
                 e.chat_id,
                 out_file,
@@ -572,11 +598,12 @@ async def _gcc_compiler(e):
             )
         await msg.delete()
     else:
-        out = f'''• <b>Eval-GCC</b> (<i>{time_t}</i>)\n<pre><code class="language-cpp">{match}</code></pre>\n\n'''
+        _match = u._html(match, "c")
+        out = f"""• <b>Eval-GCC</b> (<i>{time_t}</i>)\n{_match}\n\n"""
         if stdout != "":
             out += f"• <b>OUTPUT:</b>\n<code>{stdout}</code>\n\n"
         if err:
             out += f"• <b>ERROR:</b>\n<code>{err}</code>"
         await msg.edit(out, parse_mode="html")
     osremove("ultroid.c", "ultroid.out")
-    await evalogger(match, e)  
+    await u._evalogger(match, e, "c")

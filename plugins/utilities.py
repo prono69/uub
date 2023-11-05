@@ -50,6 +50,7 @@
   Get messages from chats with forward/copy restrictions.
 """
 
+import asyncio
 import calendar
 import html
 import io
@@ -87,7 +88,6 @@ from telethon.tl.types import (
     Channel,
     Chat,
     InputMediaPoll,
-    PhotoSize,
     Poll,
     PollAnswer,
     TLObject,
@@ -693,19 +693,18 @@ async def thumb_dl(event):
         return await eod(event, get_string("th_1"), time=5)
 
     myy = await event.eor(get_string("com_1"))
-    thumbs = filter(
-        lambda i: isinstance(i, PhotoSize),
-        reply.photo.sizes if reply.photo else reply.document.thumbs,
-    )
-    if not (thumbs := list(thumbs)):
+    try:
+        m = await reply.download_media(thumb=-1, file=bytes)
+    except IndexError:
         return await eod(myy, get_string("th_2"))
 
-    thumb_index = len(thumbs) - 1
-    m = await reply.download_media(thumb=thumb_index, file=bytes)
     m = io.BytesIO(m)
     m.name = "thumb.jpg"
-    await reply.reply(f"`Generated Thumbnail`", file=m)
-    await myy.delete()
+    await asyncio.gather(
+        reply.reply(f"`Generated Thumbnail`", file=m),
+        myy.delete(),
+        return_exceptions=True,
+    )
 
 
 @ultroid_cmd(pattern="getmsg( ?(.*)|$)")
