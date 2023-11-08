@@ -51,12 +51,13 @@ MostUsedKeys = {
 xyzdb = {}
 
 
-# testing..
-def _xyz(key):
+# -- testing --
+def _xyz(key, index):
     try:
-        xyzdb[key] += 1
+        xyzdb[key][index] += 1
     except KeyError:
-        xyzdb[key] = 1
+        xyzdb[key] = [0, 0, 0]
+        _xyz(key, index)
 
 
 class LRUCache(UserDict):
@@ -73,7 +74,7 @@ class LRUCache(UserDict):
 
     __slots__ = ("_maxsize", "data", "_muks")
 
-    def __init__(self, *args, maxsize=20, **kwargs):
+    def __init__(self, *args, maxsize=25, **kwargs):
         self._muks = {}
         self._maxsize = maxsize
         super().__init__(*args, **kwargs)
@@ -90,11 +91,17 @@ class LRUCache(UserDict):
     def __contains__(self, key):
         return key in self._muks or key in self.data
 
+    def __delitem__(self, key):
+        if key in MostUsedKeys:
+            del self._muks[key]
+        else:
+            del self.data[key]
+
     def __getitem__(self, key):
         if key in MostUsedKeys:
             return self._muks.get(key)
         if value := self.data.get(key):
-            _xyz(key)
+            _xyz(key, 0)
             self.data.pop(key, None)
             self.data[key] = value
             return value
@@ -107,12 +114,6 @@ class LRUCache(UserDict):
             while len(self.data) > self._maxsize:
                 self.data.pop(next(iter(self.data)), None)
 
-    def __delitem__(self, key):
-        if key in MostUsedKeys:
-            del self._muks[key]
-        else:
-            del self.data[key]
-
 
 # ---------------------------------------------------------------------------------------------
 
@@ -122,7 +123,7 @@ class _BaseDatabase:
 
     def __init__(self, *args, **kwargs):
         if self.to_cache:
-            self._cache = LRUCache(maxsize=25)
+            self._cache = LRUCache(maxsize=20)
             self._re_cache()
 
     def ping(self):
@@ -172,6 +173,7 @@ class _BaseDatabase:
                 return value
         if force:
             # It will sync the cache with db
+            _xyz(key, 1)
             self._cache.pop(key, None)
             status, value = self._get_data(key=key)
             if status:
@@ -179,6 +181,7 @@ class _BaseDatabase:
                     self._cache[key] = value
                 return value
         else:
+            _xyz(key, 2)
             if key in self._cache:
                 value = self._cache.get(key)
             elif not key.startswith("__"):
@@ -470,7 +473,8 @@ class LocalDB:
     def __init__(self):
         self.db = self
         self.to_cache = True
-        self._cache = {}  # Why to read file again and again?
+        # Why to read file again and again?
+        self._cache = LRUCache(maxsize=35)
         self.name = "localdb.json"
         if self.ping():
             self._re_cache()

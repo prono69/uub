@@ -13,9 +13,9 @@ from aiohttp import ClientSession
 from ._loop import loop, run_async_task
 
 
-_TG_MSG_LIMIT = 4000
-_MAX_LOG_LIMIT = 12000
-_PAYLOAD = {"disable_web_page_preview": True, "parse_mode": "Markdown"}
+_TG_MSG_LIMIT = 3200
+_MAX_LOG_LIMIT = 9600
+_PAYLOAD = {"disable_web_page_preview": True, "parse_mode": "HTML"}
 
 
 class TGLogHandler(StreamHandler):
@@ -26,8 +26,8 @@ class TGLogHandler(StreamHandler):
         "current_log_msg",
         "message_id",
         "is_active",
+        "sent_as_file",
         "_floodwait",
-        "doc_message_id",
     )
 
     def __init__(self, chat, token):
@@ -38,7 +38,7 @@ class TGLogHandler(StreamHandler):
         self.message_id = None
         self.is_active = False
         self._floodwait = False
-        self.doc_message_id = None
+        self.sent_as_file = False
         _PAYLOAD.update({"chat_id": chat})
         StreamHandler.__init__(self)
 
@@ -105,23 +105,25 @@ class TGLogHandler(StreamHandler):
     async def send_message(self, message):
         payload = _PAYLOAD.copy()
         message = message.lstrip()
-        payload["text"] = f"```{message}```"
-        if ids := self.message_id or self.doc_message_id:
-            payload["reply_to_message_id"] = ids
+        payload["text"] = f"<code>{message}</code>"
+        if self.message_id:
+            payload["reply_to_message_id"] = self.message_id
         res = await self.send_request(self.__tgtoken + "/sendMessage", payload)
         if res.get("ok"):
             self.message_id = int(res["result"]["message_id"])
             self.current_log_msg = message
-            self.doc_message_id = None
+            self.sent_as_file = False
         else:
             await self.handle_error(res)
 
     async def edit_message(self, message):
-        if not self.message_id:
+        if self.sent_as_file:
             return await self.send_message(message)
         payload = _PAYLOAD.copy()
         message = message.lstrip()
-        payload.update({"message_id": self.message_id, "text": f"```{message}```"})
+        payload.update(
+            {"message_id": self.message_id, "text": f"<code>{message}</code>"}
+        )
         res = await self.send_request(self.__tgtoken + "/editMessageText", payload)
         self.current_log_msg = message
         if not res.get("ok"):
@@ -144,9 +146,9 @@ class TGLogHandler(StreamHandler):
             ) as response:
                 res = await response.json()
         if res.get("ok"):
-            self.doc_message_id = int(res["result"]["message_id"])
+            self.message_id = int(res["result"]["message_id"])
             self.current_log_msg = ""
-            self.message_id = None
+            self.sent_as_file = True
         else:
             await self.handle_error(res)
 

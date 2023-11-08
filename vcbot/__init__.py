@@ -68,6 +68,7 @@ except ImportError:
 
 asstUserName = asst.me.username
 LOG_CHANNEL = udB.get_key("LOG_CHANNEL")
+VC_HNDLR = udB.get_key("VC_HNDLR") or HNDLR
 
 CLIENTS = {}
 ACTIVE_CALLS = []
@@ -245,8 +246,7 @@ def vc_asst(dec, **kwargs):
         kwargs["func"] = (
             lambda e: not e.is_private and not e.via_bot_id and not e.fwd_from
         )
-        handler = udB.get_key("VC_HNDLR") or HNDLR
-        kwargs["pattern"] = compile_pattern(dec, handler)
+        kwargs["pattern"] = compile_pattern(dec, VC_HNDLR)
         vc_auth = kwargs.get("vc_auth", True)
         key = udB.get_key("VC_AUTH_GROUPS") or {}
         if "vc_auth" in kwargs:

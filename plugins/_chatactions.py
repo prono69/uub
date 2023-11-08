@@ -36,10 +36,11 @@ async def when_added_or_joined(event):
     chat = await event.get_chat()
     if not (user and user.is_self):
         return
-    if getattr(chat, "username", None):
-        chat = f"[{chat.title}](https://t.me/{chat.username}/{event.action_message.id})"
-    else:
-        chat = f"[{chat.title}](https://t.me/c/{chat.id}/{event.action_message.id})"
+    chat_id = (
+        getattr(chat, "username") if getattr(chat, "username", None) else f"c/{chat.id}"
+    )
+    msg_id = event.updates[0].id
+    chat = f"[{chat.title}](https://t.me/{chat_id}/{msg_id})"
     key = "bot" if event.client._bot else "user"
     buttons = Button.inline(
         get_string("userlogs_3"), data=f"leave_ch_{event.chat_id}|{key}"
@@ -47,7 +48,7 @@ async def when_added_or_joined(event):
     if event.user_added:
         tmp = event.added_by
         text = f"#ADD_LOG\n\n{inline_mention(tmp)} just added {inline_mention(user)} to {chat}."
-    elif event.from_request:
+    elif getattr(event, "from_request", None):
         text = f"#APPROVAL_LOG\n\n{inline_mention(user)} just got Chat Join Approval to {chat}."
     else:
         text = f"#JOIN_LOG\n\n{inline_mention(user)} just joined {chat}."
@@ -62,14 +63,6 @@ async def DummyHandler(ult):
             await ult.delete()
         except BaseException:
             pass
-
-    # thank members
-    if must_thank(ult.chat_id):
-        chat_count = (await ult.client.get_participants(ult.chat_id, limit=0)).total
-        if chat_count % 100 == 0:
-            stik_id = chat_count / 100 - 1
-            sticker = stickers[stik_id]
-            await ult.respond(file=sticker)
 
     # force subscribe
     if (
@@ -97,7 +90,7 @@ async def DummyHandler(ult):
         chat = await ult.get_chat()
 
         """
-        # @UltroidBans checks
+        # skip @UltroidBans checks
         if udB.get_key("ULTROID_BANS"):
             try:
                 is_banned = await async_searcher(
@@ -117,7 +110,7 @@ async def DummyHandler(ult):
                     )
             except BaseException:
                 pass
-        """
+            """
 
         # gban check
         reason = is_gbanned(user.id)
@@ -217,6 +210,14 @@ async def DummyHandler(ult):
     # log join / added by / accepted
     if ult.user_added or ult.user_joined:
         await when_added_or_joined(ult)
+
+    # thank members
+    if must_thank(ult.chat_id):
+        chat_count = (await ult.client.get_participants(ult.chat_id, limit=0)).total
+        if chat_count % 100 == 0:
+            stik_id = chat_count / 100 - 1
+            sticker = stickers[stik_id]
+            await ult.respond(file=sticker)
 
 
 # username db
