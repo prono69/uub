@@ -7,8 +7,9 @@
 
 from ast import literal_eval
 from os import environ, path, system
+from collections import UserDict
 from copy import deepcopy
-import json
+from json import dump, load
 from sys import executable
 
 from ..configs import Var
@@ -25,13 +26,101 @@ except ImportError:
 # ---------------------------------------------------------------------------------------------
 
 
+# __RANDOM_PIC __USERNAMES
+MostUsedKeys = {
+    "I_DEV",
+    "MUTE",
+    "GBAN",
+    "TAG_LOG",
+    "CLEANCHAT",
+    "FORWARDS",
+    "FULLSUDO",
+    "PMLOGGROUP",
+    "PMPERMIT",
+    "SUDOS",
+    "INLINE_PM",
+    "SNIP",
+    "SUDOS",
+    "WELCOME",
+    "LOG_CHANNEL",
+    "THANK_MEMBERS",
+    "_SKIP_WARNINGS",
+}
+
+
+xyzdb = {}
+
+
+# testing..
+def _xyz(key):
+    try:
+        xyzdb[key] += 1
+    except KeyError:
+        xyzdb[key] = 1
+
+
+class LRUCache(UserDict):
+    """
+    LRU (Least Recently Used) cache Implementation.
+
+    self -> UserDict
+     - holding [self._maxsize] keys at most.
+
+    self._muks -> dict of [MostUsedKeys]
+     - they are called thousands of time every day,
+     - hence they are always in cache.
+    """
+
+    __slots__ = ("_maxsize", "data", "_muks")
+
+    def __init__(self, *args, maxsize=20, **kwargs):
+        self._muks = {}
+        self._maxsize = maxsize
+        super().__init__(*args, **kwargs)
+
+    def pop(self, key, default):
+        if key in MostUsedKeys:
+            return self._muks.pop(key, default)
+        else:
+            return self.data.pop(key, default)
+
+    def __len__(self):
+        return len(self.data) + len(self._muks)
+
+    def __getitem__(self, key):
+        if key in MostUsedKeys:
+            return self._muks.get(key)
+        if value := self.data.get(key):
+            _xyz(key)
+            self.data.pop(key, None)
+            self.data[key] = value
+            return value
+
+    def __setitem__(self, key, value):
+        if key in MostUsedKeys:
+            self._muks[key] = value
+        else:
+            self.data[key] = value
+            while len(self) > self._maxsize:
+                self.data.pop(next(iter(self.data)))
+
+    def __delitem__(self, key):
+        if key in MostUsedKeys:
+            del self._muks[key]
+        else:
+            del self.data[key]
+
+
+# ---------------------------------------------------------------------------------------------
+
+
 class _BaseDatabase:
     __slots__ = ("_cache",)
 
     def __init__(self, *args, **kwargs):
-        self._cache = {}
         if self.to_cache:
-            self.re_cache()
+            self._cache = LRUCache(maxsize=25)
+            self._re_cache()
 
     def ping(self):
         return 1
@@ -43,8 +132,7 @@ class _BaseDatabase:
     def del_key(self, key):
         if self.to_cache:
             self._cache.pop(key, None)
-        self.delete(key)
-        return True
+        return self.delete(key)
 
     def _get_data(self, key=None, data=None):
         if key:
@@ -61,47 +149,34 @@ class _BaseDatabase:
                 pass
         return data
 
-    def re_cache(self, key=None):
+    def _re_cache(self, _key=None):
         if not self.to_cache:
             raise TypeError("Caching is disabled")
-        if key:
-            self._cache.pop(key, None)
-            if data := self.get_key(key, force=True):
-                self._cache[key] = data
-                return True
-            return "Key not found"
+        if _key:
+            self._cache.pop(_key, None)
+            return bool(self.get_key(_key, force=True))
         for key in self.keys():
-            if not key.startswith("__"):
-                self._cache.update({key: self.get_key(key, force=True)})
+            self.get_key(key, force=True)
 
     def get_key(self, key, *, force=False):
         if not self.to_cache:
-            if key in self.keys():
-                return self._get_data(key=key)
-        elif key in self._cache:
-            return deepcopy(self._cache[key])
-        elif force:
-            if key in self.keys():
-                value = self._get_data(key=key)
+            return self._get_data(key=key)
+        if force:
+            value = self._get_data(key=key)
+            if value is not None:
                 if not key.startswith("__"):
-                    self._cache.update({key: value})
-                return deepcopy(value)
+                    self._cache[key] = value
+                return value
+        else:
+            value = self._cache.get(key)
+            if value is not None:
+                return deepcopy(value) if hasattr(value, "__iter__") else value
 
-    def set_key(self, key, value, cache_only=False):
+    def set_key(self, key, value):
         value = self._get_data(data=value)
-        if self.to_cache:
-            if not key.startswith("__"):
-                self._cache.update({key: value})
-            if cache_only:
-                return True
-        self.set(str(key), str(value))
-        return True
-
-    def rename(self, key1, key2):
-        if val := self.get_key(key1):
-            self.del_key(key1)
-            return self.set_key(key2, val)
-        return False
+        if self.to_cache and not key.startswith("__"):
+            self._cache[key] = value
+        return self.set(str(key), str(value))
 
     def append(self, key, value):
         if not (data := self.get_key(key)):
@@ -406,7 +481,7 @@ class LocalDB:
             raise FileNotFoundError("DB File has been deleted...")
         with open(self.name, "r", encoding="utf-8") as file:
             try:
-                data = json.load(file)
+                data = load(file)
             except Exception as exc:
                 return LOGS.exception(f"Error while decoding local database file..")
         for k, v in data.items():
@@ -421,7 +496,7 @@ class LocalDB:
         to_write = {k: str(v) for k, v in self._cache.items()}
         with open(self.name, "w", encoding="utf-8") as file:
             try:
-                return json.dump(to_write, file, indent=4)
+                return dump(to_write, file, indent=4)
             except Exception as exc:
                 LOGS.exception(f"Error while writing to local database file..")
 

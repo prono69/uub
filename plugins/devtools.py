@@ -93,7 +93,10 @@ class u:
                 get_display_name(e.chat or await e.get_chat()),
             )
             await asst.send_message(
-                TAG_LOG, _msg, link_preview=False, parse_mode="html",
+                TAG_LOG,
+                _msg,
+                link_preview=False,
+                parse_mode="html",
             )
         except Exception:
             return LOGS.exception("EVAL Logger error")
@@ -136,7 +139,7 @@ async def run_bash(event):
             file_name="_bash",
             download=True,
             backgroundColor=color,
-            rayso=rayso or udB.get_key("RAYSO_ON_BASH"),
+            rayso=rayso,
         )
         if not isinstance(li, dict):
             _url = await get_imgbb_link(
