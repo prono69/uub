@@ -87,6 +87,9 @@ class LRUCache(UserDict):
     def __len__(self):
         return len(self.data) + len(self._muks)
 
+    def __contains__(self, key):
+        return key in self._muks or key in self.data
+
     def __getitem__(self, key):
         if key in MostUsedKeys:
             return self._muks.get(key)
@@ -101,8 +104,8 @@ class LRUCache(UserDict):
             self._muks[key] = value
         else:
             self.data[key] = value
-            while len(self) > self._maxsize:
-                self.data.pop(next(iter(self.data)))
+            while len(self.data) > self._maxsize:
+                self.data.pop(next(iter(self.data)), None)
 
     def __delitem__(self, key):
         if key in MostUsedKeys:
@@ -135,19 +138,23 @@ class _BaseDatabase:
         return self.delete(key)
 
     def _get_data(self, key=None, data=None):
+        status = False
         if key:
             try:
                 data = self.get(str(key))
             except ResponseError:
-                return "WRONGTYPE"
+                # WRONGTYPE error
+                return status, None
             except Exception:
-                return LOGS.debug(f"Error getting key '{key}' from DB.", exc_info=True)
+                LOGS.debug(f"Error getting key '{key}' from DB.", exc_info=True)
+                return status, None
         if data and type(data) == str:
             try:
+                status = True
                 data = literal_eval(data)
             except Exception:
                 pass
-        return data
+        return status, data
 
     def _re_cache(self, _key=None):
         if not self.to_cache:
@@ -160,20 +167,28 @@ class _BaseDatabase:
 
     def get_key(self, key, *, force=False):
         if not self.to_cache:
-            return self._get_data(key=key)
+            status, value = self._get_data(key=key)
+            if status:
+                return value
         if force:
-            value = self._get_data(key=key)
-            if value is not None:
+            # It will sync the cache with db
+            self._cache.pop(key, None)
+            status, value = self._get_data(key=key)
+            if status:
                 if not key.startswith("__"):
                     self._cache[key] = value
                 return value
         else:
-            value = self._cache.get(key)
-            if value is not None:
-                return deepcopy(value) if hasattr(value, "__iter__") else value
+            if key in self._cache:
+                value = self._cache.get(key)
+            elif not key.startswith("__"):
+                value = self.get_key(key, force=True)
+            else:
+                return
+            return deepcopy(value) if hasattr(value, "__iter__") else value
 
     def set_key(self, key, value):
-        value = self._get_data(data=value)
+        _, value = self._get_data(data=value)
         if self.to_cache and not key.startswith("__"):
             self._cache[key] = value
         return self.set(str(key), str(value))
@@ -181,7 +196,7 @@ class _BaseDatabase:
     def append(self, key, value):
         if not (data := self.get_key(key)):
             return "Key doesn't exists!"
-        value = self._get_data(data=value)
+        _, value = self._get_data(data=value)
         if type(data) == list:
             data.append(value)
         elif type(data) == dict:
@@ -232,7 +247,7 @@ class MongoDB(_BaseDatabase):
         return self.db.list_collection_names()
 
     def set(self, key, value):
-        value = self._get_data(data=value)
+        _, value = self._get_data(data=value)
         if key in self.keys():
             self.db[key].replace_one({"_id": key}, {"value": str(value)})
         else:
