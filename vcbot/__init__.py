@@ -67,8 +67,10 @@ except ImportError:
 
 
 asstUserName = asst.me.username
+
 LOG_CHANNEL = udB.get_key("LOG_CHANNEL")
 VC_HNDLR = udB.get_key("VC_HNDLR") or HNDLR
+VC_AUTH_GC = udB.get_key("VC_AUTH_GROUPS") or {}
 
 CLIENTS = {}
 ACTIVE_CALLS = []
@@ -248,20 +250,19 @@ def vc_asst(dec, **kwargs):
         )
         kwargs["pattern"] = compile_pattern(dec, VC_HNDLR)
         vc_auth = kwargs.get("vc_auth", True)
-        key = udB.get_key("VC_AUTH_GROUPS") or {}
         if "vc_auth" in kwargs:
             del kwargs["vc_auth"]
 
         async def vc_handler(e):
-            VCAUTH = list(key.keys())
+            VCAUTH = list(VC_AUTH_GC.keys())
             if not (
                 (e.out)
                 or (e.sender_id in VC_AUTHS())
                 or (vc_auth and e.chat_id in VCAUTH)
             ):
                 return
-            elif vc_auth and key.get(e.chat_id):
-                cha, adm = key.get(e.chat_id), key[e.chat_id]["admins"]
+            elif vc_auth and VC_AUTH_GC.get(e.chat_id):
+                cha, adm = VC_AUTH_GC.get(e.chat_id), VC_AUTH_GC[e.chat_id]["admins"]
                 if adm and not (await admin_check(e)):
                     return
             try:

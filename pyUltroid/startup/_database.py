@@ -26,24 +26,26 @@ except ImportError:
 # ---------------------------------------------------------------------------------------------
 
 
-# __RANDOM_PIC __USERNAMES
+# __USERNAMES
 MostUsedKeys = {
-    "I_DEV",
-    "MUTE",
-    "GBAN",
-    "TAG_LOG",
     "CLEANCHAT",
+    "FORCESUB",
     "FORWARDS",
     "FULLSUDO",
+    "GBAN",
+    "INLINE_PM",
+    "I_DEV",
+    "LOG_CHANNEL",
+    "MUTE",
     "PMLOGGROUP",
     "PMPERMIT",
-    "SUDOS",
-    "INLINE_PM",
+    "RANDOM_PIC",
     "SNIP",
     "SUDOS",
-    "WELCOME",
-    "LOG_CHANNEL",
+    "SUDOS",
+    "TAG_LOG",
     "THANK_MEMBERS",
+    "WELCOME",
     "_SKIP_WARNINGS",
 }
 
@@ -168,9 +170,8 @@ class _BaseDatabase:
 
     def get_key(self, key, *, force=False):
         if not self.to_cache:
-            status, value = self._get_data(key=key)
-            if status:
-                return value
+            _, value = self._get_data(key=key)
+            return value
         if force:
             # It will sync the cache with db
             _xyz(key, 1)

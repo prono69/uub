@@ -13,8 +13,8 @@ from aiohttp import ClientSession
 from ._loop import loop, run_async_task
 
 
-_TG_MSG_LIMIT = 3200
-_MAX_LOG_LIMIT = 9600
+_TG_MSG_LIMIT = 4000
+_MAX_LOG_LIMIT = 12000
 _PAYLOAD = {"disable_web_page_preview": True, "parse_mode": "HTML"}
 
 
@@ -102,10 +102,15 @@ class TGLogHandler(StreamHandler):
         await asyncio.sleep(sleep)
         self._floodwait = False
 
+    @staticmethod
+    def _filter_text(text):
+        text = text.lstrip()
+        text = text.replace("<", "&lt;").replace(">", "&gt;").replace("&", "&amp;")
+        return f"<code>{text}</code>"
+
     async def send_message(self, message):
         payload = _PAYLOAD.copy()
-        message = message.lstrip()
-        payload["text"] = f"<code>{message}</code>"
+        payload["text"] = TGLogHandler._filter_text(message)
         if self.message_id:
             payload["reply_to_message_id"] = self.message_id
         res = await self.send_request(self.__tgtoken + "/sendMessage", payload)
@@ -120,9 +125,8 @@ class TGLogHandler(StreamHandler):
         if self.sent_as_file:
             return await self.send_message(message)
         payload = _PAYLOAD.copy()
-        message = message.lstrip()
         payload.update(
-            {"message_id": self.message_id, "text": f"<code>{message}</code>"}
+            {"message_id": self.message_id, "text": TGLogHandler._filter_text(message)}
         )
         res = await self.send_request(self.__tgtoken + "/editMessageText", payload)
         self.current_log_msg = message
@@ -136,8 +140,8 @@ class TGLogHandler(StreamHandler):
         url = self.__tgtoken + "/sendDocument"
         payload = _PAYLOAD.copy()
         payload["caption"] = "Too much logs, hence sending as file."
-        if ids := self.message_id:
-            payload["reply_to_message_id"] = ids
+        if self.message_id:
+            payload["reply_to_message_id"] = self.message_id
         files = {"document": file}
         payload.pop("disable_web_page_preview", None)
         async with ClientSession() as session:

@@ -59,10 +59,7 @@ async def DummyHandler(ult):
     # clean chat actions
     key = udB.get_key("CLEANCHAT") or []
     if ult.chat_id in key:
-        try:
-            await ult.delete()
-        except BaseException:
-            pass
+        await ult.try_delete()
 
     # force subscribe
     if (
@@ -113,9 +110,9 @@ async def DummyHandler(ult):
             """
 
         # gban check
-        reason = is_gbanned(user.id)
-        if reason and chat.admin_rights:
-            try:
+        try:
+            reason = is_gbanned(user.id)
+            if reason and chat.admin_rights:
                 await ult.client.edit_permissions(
                     chat.id,
                     user.id,
@@ -123,11 +120,13 @@ async def DummyHandler(ult):
                 )
                 gban_watch = get_string("can_1").format(inline_mention(user), reason)
                 await ult.reply(gban_watch)
-            except Exception as er:
-                LOGS.exception(er)
+        except AttributeError:
+            pass
+        except Exception as er:
+            LOGS.exception(er)
 
         # greetings
-        elif get_welcome(ult.chat_id):
+        if get_welcome(ult.chat_id):
             user = await ult.get_user()
             chat = await ult.get_chat()
             title = chat.title or "this chat"

@@ -107,7 +107,7 @@ class RandomPhotoHandler:
     __slots__ = ("ok", "running", "photos_to_store", "sources")
 
     def __init__(self):
-        self.ok = bool(udB.get_key("__RANDOM_PIC", force=True))
+        self.ok = bool(udB.get_key("RANDOM_PIC", force=True))
         self.running = False
         self.photos_to_store = 15
         self.sources = (
@@ -116,21 +116,21 @@ class RandomPhotoHandler:
         )
 
     async def get(self, clear=True):
-        photos = udB.get_key("__RANDOM_PIC", force=True) or []
+        photos = udB.get_key("RANDOM_PIC", force=True) or []
         if not photos:
             run_async_task(self._save_images, id="random_pic")
             return udB.get_key("ALIVE_PIC")
         pic = choice(photos)
         if clear:
             photos.remove(pic)
-            udB.set_key("__RANDOM_PIC", photos)
+            udB.set_key("RANDOM_PIC", photos)
             if not self.running:
                 run_async_task(self._save_images, id="random_pic")
         return pic
 
     async def _save_images(self):
         self.running = True
-        pics = udB.get_key("__RANDOM_PIC", force=True)
+        pics = udB.get_key("RANDOM_PIC", force=True)
         if len(pics) >= self.photos_to_store:
             return
 
@@ -153,7 +153,7 @@ class RandomPhotoHandler:
                     preview=True,
                 )
                 pics.append(imgbb_link)
-        udB.set_key("__RANDOM_PIC", pics)
+        udB.set_key("RANDOM_PIC", pics)
         self.running = False
 
 
