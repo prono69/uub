@@ -105,7 +105,7 @@ class TGLogHandler(StreamHandler):
     @staticmethod
     def _filter_text(text):
         text = text.lstrip()
-        text = text.replace("<", "&lt;").replace(">", "&gt;").replace("&", "&amp;")
+        text = text.replace("<", "&lt;").replace(">", "&gt;")
         return f"<code>{text}</code>"
 
     async def send_message(self, message):
@@ -122,7 +122,7 @@ class TGLogHandler(StreamHandler):
             await self.handle_error(res)
 
     async def edit_message(self, message):
-        if self.sent_as_file:
+        if not self.message_id or self.sent_as_file:
             return await self.send_message(message)
         payload = _PAYLOAD.copy()
         payload.update(

@@ -7,7 +7,6 @@
 
 from ast import literal_eval
 from os import environ, path, system
-from collections import UserDict
 from copy import deepcopy
 from json import dump, load
 from sys import executable
@@ -26,106 +25,12 @@ except ImportError:
 # ---------------------------------------------------------------------------------------------
 
 
-# __USERNAMES
-MostUsedKeys = {
-    "CLEANCHAT",
-    "FORCESUB",
-    "FORWARDS",
-    "FULLSUDO",
-    "GBAN",
-    "INLINE_PM",
-    "I_DEV",
-    "LOG_CHANNEL",
-    "MUTE",
-    "PMLOGGROUP",
-    "PMPERMIT",
-    "RANDOM_PIC",
-    "SNIP",
-    "SUDOS",
-    "SUDOS",
-    "TAG_LOG",
-    "THANK_MEMBERS",
-    "WELCOME",
-    "_SKIP_WARNINGS",
-}
-
-
-xyzdb = {}
-
-
-# -- testing --
-def _xyz(key, index):
-    try:
-        xyzdb[key][index] += 1
-    except KeyError:
-        xyzdb[key] = [0, 0, 0]
-        _xyz(key, index)
-
-
-class LRUCache(UserDict):
-    """
-    LRU (Least Recently Used) cache Implementation.
-
-    self -> UserDict
-     - holding [self._maxsize] keys at most.
-
-    self._muks -> dict of [MostUsedKeys]
-     - they are called thousands of time every day,
-     - hence they are always in cache.
-    """
-
-    __slots__ = ("_maxsize", "data", "_muks")
-
-    def __init__(self, *args, maxsize=25, **kwargs):
-        self._muks = {}
-        self._maxsize = maxsize
-        super().__init__(*args, **kwargs)
-
-    def pop(self, key, default):
-        if key in MostUsedKeys:
-            return self._muks.pop(key, default)
-        else:
-            return self.data.pop(key, default)
-
-    def __len__(self):
-        return len(self.data) + len(self._muks)
-
-    def __contains__(self, key):
-        return key in self._muks or key in self.data
-
-    def __delitem__(self, key):
-        if key in MostUsedKeys:
-            del self._muks[key]
-        else:
-            del self.data[key]
-
-    def __getitem__(self, key):
-        if key in MostUsedKeys:
-            return self._muks.get(key)
-        if value := self.data.get(key):
-            _xyz(key, 0)
-            self.data.pop(key, None)
-            self.data[key] = value
-            return value
-
-    def __setitem__(self, key, value):
-        if key in MostUsedKeys:
-            self._muks[key] = value
-        else:
-            self.data[key] = value
-            while len(self.data) > self._maxsize:
-                self.data.pop(next(iter(self.data)), None)
-
-
-# ---------------------------------------------------------------------------------------------
-
-
 class _BaseDatabase:
     __slots__ = ("_cache",)
 
     def __init__(self, *args, **kwargs):
         if self.to_cache:
-            self._cache = LRUCache(maxsize=20)
+            self._cache = {}
             self._re_cache()
 
     def ping(self):
@@ -141,66 +46,52 @@ class _BaseDatabase:
         return self.delete(key)
 
     def _get_data(self, key=None, data=None):
-        status = False
         if key:
             try:
                 data = self.get(str(key))
             except ResponseError:
-                # WRONGTYPE error
-                return status, None
+                return LOGS.error(f"'WRONGTYPE' Key Error for {key!r}")
             except Exception:
-                LOGS.debug(f"Error getting key '{key}' from DB.", exc_info=True)
-                return status, None
+                return LOGS.debug(f"Error getting key {key!r} from DB", exc_info=True)
         if data and type(data) == str:
             try:
-                status = True
                 data = literal_eval(data)
             except Exception:
                 pass
-        return status, data
+        return data
 
-    def _re_cache(self, _key=None):
+    def _re_cache(self, key=None):
         if not self.to_cache:
             raise TypeError("Caching is disabled")
-        if _key:
-            self._cache.pop(_key, None)
-            return bool(self.get_key(_key, force=True))
+        if key:
+            self._cache.pop(key, None)
+            return bool(self.get_key(key, force=True))
         for key in self.keys():
-            self.get_key(key, force=True)
+            if not key.startswith("__"):
+                self.get_key(key, force=True)
 
     def get_key(self, key, *, force=False):
         if not self.to_cache:
-            _, value = self._get_data(key=key)
-            return value
-        if force:
-            # It will sync the cache with db
-            _xyz(key, 1)
+            return self._get_data(key=key)
+        elif force:
+            # It will sync the cache with db.
             self._cache.pop(key, None)
-            status, value = self._get_data(key=key)
-            if status:
-                if not key.startswith("__"):
-                    self._cache[key] = value
-                return value
-        else:
-            _xyz(key, 2)
-            if key in self._cache:
-                value = self._cache.get(key)
-            elif not key.startswith("__"):
-                value = self.get_key(key, force=True)
-            else:
-                return
-            return deepcopy(value) if hasattr(value, "__iter__") else value
+            value = self._get_data(key=key)
+            if not key.startswith("__"):
+                self._cache[key] = value
+            return value
+        return deepcopy(self._cache.get(key))
 
     def set_key(self, key, value):
-        _, value = self._get_data(data=value)
+        value = self._get_data(data=value)
         if self.to_cache and not key.startswith("__"):
             self._cache[key] = value
         return self.set(str(key), str(value))
 
     def append(self, key, value):
         if not (data := self.get_key(key)):
-            return "Key doesn't exists!"
-        _, value = self._get_data(data=value)
+            return "Key doesn't exists.."
+        value = self._get_data(data=value)
         if type(data) == list:
             data.append(value)
         elif type(data) == dict:
@@ -251,7 +142,7 @@ class MongoDB(_BaseDatabase):
         return self.db.list_collection_names()
 
     def set(self, key, value):
-        _, value = self._get_data(data=value)
+        value = self._get_data(data=value)
         if key in self.keys():
             self.db[key].replace_one({"_id": key}, {"value": str(value)})
         else:
@@ -474,8 +365,7 @@ class LocalDB:
     def __init__(self):
         self.db = self
         self.to_cache = True
-        # Why to read file again and again?
-        self._cache = LRUCache(maxsize=35)
+        self._cache = {}  # Why to read file again and again?
         self.name = "localdb.json"
         if self.ping():
             self._re_cache()
@@ -513,7 +403,9 @@ class LocalDB:
 
     def _rewrite_db(self):
         """Save data to database file"""
-        to_write = {k: str(v) for k, v in self._cache.items()}
+        to_write = {}
+        for k, v in self._cache.copy().items():
+            to_write[k] = str(v)
         with open(self.name, "w", encoding="utf-8") as file:
             try:
                 return dump(to_write, file, indent=4)
