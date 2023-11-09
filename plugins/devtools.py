@@ -74,7 +74,7 @@ class u:
     @staticmethod
     def _html(text, language):
         try:
-            text = text.replace("<", "&lt;").replace(">", "&gt;").replace("&", "&amp;")
+            text = text.replace("<", "&lt;").replace(">", "&gt;")
         except Exception:
             pass
         return f"""<pre><code class="language-{language}">{text}</code></pre>"""
@@ -415,14 +415,9 @@ async def run_eval(event):
         return
 
     _cmd = u._html(cmd, "python")
-    _out_lang = (
-        "python"
-        if bool(type(evaluation)) and not isinstance(evaluation, Exception)
-        else ""
-    )
     final_output = f"""<i>►</i> <b>EVAL</b> (<i>{timeform}</i>)\n{_cmd}\n\n<i>►</i> <b>OUTPUT:</b>\n"""
     final_output += (
-        f"<a href='{_url}'>⁮⁮⁮\xad</a>" if _url else u._html(evaluation, _out_lang)
+        f"<a href='{_url}'>⁮⁮⁮\xad</a>" if _url else u._html(evaluation, "python")
     )
     await xx.edit(final_output, parse_mode="html", link_preview=bool(_url))
     if mode != "nolog":
