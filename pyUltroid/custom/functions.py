@@ -68,13 +68,21 @@ async def cleargif(gif):
             return LOGS.warning(f"error in cleargif: {exc}", exc_info=True)
 
 
-async def get_imgbb_link(path, **kwargs):
+async def get_imgbb_link(path, url=None, **kwargs):
     api = udB.get_key("IMGBB_API")
-    if not (api and Path(path).is_file()):
-        return
-    image_data = await asyncread(path, binary=True)
-    if kwargs.get("delete"):
-        osremove(path)
+    if not api:
+        raise Exception(f"'IMGBB_API' is missing, Can't upload this image to imgbb.")
+    if not (path and url):
+        raise TypeError("I Need image path or url to upload..")
+    if path and not Path(path).is_file():
+        raise FileNotFoundError(f"could not found: {path!r}")
+
+    if path:
+        image_data = await asyncread(path, binary=True)
+        if kwargs.get("delete"):
+            osremove(path)
+    else:
+        image_data = url
     post = await async_searcher(
         "https://api.imgbb.com/1/upload",
         post=True,
@@ -152,7 +160,8 @@ class RandomPhotoHandler:
                     delete=True,
                     preview=True,
                 )
-                pics.append(imgbb_link)
+                if imgbb_link:
+                    pics.append(imgbb_link)
         udB.set_key("__RANDOM_PIC", pics)
         self.running = False
 

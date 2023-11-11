@@ -119,7 +119,7 @@ def json_parser(data, indent=None, ascii=False):
     return parsed
 
 
-# ~~~~~~~~~~~~~~~~Link Checker~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~ Link Checker ~~~~~~~~~~~~~~~~
 
 
 async def is_url_ok(url: str):
