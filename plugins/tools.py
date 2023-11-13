@@ -99,6 +99,7 @@ async def _translator(event):
             time=5,
         )
 
+    kkk = await e.eor(get_string("com_1"))
     lang = event.pattern_match.group(2) or "en"
     reply_message = await event.get_reply_message()
 
@@ -110,17 +111,17 @@ async def _translator(event):
             if resp and type(resp) == tuple:
                 tt = resp[0]
         output_str = f"**TRANSLATED** to {lang}\n{tt}"
-        await event.eor(output_str)
+        await kkk.edit(output_str)
     except Exception as exc:
         LOGS.exception(exc)
-        await event.eor(str(exc), time=10)
+        await kkk.eor(str(exc), time=15)
 
 
 @ultroid_cmd(
     pattern="id( (.*)|$)",
     manager=True,
 )
-async def _(event):
+async def get_ids(event):
     ult = event
     match = event.pattern_match.group(1).strip()
     if match:

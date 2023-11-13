@@ -463,10 +463,8 @@ async def gcast(event):
                 not keym.contains(chat)
                 and int(f"-100{str(chat)}") not in NOSPAM_CHAT
                 and (
-                    (
-                        event.text[2:7] != "admin"
-                        or (x.entity.admin_rights or x.entity.creator)
-                    )
+                    event.text[2:7] != "admin"
+                    or (x.entity.admin_rights or x.entity.creator)
                 )
             ):
                 try:

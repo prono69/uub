@@ -23,6 +23,7 @@ resources/extras/thumbnail.jpg
 resources/auth
 resources/temp
 resources/downloads
+.ruff_cache/
 __ignore__
 addons/
 vcbot/

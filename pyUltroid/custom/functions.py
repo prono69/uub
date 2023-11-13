@@ -72,7 +72,7 @@ async def get_imgbb_link(path, url=None, **kwargs):
     api = udB.get_key("IMGBB_API")
     if not api:
         raise Exception(f"'IMGBB_API' is missing, Can't upload this image to imgbb.")
-    if not (path and url):
+    if not (path or url):
         raise TypeError("I Need image path or url to upload..")
     if path and not Path(path).is_file():
         raise FileNotFoundError(f"could not found: {path!r}")
