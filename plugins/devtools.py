@@ -153,12 +153,12 @@ async def run_bash(event):
 
     if not (carb or rayso) and len(cmd + str(stderr) + str(stdout)) > 4000:
         OUT = f"☞ BASH\n\n\n• COMMAND:\n{cmd} \n\n\n"
-        if not (stderr and stdout):
-            OUT += f"• OUTPUT:\nSuccess"
-        else:
-            if stderr:
-                OUT += f"• ERROR:\n{stderr} \n\n\n"
+        if stderr:
+            OUT += f"• ERROR:\n{stderr} \n\n\n"
+        if stdout:
             OUT += f"• OUTPUT:\n{stdout}"
+        elif not stderr:
+            OUT += f"• OUTPUT:\n" + get_string("instu_4")
 
         with BytesIO(OUT.encode()) as out_file:
             out_file.name = "bash.txt"
@@ -170,7 +170,6 @@ async def run_bash(event):
                 out_file,
                 force_document=True,
                 thumb=ULTConfig.thumb,
-                allow_cache=False,
                 caption=caption,
                 parse_mode="html",
                 reply_to=event.reply_to_msg_id,
@@ -183,12 +182,12 @@ async def run_bash(event):
     if stderr:
         OUT += f"<b>• ERROR:</b>\n"
         OUT += u._html(stderr, "") + "\n\n"
-    if not (stderr or stdout):
-        OUT += f"<b>• OUTPUT:</b>\n"
-        OUT += u._html("Success", "")
     if stdout or _url:
         OUT += "<b>• OUTPUT:</b>\n"
         OUT += f"<a href='{_url}'>\xad</a>" if _url else u._html(stdout, "")
+    elif not stderr:
+        OUT += f"<b>• OUTPUT:</b>\n"
+        OUT += u._html(get_string("instu_4"), "")
     await xx.edit(OUT, parse_mode="html", link_preview=bool(_url))
     if not nolog:
         await u._evalogger(cmd, event, "bash")
@@ -343,16 +342,16 @@ async def run_eval(event):
         except Exception:
             exc = traceback.format_exc()
 
-    evaluation = exc or stderr or stdout or _parse_eval(value) or get_string("instu_4")
+    stderr = exc or stderr
+    stdout = stdout or _parse_eval(value)
     if mode == "silent":
         if exc:
             log_chat = udB.get_key("LOG_CHANNEL")
             if len(exc + cmd) < 4000:
                 _cmd = u._html(cmd, "python")
                 msg = f"• <b>EVAL ERROR\n\n• CHAT:</b> <code>{get_display_name(event.chat)}</code> [<code>{event.chat_id}</code>] \n\n"
-                msg += (
-                    f"""∆ <b>CODE:</b>\n{_cmd}\n\n∆ <b>ERROR:</b>\n{u._html(exc, '')}"""
-                )
+                msg += f"∆ <b>CODE:</b>\n{_cmd}\n\n∆ <b>ERROR:</b>\n"
+                msg += u._html(exc, "")
                 await event.client.send_message(log_chat, msg, parse_mode="html")
             else:
                 msg = f"• EVAL ERROR\n\n• CHAT: {get_display_name(event.chat)} [{event.chat_id}]\n\n∆ CODE:\n{cmd}\n\n∆ ERROR:\n{exc}"
@@ -366,7 +365,6 @@ async def run_eval(event):
                         out_file,
                         caption=caption,
                         parse_mode="html",
-                        allow_cache=False,
                         force_document=True,
                         thumb=ULTConfig.thumb,
                     )
@@ -375,10 +373,10 @@ async def run_eval(event):
     _url, tmt = None, tima * 1000
     timef = time_formatter(tmt)
     timeform = timef if not timef == "0s" else f"{tmt:.3f}ms"
-    if mode in {"carb", "rayso"}:
+    if mode in {"carb", "rayso"} and stdout:
         color = await _get_colors(pick=True)
         lin = await Carbon(
-            code=evaluation,
+            code=stdout,
             file_name="_eval",
             download=True,
             rayso=mode == "rayso",
@@ -394,8 +392,15 @@ async def run_eval(event):
             )
             await asyncio.sleep(2)
 
-    if mode not in {"carb", "rayso"} and len(cmd + str(evaluation)) > 4000:
-        final_output = f"► EVAL  ({timeform})\n{cmd} \n\n\n ► OUTPUT: \n{evaluation}"
+    if mode not in {"carb", "rayso"} and len(cmd + str(stdout) + str(stderr)) > 4000:
+        final_output = f"► EVAL  ({timeform})\n{cmd} \n\n\n"
+        if stderr:
+            final_output += f"► ERROR:\n{stderr}\n\n\n"
+        if stdout:
+            final_output += f"► OUTPUT:\n{stdout}"
+        elif not stderr:
+            final_output += "► OUTPUT:\n" + get_string("instu_4")
+
         with BytesIO(final_output.encode()) as out_file:
             out_file.name = "eval.txt"
             caption = "<b>• EVAL:</b>\n" + u._html(
@@ -406,7 +411,6 @@ async def run_eval(event):
                 out_file,
                 force_document=True,
                 thumb=ULTConfig.thumb,
-                allow_cache=False,
                 caption=caption,
                 parse_mode="html",
                 reply_to=event.reply_to_msg_id,
@@ -415,10 +419,21 @@ async def run_eval(event):
         return
 
     _cmd = u._html(cmd, "python")
-    final_output = f"""<i>►</i> <b>EVAL</b> (<i>{timeform}</i>)\n{_cmd}\n\n<i>►</i> <b>OUTPUT:</b>\n"""
-    final_output += (
-        f"<a href='{_url}'>⁮⁮⁮\xad</a>" if _url else u._html(evaluation, "python")
-    )
+    final_output = f"<i>►</i> <b>EVAL</b> (<i>{timeform}</i>)\n"
+    final_output += u._html(cmd, "python") + "\n\n"
+    if stderr:
+        final_output += f"<i>►</i> <b>ERROR:</b>\n"
+        final_output += u._html(stderr, "python") + "\n\n"
+    if stdout or _url:
+        final_output += f"<i>►</i> <b>OUTPUT:</b>\n"
+        final_output += (
+            f"<a href='{_url}'>⁮⁮⁮\xad</a>" if _url else u._html(stdout, "python") + "\n\n"
+        )
+    elif not stderr:
+        final_output += "<i>►</i> <b>OUTPUT:</b>\n" + u._html(
+            get_string("instu_4"), "python"
+        )
+
     await xx.edit(final_output, parse_mode="html", link_preview=bool(_url))
     if mode != "nolog":
         await u._evalogger(cmd, event, "python")
@@ -492,7 +507,6 @@ async def cpp_compiler(e):
                     out_file,
                     force_document=True,
                     thumb=ULTConfig.thumb,
-                    allow_cache=False,
                     caption=caption,
                     parse_mode="html",
                     reply_to=e.reply_to_msg_id,
@@ -522,7 +536,6 @@ async def cpp_compiler(e):
                 out_file,
                 force_document=True,
                 thumb=ULTConfig.thumb,
-                allow_cache=False,
                 caption=caption,
                 parse_mode="html",
                 reply_to=e.reply_to_msg_id,
@@ -576,7 +589,6 @@ async def _gcc_compiler(e):
                     out_file,
                     force_document=True,
                     thumb=ULTConfig.thumb,
-                    allow_cache=False,
                     caption=caption,
                     parse_mode="html",
                     reply_to=e.reply_to_msg_id,
@@ -606,7 +618,6 @@ async def _gcc_compiler(e):
                 out_file,
                 force_document=True,
                 thumb=ULTConfig.thumb,
-                allow_cache=False,
                 caption=caption,
                 parse_mode="html",
                 reply_to=e.reply_to_msg_id,
