@@ -163,11 +163,13 @@ async def og_compressor(e):
                 edit_text.append(f"**Done ~**  `{humanbytes(compressed_size)}` ")
                 edit_text.append(f"**ETA ~**  `{time_formatter(some_eta)}`")
         if len(edit_text) <= 1:
-            compressed_size = humanbytes(
-                int(compressed_size[-1])
-                if compressed_size
-                else Path(out_path).stat().st_size
-            )
+            if compressed_size:
+                compressed_size = humanbytes(int(compressed_size[-1]))
+            else:
+                try:
+                    compressed_size = Path(out_path).stat().st_size
+                except FileNotFoundError:
+                    compressed_size = 0
             edit_text = (
                 f"{edit_text}\n` ~ Missing Frame Counts..` \n\n"
                 f"{compressed_size}**Elapsed ~**  `{time_formatter(sleep_time_count * 1000)}`"
