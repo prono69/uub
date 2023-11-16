@@ -131,24 +131,22 @@ async def delete_pm_warn_msgs(chat: int):
 
 
 if udB.get_key("PMLOG"):
-    _alock = asyncio.Lock()
 
     async def _msglogger(msg, sender):
         _chat = udB.get_key("PMLOGGROUP") or LOG_CHANNEL
-        async with _alock:
+        try:
+            await msg.forward_to(_chat)
+        except MessageIdInvalidError:
             try:
-                await msg.forward_to(_chat)
-            except MessageIdInvalidError:
-                try:
-                    cpy = await msg.copy(_chat)
-                    msg = f"Incoming message from: {inline_mention(sender)} - [`{sender.id}`]"
-                    await asst.send_message(_chat, msg, reply_to=cpy.id)
-                except Exception as exc:
-                    LOGS.error(exc)
-            except Exception:
-                LOGS.exception("PMLogger forwarder Error..")
-            finally:
-                await asyncio.sleep(6)
+                cpy = await msg.copy(_chat)
+                msg = (
+                    f"Incoming message from: {inline_mention(sender)} - [`{sender.id}`]"
+                )
+                await asst.send_message(_chat, msg, reply_to=cpy.id)
+            except Exception as exc:
+                LOGS.error(exc)
+        except Exception:
+            LOGS.exception("PMLogger forwarder Error..")
 
     @ultroid_cmd(
         pattern="logpm$",
@@ -184,7 +182,7 @@ if udB.get_key("PMLOG"):
         user = event.sender or await event.get_sender()
         if user.bot or user.is_self or user.verified or Logm.contains(user.id):
             return
-        asyncio.create_task(_msglogger(event, user))
+        await not_so_fast(_msglogger, event, user, sleep=5)
 
 
 if udB.get_key("PMSETTING"):

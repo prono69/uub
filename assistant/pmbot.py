@@ -24,10 +24,13 @@ from pyUltroid.fns.helper import inline_mention
 
 from . import *
 
+
 botb = KeyManager("BOTBLS", cast=list)
 FSUB = udB.get_key("PMBOT_FSUB")
 CACHE = {}
-# --------------------------------------- Incoming -------------------------------------------- #
+
+
+# ---------------------- Incoming ---------------------------- #
 
 
 @asst_cmd(
@@ -71,9 +74,11 @@ async def on_new_mssg(event):
                     LOGS.exception(f"Error On PmBot Force Sub!\n - {chat} \n{er}")
         if MSG and BTTS:
             return await event.reply(MSG, buttons=BTTS)
-    xx = await event.forward_to(OWNER_ID)
+    xx = await not_so_fast(event.forward_to, OWNER_ID)
     if event.fwd_from:
-        await xx.reply(f"From {inline_mention(event.sender)} [`{event.sender_id}`]")
+        await not_so_fast(
+            xx.reply, f"From {inline_mention(event.sender)} [`{event.sender_id}`]"
+        )
     add_stuff(xx.id, who)
 
 
@@ -105,7 +110,7 @@ async def on_out_mssg(event):
     elif event.text.startswith("/"):
         return
     if to_user:
-        await asst.send_message(to_user, event.message)
+        await not_so_fast(asst.send_message, to_user, event.message)
 
 
 # --------------------------------------- Ban/Unban -------------------------------------------- #

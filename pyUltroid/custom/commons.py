@@ -15,7 +15,7 @@ async def not_so_fast(func, *args, sleep=3, **kwargs):
         await func(*args, **kwargs)
     finally:
         await asyncio.sleep(sleep)
-        await async_lock.release()
+        async_lock.release()
 
 
 # fns.misc

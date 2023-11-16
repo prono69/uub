@@ -12,6 +12,7 @@ from telethon.tl.functions.messages import SaveGifRequest
 from telethon.utils import get_display_name, get_input_document
 from telethon.tl.types import InputMessagesFilterPhotos
 
+from .commons import *
 from ._loop import loop, run_async_task, tasks_db
 from pyUltroid.startup import LOGS
 from pyUltroid.fns.helper import async_searcher, osremove, asyncread, asyncwrite
@@ -98,8 +99,8 @@ async def get_imgbb_link(path, url=None, **kwargs):
         flink = post["data"]["url"] if kwargs.get("hq") else post["data"]["display_url"]
         if "preview" in kwargs:
             try:
-                await asst.send_message(
-                    udB.get_key("TAG_LOG"), flink, link_preview=True
+                await not_so_fast(
+                    asst.send_message, udB.get_key("TAG_LOG"), flink, link_preview=True
                 )
                 await asyncio.sleep(3)
             except Exception as exc:

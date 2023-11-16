@@ -29,6 +29,7 @@ from pyUltroid.version import __version__, ultroid_version
 from strings import get_help, get_string
 
 # custom
+from pyUltroid.custom.commons import *
 from pyUltroid.custom.functions import *
 from pyUltroid.custom.mediainfo import gen_mediainfo
 

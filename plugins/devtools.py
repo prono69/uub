@@ -92,7 +92,8 @@ class u:
                 e.message_link,
                 get_display_name(e.chat or await e.get_chat()),
             )
-            await asst.send_message(
+            await not_so_fast(
+                asst.send_message,
                 TAG_LOG,
                 _msg,
                 link_preview=False,

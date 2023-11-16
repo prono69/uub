@@ -26,7 +26,7 @@ try:
 except ImportError:
     detector = None
 
-from . import LOG_CHANNEL, LOGS, asst, get_string, types, udB, ultroid_bot
+from . import LOG_CHANNEL, LOGS, asst, get_string, not_so_fast, types, udB, ultroid_bot
 from ._inline import something
 
 
@@ -52,7 +52,9 @@ async def when_added_or_joined(event):
         text = f"#APPROVAL_LOG\n\n{inline_mention(user)} just got Chat Join Approval to {chat}."
     else:
         text = f"#JOIN_LOG\n\n{inline_mention(user)} just joined {chat}."
-    await asst.send_message(int(udB.get_key("LOG_CHANNEL")), text, buttons=buttons)
+    await not_so_fast(
+        asst.send_message, int(udB.get_key("LOG_CHANNEL")), text, buttons=buttons
+    )
 
 
 async def DummyHandler(ult):
@@ -119,7 +121,7 @@ async def DummyHandler(ult):
                     view_messages=False,
                 )
                 gban_watch = get_string("can_1").format(inline_mention(user), reason)
-                await ult.reply(gban_watch)
+                await not_so_fast(ult.reply, gban_watch)
         except AttributeError:
             pass
         except Exception as er:
@@ -158,11 +160,11 @@ async def DummyHandler(ult):
                 btn = create_tl_btn(wel["button"])
                 await something(ult, msg, med, btn)
             elif msg:
-                await ult.reply(msg, file=med)
+                await not_so_fast(ult.reply, msg, file=med)
                 # await asyncio.sleep(150)
                 # await send.delete()
             else:
-                await ult.reply(file=med)
+                await not_so_fast(ult.reply, file=med)
 
     # left users
     elif (ult.user_left or ult.user_kicked) and get_goodbye(ult.chat_id):
@@ -197,14 +199,11 @@ async def DummyHandler(ult):
             btn = create_tl_btn(wel["button"])
             await something(ult, msg, med, btn)
         elif msg:
-            send = await ult.reply(
-                msg,
-                file=med,
-            )
+            await not_so_fast(ult.reply, msg, file=med)
             # await asyncio.sleep(150)
             # await send.delete()
         else:
-            await ult.reply(file=med)
+            await not_so_fast(ult.reply, file=med)
 
     # log join / added by / accepted
     if ult.user_added or ult.user_joined:
@@ -216,7 +215,7 @@ async def DummyHandler(ult):
         if chat_count % 100 == 0:
             stik_id = chat_count / 100 - 1
             sticker = stickers[stik_id]
-            await ult.respond(file=sticker)
+            await not_so_fast(ult.respond, file=sticker)
 
 
 # username db

@@ -100,8 +100,11 @@ async def ultroid(event):
                         "User", await event.client.get_input_entity(event.sender_id)
                     )
                 )
-            await event.client.send_message(
-                udB.get_key("LOG_CHANNEL"), msg, buttons=buttons
+            await not_so_fast(
+                event.client.send_message,
+                udB.get_key("LOG_CHANNEL"),
+                msg,
+                buttons=buttons,
             )
     if event.sender_id not in SUDO_M.fullsudos:
         ok = ""
@@ -135,9 +138,10 @@ async def ultroid(event):
                 buttons=_settings,
             )
         elif args:
-            await get_stored_file(event, args)
+            await not_so_fast(get_stored_file, event, args)
         else:
-            await event.reply(
+            await not_so_fast(
+                event.reply,
                 get_string("ast_3").format(name),
                 buttons=_start,
             )
