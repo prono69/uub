@@ -63,10 +63,12 @@ async def crbn(event):
     if isinstance(xx, dict):
         return await msg.edit(f"`{xx}`")
 
-    caption = f"Carbonised by {inline_mention(event.sender)}"
+    mention = inline_mention(event.sender or await event.get_sender(), html=True)
+    caption = f"Carbonised by {mention}"
     await asyncio.gather(
         msg.try_delete(),
         event.respond(caption, file=xx, reply_to=reply_to),
+        return_exceptions=True,
     )
 
 
@@ -115,10 +117,12 @@ async def custom_crbn(event):
     if isinstance(xx, dict):
         return await msg.edit(f"`{xx}`")
 
-    caption = f"Carbonised by {inline_mention(event.sender)}"
+    mention = inline_mention(event.sender or await event.get_sender(), html=True)
+    caption = f"Carbonised by {mention}"
     await asyncio.gather(
         event.respond(caption, file=xx, reply_to=reply_to),
         msg.try_delete(),
+        return_exceptions=True,
     )
 
 
@@ -169,7 +173,7 @@ async def rayso_on(ult):
     dark_mode = bool(args.kwargs.get("d", 1))
     theme = args.kwargs.get("t", random.choice(RaySoThemes))
     if text == "list":
-        text = r"**List of Rayso Themes:**\n" + r"\n".join(
+        text = "**List of Rayso Themes:**\n" + "\n".join(
             [f"- `{th_}`" for th_ in RaySoThemes]
         )
         return await ult.edit(text)
@@ -180,8 +184,10 @@ async def rayso_on(ult):
     if isinstance(img, dict):
         return await msg.edit(f"`{img}`")
 
-    caption = rf"Rayso by {inline_mention(ult.sender)}\nTheme - `{theme}`"
+    mention = inline_mention(ult.sender or await ult.get_sender(), html=True)
+    caption = f"Rayso by {mention}\n\n<blockquote>Theme Used - {theme}\nDark Mode - {dark_mode}</blockquote>"
     await asyncio.gather(
-        ult.respond(caption, file=img, reply_to=reply_to),
+        ult.respond(caption, file=img, reply_to=reply_to, parse_mode="html"),
         msg.try_delete(),
+        return_exceptions=True,
     )
