@@ -1,6 +1,6 @@
 # some common helper functions exist here..
 
-__all__ = ("not_so_fast",)
+__all__ = ("not_so_fast", "split_list")
 
 import asyncio
 
@@ -16,3 +16,12 @@ async def not_so_fast(func, *args, sleep=3, **kwargs):
     finally:
         await asyncio.sleep(sleep)
         await async_lock.release()
+
+
+# fns.misc
+def split_list(List, index):
+    new_ = []
+    while List:
+        new_.extend([List[:index]])
+        List = List[index:]
+    return new_

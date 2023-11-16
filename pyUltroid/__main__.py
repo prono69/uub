@@ -13,6 +13,9 @@ import time
 from . import *
 
 
+shutdown_tasks = []
+
+
 def main():
     from pyrog import _init_pyrog
     from .fns.helper import bash, time_formatter, updater
@@ -103,13 +106,13 @@ def main():
 
 
 async def init_shutdown():
-    tasks = []
+    from pyUltroid.custom.commons import split_list
+
     if ultroid_bot.is_connected():
-        tasks.append(ultroid_bot.disconnect())
+        shutdown_tasks.append(ultroid_bot.disconnect())
     if vcClient.uid != ultroid_bot.uid and vcClient.is_connected():
-        tasks.append(vcClient.disconnect())
+        shutdown_tasks.append(vcClient.disconnect())
     if not BOT_MODE:
-        tasks.append(asst.disconnect())
         msg1, msg2 = (
             ("#restart", "Restarting Ultroid Bot.")
             if udB.get_key("_RESTART")
@@ -122,17 +125,37 @@ async def init_shutdown():
             )
         except Exception:
             pass
+        finally:
+            shutdown_tasks.append(asst.disconnect())
 
+    sys.stdout.flush()
     await asyncio.sleep(5)
-    await asyncio.gather(*tasks, return_exceptions=True)
-    await loop.shutdown_asyncgens()
+    for task in split_list(shutdown_tasks, 3):
+        await asyncio.gather(*task, return_exceptions=True)
+    await asyncio.sleep(2)
+
+
+async def _stop_async_tasks():
+    try:
+        for task in asyncio.all_tasks():
+            task.cancel()
+    except BaseException:
+        pass
+    finally:
+        sys.stdout.flush()
+    await asyncio.sleep(3)
+    await asyncio.gather(
+        loop.shutdown_asyncgens(),
+        loop.shutdown_default_executor(),
+        return_exceptions=True,
+    )
 
 
 def shutdown_or_restart():
     sys.stdout.flush()
     if not udB.get_key("_RESTART"):
         sys.exit(0)
-    time.sleep(6)
+    time.sleep(1)
     python = sys.executable
     os.execl(python, python, "-m", "pyUltroid")
 
@@ -146,5 +169,6 @@ if __name__ == "__main__":
     finally:
         LOGS.info("Stopping Ultroid..")
         loop.run_until_complete(init_shutdown())
+        loop.run_until_complete(_stop_async_tasks())
         loop.stop()
         shutdown_or_restart()

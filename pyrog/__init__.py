@@ -64,6 +64,9 @@ def setup_clients():
 async def pyro_startup():
     if setup_clients():
         return
+
+    from pyUltroid.__main__ import shutdown_tasks
+
     LOGS.info("Starting Pyrogram...")
     for count, client in PYROG_CLIENTS.copy().items():
         try:
@@ -72,6 +75,8 @@ async def pyro_startup():
             LOGS.warning(f"Error while starting PyroGram Client: {count}")
             LOGS.debug("error:", exc_info=True)
             PYROG_CLIENTS.pop(count, None)
+        else:
+            shutdown_tasks.append(client.stop())
         finally:
             await asyncio.sleep(2)
 
