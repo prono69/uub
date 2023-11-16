@@ -35,6 +35,7 @@ from . import (
     events,
     get_string,
     inline_mention,
+    not_so_fast,
     udB,
     ultroid_bot,
 )
@@ -62,51 +63,56 @@ async def all_messages_catcher(e):
         return LOGS.info(get_string("userlogs_1"))
     buttons = await parse_buttons(e)
     try:
-        sent = await asst.send_message(NEEDTOLOG, e.message, buttons=buttons)
+        sent = await not_so_fast(
+            asst.send_message, NEEDTOLOG, e.message, buttons=buttons
+        )
         if TAG_EDITS.get(e.chat_id):
             TAG_EDITS[e.chat_id].update({e.id: {"id": sent.id, "msg": e}})
         else:
             TAG_EDITS.update({e.chat_id: {e.id: {"id": sent.id, "msg": e}}})
-        if udB.get_key("TAGLOG_REPLIES"):
-            tag_add(sent.id, e.chat_id, e.id)
     except ChatForwardsRestrictedError:
         return
     except MediaEmptyError:
         try:
             msg = await asst.get_messages(e.chat_id, ids=e.id)
-            sent = await asst.send_message(NEEDTOLOG, msg, buttons=buttons)
+            sent = await not_so_fast(asst.send_message, NEEDTOLOG, msg, buttons=buttons)
             if TAG_EDITS.get(e.chat_id):
                 TAG_EDITS[e.chat_id].update({e.id: {"id": sent.id, "msg": e}})
             else:
                 TAG_EDITS.update({e.chat_id: {e.id: {"id": sent.id, "msg": e}}})
-            if udB.get_key("TAGLOG_REPLIES"):
-                tag_add(sent.id, e.chat_id, e.id)
         except Exception as me:
             if not isinstance(me, (PeerIdInvalidError, ValueError)):
                 LOGS.exception("UnHandled Error:")
             try:
                 # media = await e.download_media()
                 # sent = await asst.send_message(NEEDTOLOG, e.message.text, file=media, buttons=buttons)
-                media = await e.copy(NEEDTOLOG)
-                await asyncio.sleep(2)
-                _get = await asst.get_messages(NEEDTOLOG, ids=media.id)
-                await asyncio.gather(cleargif(media), media.delete())
-                sent = await _get.copy(NEEDTOLOG, buttons=buttons)
-                del media, _get
+                media = await not_so_fast(e.copy, NEEDTOLOG, sleep=5)
+                _get, _, _ = await asyncio.gather(
+                    asst.get_messages(NEEDTOLOG, ids=media.id),
+                    cleargif(media),
+                    asyncio.sleep(2),
+                    media.try_delete(),
+                    return_exceptions=True,
+                )
+                sent = await not_so_fast(_get.copy, NEEDTOLOG, buttons=buttons)
                 if TAG_EDITS.get(e.chat_id):
                     TAG_EDITS[e.chat_id].update({e.id: {"id": sent.id, "msg": e}})
                 else:
                     TAG_EDITS.update({e.chat_id: {e.id: {"id": sent.id, "msg": e}}})
-                return  # os.remove(media)
+                return
             except Exception as er:
                 LOGS.exception(er)
-            await asst.send_message(NEEDTOLOG, get_string("com_4"), buttons=buttons)
+            await not_so_fast(
+                asst.send_message, NEEDTOLOG, get_string("com_4"), buttons=buttons
+            )
     except (PeerIdInvalidError, ValueError):
         try:
             CACHE_SPAM[NEEDTOLOG]
         except KeyError:
-            await asst.send_message(
-                udB.get_key("LOG_CHANNEL"), get_string("userlogs_1")
+            await not_so_fast(
+                asst.send_message,
+                udB.get_key("LOG_CHANNEL"),
+                get_string("userlogs_1"),
             )
             CACHE_SPAM.update({NEEDTOLOG: True})
     except ChatWriteForbiddenError:
@@ -118,7 +124,7 @@ async def all_messages_catcher(e):
         try:
             CACHE_SPAM[NEEDTOLOG]
         except KeyError:
-            await asst.send_message(LOG_CHANNEL, MSG)
+            await not_so_fast(asst.send_message, LOG_CHANNEL, MSG)
             CACHE_SPAM.update({NEEDTOLOG: True})
     except Exception as er:
         LOGS.exception(er)
@@ -149,7 +155,8 @@ if udB.get_key("TAG_LOG"):
                 if is_self:
                     text = f"**#Edited & #Mentioned**\n\n{event.text}"
                     try:
-                        sent = await asst.send_message(
+                        sent = await not_so_fast(
+                            asst.send_message,
                             udB.get_key("TAG_LOG"),
                             text,
                             buttons=await parse_buttons(event),
@@ -173,8 +180,10 @@ if udB.get_key("TAG_LOG"):
         else:
             msg = True
             d_.update({"count": 1})
-        if d_["count"] > 8:
-            return  # some limit to take edits
+        # some limit to take edits
+        if d_["count"] > 10:
+            return
+
         try:
             MSG = await asst.get_messages(udB.get_key("TAG_LOG"), ids=d_["id"])
         except Exception as er:
@@ -188,30 +197,12 @@ if udB.get_key("TAG_LOG"):
         if d_["count"] == 8:
             TEXT += "\n\n__Edited 8 times. Skipping further edits.__"
         try:
-            msg = await MSG.edit(TEXT, buttons=await parse_buttons(event))
+            msg = await not_so_fast(MSG.edit, TEXT, buttons=await parse_buttons(event))
             d_["msg"] = msg
         except (MessageTooLongError, MediaCaptionTooLongError):
             del TAG_EDITS[event.chat_id][event.id]
         except Exception as er:
             LOGS.exception(er)
-
-    if udB.get_key("TAGLOG_REPLIES"):
-
-        @ultroid_bot.on(
-            events.NewMessage(
-                outgoing=True,
-                chats=[udB.get_key("TAG_LOG")],
-                func=lambda e: e.reply_to,
-            )
-        )
-        async def idk(e):
-            id = e.reply_to_msg_id
-            chat, msg = who_tag(id)
-            if chat and msg:
-                try:
-                    await ultroid_bot.send_message(chat, e.message, reply_to=msg)
-                except Exception as er:
-                    LOGS.exception(er)
 
 
 _client = {"bot": asst, "user": ultroid_bot}

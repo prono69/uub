@@ -1,21 +1,21 @@
 # some common helper functions exist here..
 
-__all__ = ("not_so_fast", "split_list")
+__all__ = ("not_so_fast", "split_list", "alock")
 
 import asyncio
 
 
-async_lock = asyncio.Lock()
+alock = asyncio.Lock()
 
 
-# to use in pmlogger, botpmlogger etc.
+# to use in pmlogger, botpmlogger, etc.
 async def not_so_fast(func, *args, sleep=3, **kwargs):
     try:
-        await async_lock.acquire()
-        await func(*args, **kwargs)
+        await alock.acquire()
+        return await func(*args, **kwargs)
     finally:
         await asyncio.sleep(sleep)
-        async_lock.release()
+        alock.release()
 
 
 # fns.misc

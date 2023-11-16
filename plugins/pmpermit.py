@@ -64,6 +64,7 @@ from pyUltroid.dB.base import KeyManager
 
 from . import *
 
+
 # ========================= CONSTANTS =============================
 
 COUNT_PM = {}
@@ -135,14 +136,19 @@ if udB.get_key("PMLOG"):
     async def _msglogger(msg, sender):
         _chat = udB.get_key("PMLOGGROUP") or LOG_CHANNEL
         try:
-            await msg.forward_to(_chat)
+            cpy = await msg.forward_to(_chat)
+            await cleargif(cpy)
         except MessageIdInvalidError:
             try:
                 cpy = await msg.copy(_chat)
                 msg = (
                     f"Incoming message from: {inline_mention(sender)} - [`{sender.id}`]"
                 )
-                await asst.send_message(_chat, msg, reply_to=cpy.id)
+                await asyncio.gather(
+                    asst.send_message(_chat, msg, reply_to=cpy.id),
+                    cleargif(cpy),
+                    return_exceptions=True,
+                )
             except Exception as exc:
                 LOGS.error(exc)
         except Exception:
@@ -397,12 +403,15 @@ if udB.get_key("PMSETTING"):
                         "PMPermit is messed! Pls restart the bot!!",
                     )
                     return LOGS.info("COUNT_PM is messed.")
-                await ultroid_bot(BlockRequest(user.id))
-                await ultroid_bot(ReportSpamRequest(peer=user.id))
-                await asst.edit_message(
-                    udB.get_key("LOG_CHANNEL"),
-                    _not_approved[user.id],
-                    f"**{mention}** [`{user.id}`] was Blocked for spamming.",
+                await asyncio.gather(
+                    ultroid_bot(BlockRequest(user.id)),
+                    ultroid_bot(ReportSpamRequest(peer=user.id)),
+                    asst.edit_message(
+                        udB.get_key("LOG_CHANNEL"),
+                        _not_approved[user.id],
+                        f"**{mention}** [`{user.id}`] was Blocked for spamming.",
+                    ),
+                    return_exceptions=True,
                 )
 
     @ultroid_cmd(pattern="(start|stop|clear)archive$", fullsudo=True)

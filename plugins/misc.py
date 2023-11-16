@@ -114,7 +114,7 @@ async def mobs(e):
     await bt.delete()
 
 
-@ultroid_cmd(pattern="randomuser")
+@ultroid_cmd(pattern="randomuser$")
 async def _gen_data(event):
     x = await event.eor(get_string("com_1"))
     msg, pic = await get_random_user_data()

@@ -25,10 +25,12 @@ from . import (
     asst,
     get_string,
     mediainfo,
+    not_so_fast,
     udB,
     ultroid_bot,
     ultroid_cmd,
 )
+
 
 old_afk_msg = []
 
@@ -106,10 +108,7 @@ async def remove_afk(event):
         off = await event.reply(get_string("afk_1").format(afk_time))
         await asst.send_message(LOG_CHANNEL, get_string("afk_2").format(afk_time))
         for x in old_afk_msg:
-            try:
-                await x.delete()
-            except BaseException:
-                pass
+            await x.try_delete()
         await asyncio.sleep(10)
         await off.delete()
 
@@ -130,27 +129,43 @@ async def on_afk(event):
     msg1, msg2 = None, None
     if text and media:
         if "sticker" in media_type:
-            msg1 = await event.reply(file=media)
-            msg2 = await event.reply(get_string("afk_3").format(afk_time, text))
+            msg1, msg2 = await not_so_fast(
+                asyncio.gather,
+                event.reply(file=media),
+                event.reply(get_string("afk_3").format(afk_time, text)),
+                return_exceptions=True,
+                sleep=5,
+            )
         else:
-            msg1 = await event.reply(
-                get_string("afk_3").format(afk_time, text), file=media
+            msg1 = await not_so_fast(
+                event.reply,
+                get_string("afk_3").format(afk_time, text),
+                file=media,
+                sleep=5,
             )
     elif media:
         if "sticker" in media_type:
-            msg1 = await event.reply(file=media)
-            msg2 = await event.reply(get_string("afk_4").format(afk_time))
+            msg1, msg2 = await not_so_fast(
+                asyncio.gather,
+                event.reply(file=media),
+                event.reply(get_string("afk_4").format(afk_time)),
+                return_exceptions=True,
+                sleep=5,
+            )
         else:
-            msg1 = await event.reply(get_string("afk_4").format(afk_time), file=media)
+            msg1 = await not_so_fast(
+                event.reply, get_string("afk_4").format(afk_time), file=media, sleep=5
+            )
     elif text:
-        msg1 = await event.reply(get_string("afk_3").format(afk_time, text))
+        msg1 = await not_so_fast(
+            event.reply, get_string("afk_3").format(afk_time, text), sleep=5
+        )
     else:
-        msg1 = await event.reply(get_string("afk_4").format(afk_time))
+        msg1 = await not_so_fast(
+            event.reply, get_string("afk_4").format(afk_time), sleep=5
+        )
     for x in old_afk_msg:
-        try:
-            await x.delete()
-        except BaseException:
-            pass
+        await x.try_delete()
     old_afk_msg.append(msg1)
     if msg2:
         old_afk_msg.append(msg2)
