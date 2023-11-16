@@ -129,21 +129,10 @@ async def init_shutdown():
             shutdown_tasks.append(asst.disconnect())
 
     sys.stdout.flush()
-    await asyncio.sleep(5)
+    await asyncio.sleep(6)
     for task in split_list(shutdown_tasks, 3):
         await asyncio.gather(*task, return_exceptions=True)
     await asyncio.sleep(2)
-
-
-async def _stop_async_tasks():
-    try:
-        for task in asyncio.all_tasks():
-            task.cancel()
-    except BaseException:
-        pass
-    finally:
-        sys.stdout.flush()
-    await asyncio.sleep(3)
     await asyncio.gather(
         loop.shutdown_asyncgens(),
         loop.shutdown_default_executor(),
@@ -155,7 +144,7 @@ def shutdown_or_restart():
     sys.stdout.flush()
     if not udB.get_key("_RESTART"):
         sys.exit(0)
-    time.sleep(1)
+    time.sleep(3)
     python = sys.executable
     os.execl(python, python, "-m", "pyUltroid")
 
@@ -169,6 +158,5 @@ if __name__ == "__main__":
     finally:
         LOGS.info("Stopping Ultroid..")
         loop.run_until_complete(init_shutdown())
-        loop.run_until_complete(_stop_async_tasks())
         loop.stop()
         shutdown_or_restart()
