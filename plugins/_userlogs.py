@@ -87,7 +87,7 @@ async def all_messages_catcher(e):
                 # media = await e.download_media()
                 # sent = await asst.send_message(NEEDTOLOG, e.message.text, file=media, buttons=buttons)
                 media = await not_so_fast(e.copy, NEEDTOLOG, sleep=5)
-                _get, _, _ = await asyncio.gather(
+                _get, _, _, _ = await asyncio.gather(
                     asst.get_messages(NEEDTOLOG, ids=media.id),
                     cleargif(media),
                     asyncio.sleep(2),

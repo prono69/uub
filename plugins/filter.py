@@ -99,4 +99,6 @@ async def filter_func(e):
 
 
 if udB.get_key("FILTERS"):
-    ultroid_bot.add_handler(filter_func, events.NewMessage())
+    ultroid_bot.add_handler(
+        filter_func, events.NewMessage(func=lambda e: e.text and not e.media)
+    )

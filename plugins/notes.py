@@ -114,4 +114,6 @@ async def notes(e):
 
 
 if udB.get_key("NOTE"):
-    ultroid_bot.add_handler(notes, events.NewMessage())
+    ultroid_bot.add_handler(
+        notes, events.NewMessage(func=lambda e: e.text and not e.media)
+    )

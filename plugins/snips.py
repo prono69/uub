@@ -91,7 +91,7 @@ async def lsnote(e):
     if x := list_snip():
         sd = "SNIPS Found :\n\n"
         return await e.eor(sd + x)
-    await e.eor("No Snips Found Here")
+    await e.eor("No Snips Found Here..")
 
 
 async def add_snips(e):
@@ -107,9 +107,9 @@ async def add_snips(e):
                 if k.get("button"):
                     btn = create_tl_btn(k["button"])
                     return await something(rep, msg, media, btn)
-                await rep.reply(msg, file=media)
+                await not_so_fast(rep.reply, msg, file=media)
             else:
-                await e.delete()
+                # await e.try_delete()
                 if k.get("button"):
                     btn = create_tl_btn(k["button"])
                     return await something(e, msg, media, btn, reply=None)
@@ -117,4 +117,6 @@ async def add_snips(e):
 
 
 if udB.get_key("SNIP"):
-    ultroid_bot.add_handler(add_snips, events.NewMessage())
+    ultroid_bot.add_handler(
+        add_snips, events.NewMessage(func=lambda e: e.text and not e.media)
+    )

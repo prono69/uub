@@ -31,15 +31,19 @@ from ._inline import something
 
 
 # log for assistant/user joins/add
-async def when_added_or_joined(event):
-    user = await event.get_user()
-    chat = await event.get_chat()
+async def when_added_or_joined(event, user=None, chat=None):
+    if not event.action_message:
+        return
+    if not user:
+        user = await event.get_user()
     if not (user and user.is_self):
         return
+    if not chat:
+        chat = await event.get_chat()
     chat_id = (
         getattr(chat, "username") if getattr(chat, "username", None) else f"c/{chat.id}"
     )
-    msg_id = event.updates[0].id
+    msg_id = event.action_message.id
     chat = f"[{chat.title}](https://t.me/{chat_id}/{msg_id})"
     key = "bot" if event.client._bot else "user"
     buttons = Button.inline(
@@ -83,8 +87,8 @@ async def DummyHandler(ult):
                 )
                 await res[0].click(ult.chat_id, reply_to=ult.action_message.id)
 
-    # new join
-    if ult.user_joined or ult.added_by:
+    # user joined / added / accepted
+    if ult.user_joined or ult.user_added:
         user = await ult.get_user()
         chat = await ult.get_chat()
 
@@ -111,6 +115,9 @@ async def DummyHandler(ult):
                 pass
             """
 
+        # log join / added by / accepted events
+        await when_added_or_joined(ult, user=user, chat=chat)
+
         # gban check
         try:
             reason = is_gbanned(user.id)
@@ -129,8 +136,8 @@ async def DummyHandler(ult):
 
         # greetings
         if get_welcome(ult.chat_id):
-            user = await ult.get_user()
-            chat = await ult.get_chat()
+            # user = await ult.get_user()
+            # chat = await ult.get_chat()
             title = chat.title or "this chat"
             count = (
                 chat.participants_count
@@ -204,10 +211,6 @@ async def DummyHandler(ult):
             # await send.delete()
         else:
             await not_so_fast(ult.reply, file=med)
-
-    # log join / added by / accepted
-    if ult.user_added or ult.user_joined:
-        await when_added_or_joined(ult)
 
     # thank members
     if must_thank(ult.chat_id):
