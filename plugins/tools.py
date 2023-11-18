@@ -99,7 +99,7 @@ async def _translator(event):
             time=5,
         )
 
-    kkk = await e.eor(get_string("com_1"))
+    kkk = await event.eor(get_string("com_1"))
     lang = event.pattern_match.group(2) or "en"
     reply_message = await event.get_reply_message()
 

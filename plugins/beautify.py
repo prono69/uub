@@ -63,7 +63,7 @@ async def crbn(event):
     if isinstance(xx, dict):
         return await msg.edit(f"`{xx}`")
 
-    mention = inline_mention(event.sender or await event.get_sender(), html=True)
+    mention = inline_mention(event.sender or await event.get_sender())
     caption = f"Carbonised by {mention}"
     await asyncio.gather(
         msg.try_delete(),
@@ -117,7 +117,7 @@ async def custom_crbn(event):
     if isinstance(xx, dict):
         return await msg.edit(f"`{xx}`")
 
-    mention = inline_mention(event.sender or await event.get_sender(), html=True)
+    mention = inline_mention(event.sender or await event.get_sender())
     caption = f"Carbonised by {mention}"
     await asyncio.gather(
         event.respond(caption, file=xx, reply_to=reply_to),
