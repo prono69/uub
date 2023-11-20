@@ -5,61 +5,47 @@
 # PLease read the GNU Affero General Public License in
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
-from .. import *
+from .. import udB
 
 
 CMD_HELP = {}
 
 
 class _SudoManager:
+    __slots__ = ("owner",)
+
     def __init__(self):
-        self.db = None
-        self.owner = None
-        self._owner_sudos = []
-
-    def _init_db(self):
-        if not self.db:
-            from .. import udB
-
-            self.db = udB
-        return self.db
+        self.owner = udB.get_key("OWNER_ID")
 
     def get_sudos(self):
-        db = self._init_db()
-        SUDOS = db.get_key("SUDOS")
+        SUDOS = udB.get_key("SUDOS")
         return SUDOS or []
+
+    def is_sudo(self, id_):
+        return id_ in self.get_sudos()
 
     @property
     def should_allow_sudo(self):
-        db = self._init_db()
-        return db.get_key("SUDO")
+        return udB.get_key("SUDO")
 
     def owner_and_sudos(self):
-        if not self.owner:
-            db = self._init_db()
-            self.owner = db.get_key("OWNER_ID")
         return [self.owner, *self.get_sudos()]
 
     @property
     def fullsudos(self):
-        db = self._init_db()
-        fsudos = db.get_key("FULLSUDO")
-        if not self.owner:
-            self.owner = db.get_key("OWNER_ID")
+        fsudos = udB.get_key("FULLSUDO")
         if not fsudos:
             return [self.owner]
         fsudos = str(fsudos).split()
         fsudos.append(self.owner)
-        return [int(_) for _ in fsudos]
-
-    def is_sudo(self, id_):
-        return bool(id_ in self.get_sudos())
+        return [int(u) for u in fsudos]
 
 
 SUDO_M = _SudoManager()
 owner_and_sudos = SUDO_M.owner_and_sudos
 sudoers = SUDO_M.get_sudos
 is_sudo = SUDO_M.is_sudo
+
 
 # ------------------------------------------------ #
 
