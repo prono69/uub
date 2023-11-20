@@ -67,7 +67,7 @@ def compile_pattern(data, hndlr):
         data = data[1:]
     if data.startswith("."):
         data = data[1:]
-    if hndlr in [" ", "NO_HNDLR"]:
+    if hndlr in (" ", "NO_HNDLR"):
         # No Hndlr Feature
         return re.compile("^" + data)
     return re.compile("\\" + hndlr + data)
@@ -98,8 +98,9 @@ def ultroid_cmd(
             if ult.media and not isinstance(ult.media, MessageMediaWebPage):
                 return
 
-            # ignore edits that are triggered by reaction and
-            # ignore edits on messages older than 30 minutes.
+            # ignore edits that are -
+            # - triggered by reaction,
+            # - or message is older than 30 minutes.
             if isinstance(ult, MessageEdited.Event) and (
                 getattr(ult.message, "edit_hide", None)
                 or (ult.message.edit_date - ult.message.date).seconds > 1800
@@ -107,34 +108,17 @@ def ultroid_cmd(
                 return
 
             if not ult.out:
-                if owner_only:
-                    return
                 if ult.sender_id not in owner_and_sudos():
                     return
-                if ult.sender_id in _ignore_eval:
+                elif fullsudo and ult.sender_id not in SUDO_M.fullsudos:
+                    return await eod(ult, get_string("py_d2"), time=15)
+                elif ult.sender_id in _ignore_eval:
                     return await eod(
                         ult,
                         get_string("py_d1"),
                     )
-                if fullsudo and ult.sender_id not in SUDO_M.fullsudos:
-                    return await eod(ult, get_string("py_d2"), time=15)
-
-            chat = ult.chat
-
-            """
-            if hasattr(chat, "title"):
-                if (
-                    "#noub" in chat.title.lower()
-                    and not (chat.admin_rights or chat.creator)
-                    and not (ult.sender_id in DEVLIST)
-                ):
+                elif owner_only:
                     return
-            """
-
-            if ult.is_private and (groups_only or admins_only):
-                return await eod(ult, get_string("py_d3"))
-            elif admins_only and not (chat.admin_rights or chat.creator):
-                return await eod(ult, get_string("py_d5"))
 
             if only_devs and not udB.get_key("I_DEV"):
                 return await eod(
@@ -143,7 +127,19 @@ def ultroid_cmd(
                     time=10,
                 )
 
-            if groups_only and ult.is_private:
+            chat = ult.chat
+
+            if not ult.is_private and hasattr(chat, "title"):
+                if (
+                    "#noub" in chat.title.lower()
+                    and not (chat.admin_rights or chat.creator)
+                    and not (ult.sender_id in DEVLIST)
+                ):
+                    return
+
+            if ult.is_private and (groups_only or admins_only):
+                return await eod(ult, get_string("py_d3"))
+            elif admins_only and not (chat.admin_rights or chat.creator):
                 return await eod(ult, get_string("py_d5"))
 
             try:
@@ -252,27 +248,30 @@ def ultroid_cmd(
         if black_list_chats:
             blacklist_chats = True
             chats = list(black_list_chats)
-        _add_new = allow_sudo and HNDLR != SUDO_HNDLR
-        if _add_new:
+
+        # incoming handler for sudo users..
+        if allow_sudo:
             if pattern:
                 cmd = compile_pattern(pattern, SUDO_HNDLR)
             ultroid_bot.add_event_handler(
                 in_wrapper,
                 NewMessage(
-                    pattern=cmd,
                     incoming=True,
+                    pattern=cmd,
                     forwards=False,
                     func=func,
                     chats=chats,
                     blacklist_chats=blacklist_chats,
                 ),
             )
+
+        # incoming handler for owner
         if pattern:
             cmd = compile_pattern(pattern, HNDLR)
         ultroid_bot.add_event_handler(
             in_wrapper,
             NewMessage(
-                outgoing=True if _add_new else None,
+                outgoing=True,
                 pattern=cmd,
                 forwards=False,
                 func=func,
@@ -282,12 +281,13 @@ def ultroid_cmd(
         )
 
         def _isEdit(x):
-            # is_channel probably refers to megagroup ;_;
+            # is_channel refers to megagroup ;_;
             return not (x.via_bot_id or (x.is_channel and x.chat.broadcast))
 
-        if TAKE_SUDO_EDITS and allow_sudo:
-            if pattern:
-                cmd = compile_pattern(pattern, SUDO_HNDLR)
+        # edited message handler for sudo users
+        # don't add handler if there is no pattern.
+        if allow_sudo and TAKE_SUDO_EDITS and pattern:
+            cmd = compile_pattern(pattern, SUDO_HNDLR)
             ultroid_bot.add_event_handler(
                 in_wrapper,
                 MessageEdited(
@@ -300,7 +300,10 @@ def ultroid_cmd(
                 ),
             )
 
+        # edited message handler for owner
+        # don't add handler if there is no pattern.
         if TAKE_EDITS and pattern:
+            cmd = compile_pattern(pattern, HNDLR)
             ultroid_bot.add_event_handler(
                 in_wrapper,
                 MessageEdited(
@@ -345,9 +348,9 @@ def ultroid_cmd(
             asst.add_event_handler(
                 manager_cmd,
                 NewMessage(
+                    incoming=True,
                     pattern=cmd,
                     forwards=False,
-                    incoming=True,
                     func=func,
                     chats=chats,
                     blacklist_chats=blacklist_chats,
@@ -360,8 +363,8 @@ def ultroid_cmd(
             asst.add_event_handler(
                 in_wrapper,
                 NewMessage(
-                    pattern=cmd,
                     incoming=True,
+                    pattern=cmd,
                     forwards=False,
                     func=func,
                     chats=chats,
@@ -372,10 +375,10 @@ def ultroid_cmd(
                 asst.add_event_handler(
                     in_wrapper,
                     MessageEdited(
-                        pattern=cmd,
                         incoming=True,
+                        pattern=cmd,
                         forwards=False,
-                        func=func,
+                        func=_isEdit,
                         chats=chats,
                         blacklist_chats=blacklist_chats,
                     ),

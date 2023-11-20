@@ -48,9 +48,7 @@ class _SudoManager:
             self.owner = db.get_key("OWNER_ID")
         if not fsudos:
             return [self.owner]
-        elif type(fsudos) == int:
-            fsudos = str(fsudos)
-        fsudos = fsudos.split()
+        fsudos = str(fsudos).split()
         fsudos.append(self.owner)
         return [int(_) for _ in fsudos]
 
