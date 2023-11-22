@@ -5,6 +5,8 @@
 # PLease read the GNU Affero General Public License in
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
+__all__ = ("LocalDB", "MongoDB", "RedisDB", "SqlDB")
+
 from ast import literal_eval
 from os import environ, path, system
 from copy import deepcopy
@@ -18,7 +20,7 @@ try:
     from redis.exceptions import ResponseError
 except ImportError:
 
-    class ResponseError(FileNotFoundError):
+    class ResponseError(AttributeError):
         pass
 
 
@@ -502,8 +504,7 @@ def _UltroidDB():
 
             return SqlDB(url=Var.DATABASE_URL, to_cache=True, _name="SQL")
         else:
-            # remove this to use Local DB
-            quit(0)
+            quit(0)  # remove this to use Local DB
 
             if path.exists("localdb.json"):
                 LOGS.info("Connecting to Local Database..")
@@ -515,6 +516,3 @@ def _UltroidDB():
     except BaseException as err:
         LOGS.exception(err)
     quit(0)
-
-
-__all__ = ("LocalDB", "MongoDB", "RedisDB", "SqlDB")

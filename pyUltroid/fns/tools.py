@@ -124,8 +124,8 @@ def json_parser(data, indent=None, ascii=False):
 
 async def is_url_ok(url: str):
     try:
-        return await async_searcher(url, head=True)
-    except BaseException as er:
+        return await async_searcher(url, method="head")
+    except Exception as er:
         LOGS.debug(er)
 
 

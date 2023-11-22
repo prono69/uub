@@ -404,7 +404,7 @@ async def run_eval(event):
 
         with BytesIO(final_output.encode()) as out_file:
             out_file.name = "eval.txt"
-            caption = "<b>• EVAL:</b>\n" + u._html(
+            caption = f"<i>►</i> <b>EVAL</b> (<i>{timeform}</i>)\n" + u._html(
                 cmd if len(cmd) < 610 else cmd[:600] + " ...", "python"
             )
             await event.client.send_file(

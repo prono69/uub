@@ -512,32 +512,31 @@ async def tg_downloader(
 async def async_searcher(
     url: str,
     post: bool = False,
-    head: bool = False,
+    method: str = "GET",
     headers: dict = None,
-    evaluate=None,
+    evaluate: callable = None,
     object: bool = False,
     re_json: bool = False,
     re_content: bool = False,
     *args,
     **kwargs,
 ):
-    object = kwargs.pop("real", object)
     if aiohttp_client:
         async with aiohttp_client(headers=headers) as client:
-            method = client.head if head else (client.post if post else client.get)
-            data = await method(url, *args, **kwargs)
+            method = "POST" if post else method
+            data = await client.request(method.upper(), url, *args, **kwargs)
             if evaluate:
                 return await evaluate(data)
             if re_json:
                 return await data.json()
             if re_content:
                 return await data.read()
-            if head or object:
+            if object:
                 return data
             return await data.text()
     # elif requests:
-    #     method = requests.head if head else (requests.post if post else requests.get)
-    #     data = method(url, headers=headers, *args, **kwargs)
+    #     method = "POST" if post else method
+    #     data = requests.request(method.upper(), url, headers=headers, *args, **kwargs)
     #     if re_json:
     #         return data.json()
     #     if re_content:
