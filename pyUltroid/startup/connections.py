@@ -80,22 +80,24 @@ def vc_connection(udB, ultroid_bot):
 
     VC_SESSION = Var.VC_SESSION or udB.get_key("VC_SESSION")
     if VC_SESSION and VC_SESSION != Var.SESSION:
-        LOGS.info("Starting up VcClient.")
+        LOGS.info("Starting Seperate VcClient..")
         try:
-            return UltroidClient(
+            vc_client = UltroidClient(
                 validate_session(VC_SESSION, _exit=False),
                 log_attempt=False,
                 exit_on_error=False,
             )
+            LOGS.info("Successfully Started VcClient!")
+            return vc_client
         except (AuthKeyDuplicatedError, EOFError):
             LOGS.info(get_string("py_c3"))
             udB.del_key("VC_SESSION")
-        except Exception as er:
-            LOGS.info("Error While creating Client for VC.")
-            LOGS.exception(er)
+        except Exception:
+            LOGS.exception("Error While starting vcClient")
     return ultroid_bot
 
 
+# todo: check if it even works.
 def connect_ub(s):
     from .BaseClient import UltroidClient
 
