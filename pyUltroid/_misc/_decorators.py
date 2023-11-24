@@ -89,24 +89,16 @@ def ultroid_cmd(
     admins_only = kwargs.get("admins_only", False)
     fullsudo = kwargs.get("fullsudo", False)
     only_devs = kwargs.get("only_devs", False)
-    func = kwargs.get("func", lambda e: not e.via_bot_id)
+
+    incoming_func = lambda e: not (
+        (e.media and not isinstance(e.media, MessageMediaWebPage)) or e.via_bot_id
+    )
+
+    func = kwargs.get("func", incoming_func)
 
     def out_wrapper(dec):
         @wraps(dec)
         async def in_wrapper(ult):
-            # ignore media captions
-            if ult.media and not isinstance(ult.media, MessageMediaWebPage):
-                return
-
-            # ignore edits that are -
-            # - triggered by reaction,
-            # - or message is older than 30 minutes.
-            if isinstance(ult, MessageEdited.Event) and (
-                getattr(ult.message, "edit_hide", None)
-                or (ult.message.edit_date - ult.message.date).seconds > 1800
-            ):
-                return
-
             if not ult.out:
                 if ult.sender_id not in owner_and_sudos():
                     return
@@ -280,9 +272,15 @@ def ultroid_cmd(
             ),
         )
 
-        def _isEdit(x):
-            # is_channel refers to megagroup ;_;
-            return not (x.via_bot_id or (x.is_channel and x.chat.broadcast))
+        # is_channel refers to megagroup ;_;
+        # ignore edits that are -
+        #  - triggered by reaction,
+        #  - or message is older than 30 minutes.
+        edit_func = lambda e: incoming_func(e) and not (
+            (e.is_channel and e.chat.broadcast)
+            or getattr(e.message, "edit_hide", None)
+            or (e.message.edit_date - e.message.date).seconds > 1800
+        )
 
         # edited message handler for sudo users
         # don't add handler if there is no pattern.
@@ -294,7 +292,7 @@ def ultroid_cmd(
                     incoming=True,
                     pattern=cmd,
                     forwards=False,
-                    func=_isEdit,
+                    func=edit_func,
                     chats=chats,
                     blacklist_chats=blacklist_chats,
                 ),
@@ -310,7 +308,7 @@ def ultroid_cmd(
                     outgoing=True,
                     pattern=cmd,
                     forwards=False,
-                    func=_isEdit,
+                    func=edit_func,
                     chats=chats,
                     blacklist_chats=blacklist_chats,
                 ),
@@ -378,7 +376,7 @@ def ultroid_cmd(
                         incoming=True,
                         pattern=cmd,
                         forwards=False,
-                        func=_isEdit,
+                        func=edit_func,
                         chats=chats,
                         blacklist_chats=blacklist_chats,
                     ),
