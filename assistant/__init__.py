@@ -15,6 +15,7 @@ from pyUltroid import _ult_cache
 from pyUltroid._misc import owner_and_sudos
 from pyUltroid._misc._assistant import asst_cmd, callback, in_pattern
 from pyUltroid.fns.helper import *
+from pyUltroid.custom.commons import not_so_fast
 from pyUltroid.fns.tools import get_stored_file
 from strings import get_languages, get_string
 
