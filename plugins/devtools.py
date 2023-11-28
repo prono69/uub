@@ -81,6 +81,8 @@ class u:
 
     @staticmethod
     async def _evalogger(cmd, e, format_lang):
+        if not TAG_LOG:
+            return
         await asyncio.sleep(2)
         msg = "<b><blockquote>CMD Executed!</blockquote></b> \n\n{0}\n\n–  {1}:  {2} \n–  <a href='{3}'>{4}</a>"
         sndr = e.sender or await e.get_sender()

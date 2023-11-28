@@ -95,8 +95,8 @@ class BingScrapper:
                 timeout=aiohttp.ClientTimeout(total=10),
                 evaluate=partial(self._handle_download, filename),
             )
-        except Exception as exc:
-            LOGS.debug(f"Error: {exc}")
+        except Exception:
+            pass  # LOGS.debug(f"Error: {exc}")
 
     async def get_links(self):
         cached_urls = set()
