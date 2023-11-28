@@ -16,7 +16,7 @@ from pathlib import Path
 from telethon import TelegramClient
 from telethon import utils as telethon_utils
 from telethon.extensions import markdown
-from telethon.tl.types import DocumentAttributeFilename
+from telethon.tl import types
 from telethon.errors import (
     AccessTokenExpiredError,
     AccessTokenInvalidError,
