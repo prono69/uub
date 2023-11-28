@@ -15,6 +15,7 @@ from pathlib import Path
 
 from telethon import TelegramClient
 from telethon import utils as telethon_utils
+from telethon.extensions import markdown
 from telethon.tl.types import DocumentAttributeFilename
 from telethon.errors import (
     AccessTokenExpiredError,
@@ -29,6 +30,38 @@ from ..configs import Var
 from ..exceptions import DownloadError, UploadError
 from ._logger import TelethonLogger
 from . import *
+
+
+# allows to use spoiler and custom emoji in markdown,
+# kanged from telethon wiki.
+class CustomMarkdown:
+    @staticmethod
+    def parse(text):
+        if not text:
+            return text, []
+        text, entities = markdown.parse(text)
+        for i, e in enumerate(entities):
+            if isinstance(e, types.MessageEntityTextUrl):
+                if e.url == "spoiler":
+                    entities[i] = types.MessageEntitySpoiler(e.offset, e.length)
+                elif e.url.startswith("emoji/"):
+                    entities[i] = types.MessageEntityCustomEmoji(
+                        e.offset, e.length, int(e.url.split("/")[1])
+                    )
+        return text, entities
+
+    @staticmethod
+    def unparse(text, entities):
+        if not text or not entities:
+            return text
+        for i, e in enumerate(entities):
+            if isinstance(e, types.MessageEntityCustomEmoji):
+                entities[i] = types.MessageEntityTextUrl(
+                    e.offset, e.length, f"emoji/{e.document_id}"
+                )
+            if isinstance(e, types.MessageEntitySpoiler):
+                entities[i] = types.MessageEntityTextUrl(e.offset, e.length, "spoiler")
+        return markdown.unparse(text, entities)
 
 
 class UltroidClient(TelegramClient):
@@ -101,6 +134,7 @@ class UltroidClient(TelegramClient):
         if self._log_at:
             self.logger.info(f"Logged in as {me}")
         self._bot = await self.is_bot()
+        self.parse_mode = CustomMarkdown()
 
     async def fast_uploader(self, file, **kwargs):
         """Upload files in a faster way"""

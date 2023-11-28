@@ -18,7 +18,7 @@ async def not_so_fast(func, *args, sleep=3, **kwargs):
         async_lock.release()
 
 
-# fns.misc
+# from fns.misc
 def split_list(List, index):
     new_ = []
     while List:

@@ -29,10 +29,11 @@ _default_client_values = {
     "api_id": Var.API_ID,
     "api_hash": Var.API_HASH,
     "workdir": os.getcwd() + "/resources/temp/",
-    "sleep_threshold": 90,
+    "sleep_threshold": 120,
     "workers": _workers,
     "no_updates": True,
-    "max_concurrent_transmissions": 1 if _workers < 5 else 4,
+    "max_concurrent_transmissions": 1,
+    "message_cache": 1024,
 }
 
 
