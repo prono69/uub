@@ -94,7 +94,8 @@ def main():
         ultroid_bot.run_in_loop(ready())
 
     try:
-        cleanup_cache()
+        if cleanup_cache:
+            cleanup_cache()
     except BaseException:
         pass
 
@@ -133,11 +134,13 @@ async def init_shutdown():
         await asyncio.gather(*task, return_exceptions=True)
     sys.stdout.flush()
     await asyncio.sleep(4)
-    await asyncio.gather(
+    out = await asyncio.gather(
         loop.shutdown_asyncgens(),
         loop.shutdown_default_executor(),
         return_exceptions=True,
     )
+    for i in filter(lambda j: isinstance(j, Exception), out):
+        print(i)
 
 
 def shutdown_or_restart():

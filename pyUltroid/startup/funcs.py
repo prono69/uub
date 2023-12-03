@@ -37,8 +37,9 @@ from telethon.tl.types import (
 from telethon.utils import get_peer_id
 from decouple import config, RepositoryEnv
 
-from .. import LOGS, ULTConfig
-from ..fns.helper import bash, download_file, inline_mention, updater
+from pyUltroid import LOGS, ULTConfig
+from pyUltroid.fns.helper import download_file, inline_mention, updater
+# from pyUltroid.custom.commons import bash
 
 
 _db_url = 0
@@ -128,9 +129,7 @@ async def startup_stuff():
         Path(".megarc").write_text(f"[Login]\nUsername = {MM}\nPassword = {MP}")
 
 
-async def autobot():
-    from .. import udB, ultroid_bot
-
+async def _autobot(ultroid_bot, udB):
     if udB.get_key("BOT_TOKEN"):
         return
     await ultroid_bot.start()
@@ -180,7 +179,7 @@ async def autobot():
     if isdone.startswith("Done!"):
         token = isdone.split("`")[1]
         udB.set_key("BOT_TOKEN", token)
-        await enable_inline(ultroid_bot, username)
+        await _enable_inline(ultroid_bot, username)
         LOGS.info(
             f"Done. Successfully created @{username} to be used as your assistant bot!"
         )
@@ -549,13 +548,17 @@ async def ready():
     # udB.set_key("LAST_UPDATE_LOG_SPAM", spam_sent.id)
 
     re_purge()
+    await WasItRestart(udB)
+
+    """
     try:
         await asyncio.gather(
             WasItRestart(udB),
-            # fetch_ann(),
+            fetch_ann(),
         )
     except Exception as exc:
         LOGS.exception(exc)
+    """
 
 
 def _version_changes(udb):
@@ -581,7 +584,7 @@ def _version_changes(udb):
             udb.set_key(_, new_)
 
 
-async def enable_inline(ultroid_bot, username):
+async def _enable_inline(ultroid_bot, username):
     bf = "BotFather"
     await ultroid_bot.send_message(bf, "/setinline")
     await asyncio.sleep(1)
@@ -593,12 +596,9 @@ async def enable_inline(ultroid_bot, username):
 
 __all__ = (
     "WasItRestart",
-    "_version_changes",
-    "autobot",
     "autopilot",
     "customize",
-    "enable_inline",
-    "fetch_ann",
+    # "fetch_ann",
     "plug",
     "ready",
     "startup_stuff",

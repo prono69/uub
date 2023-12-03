@@ -1,4 +1,4 @@
-# Ultroid - UserBot
+ii  # Ultroid - UserBot
 # Copyright (C) 2021-2022 TeamUltroid
 #
 # This file is a part of < https://github.com/TeamUltroid/Ultroid/ >
@@ -14,25 +14,29 @@ import ssl
 from base64 import b64decode
 from random import choice, shuffle
 from io import BytesIO
-from json.decoder import JSONDecodeError
 from shlex import quote as shquote
 from shutil import copy2
 from traceback import format_exc
 from urllib.parse import quote, unquote
 
-import requests
+from telethon import Button
+from telethon.tl.types import DocumentAttributeAudio, DocumentAttributeVideo
 
-from .. import *
 from . import some_random_headers
-from .helper import (
+
+from pyUltroid import *
+from pyUltroid.custom.mediainfo import gen_mediainfo
+from pyUltroid.dB.filestore_db import get_stored_msg, store_msg
+from pyUltroid.custom.commons import (
     async_searcher,
     asyncwrite,
     bash,
     check_filename,
     humanbytes,
+    json_parser,
+    osremove,
     run_async,
 )
-from ..exceptions import DependencyMissingError
 
 try:
     import certifi
@@ -50,17 +54,6 @@ try:
     from requests.exceptions import MissingSchema
 except ImportError:
     requests = None
-
-try:
-    import aiohttp
-except ImportError:
-    aiohttp = None
-
-from telethon import Button
-from telethon.tl.types import DocumentAttributeAudio, DocumentAttributeVideo
-
-from pyUltroid.custom.mediainfo import gen_mediainfo
-from ..dB.filestore_db import get_stored_msg, store_msg
 
 try:
     import numpy as np
@@ -93,32 +86,6 @@ async def get_ofox(codename):
     return device, releases
 
 
-# ~~~~~~~~~~~~~~~JSON Parser~~~~~~~~~~~~~~~
-# @buddhhu
-
-
-def _unquote_text(text):
-    return shquote(text)
-
-
-def json_parser(data, indent=None, ascii=False):
-    parsed = {}
-    try:
-        if isinstance(data, str):
-            parsed = json.loads(str(data))
-            if indent:
-                parsed = json.dumps(
-                    json.loads(str(data)), indent=indent, ensure_ascii=ascii
-                )
-        elif isinstance(data, dict):
-            parsed = data
-            if indent:
-                parsed = json.dumps(data, indent=indent, ensure_ascii=ascii)
-    except JSONDecodeError:
-        parsed = eval(data)
-    return parsed
-
-
 # ~~~~~~~~~~~~~~~ Link Checker ~~~~~~~~~~~~~~~~
 
 
@@ -145,14 +112,14 @@ async def metadata(file):
         return data
 
     out, _ = await bash(f"mediainfo {shquote(file)} --Output=JSON")
-    if _ and _.endswith("NOT_FOUND"):
+    if _ and _.endswith("not found"):
         raise DependencyMissingError(
-            f"'{_}' is not installed!\nInstall it to use this command."
+            "'mediainfo' is not installed!\nInstall it to use this command."
         )
     data = {}
     _info = json.loads(out)["media"]["track"]
     info = _info[0]
-    if info.get("Format") in ["GIF", "PNG"]:
+    if info.get("Format") in ("GIF", "PNG"):
         return {
             "height": _info[1]["Height"],
             "width": _info[1]["Width"],
@@ -292,15 +259,6 @@ async def webuploader(chat_id: int, msg_id: int, uploader: str):
             return link
     del _webupload_cache[int(chat_id)][int(msg_id)]
     return status
-
-
-def get_all_files(path, extension=None):
-    filelist = []
-    for root, dirs, files in os.walk(path):
-        for file in files:
-            if not (extension and not file.endswith(extension)):
-                filelist.append(os.path.join(root, file))
-    return sorted(filelist)
 
 
 def text_set(text):
@@ -473,7 +431,7 @@ async def get_chatbot_reply(message):
     try:
         return (await async_searcher(req_link, re_json=True)).get("reply")
     except Exception:
-        LOGS.info(f"**ERROR:**`{format_exc()}`")
+        LOGS.info(f"chatbot error: {format_exc()}")
 
 
 # ------ Audio \\ Video tools func --------#
@@ -560,7 +518,7 @@ def telegraph_client():
         LOGS.info("'Telegraph' is not Installed!")
         return
 
-    from .. import udB, ultroid_bot
+    # from .. import udB, ultroid_bot
 
     token = udB.get_key("_TELEGRAPH_TOKEN")
     TelegraphClient = Telegraph(token)
@@ -636,7 +594,7 @@ async def Carbon(
 
 
 async def get_file_link(msg):
-    from .. import udB
+    # from .. import udB
 
     msg_id = await msg.forward_to(udB.get_key("LOG_CHANNEL"))
     await msg_id.reply(
@@ -649,7 +607,7 @@ async def get_file_link(msg):
 
 
 async def get_stored_file(event, hash):
-    from .. import udB, asst
+    # from .. import udB, asst
 
     msg_id = get_stored_msg(hash)
     if not msg_id:
@@ -739,7 +697,7 @@ class TgConverter:
         if er and throw:
             raise LottieException(er)
         if remove:
-            os.remove(file)
+            osremove(file)
         if os.path.exists(out_path):
             return out_path
 
@@ -786,7 +744,7 @@ class TgConverter:
         else:
             await bash(f"ffmpeg -i {shquote(input_)} {shquote(output)} -y")
         if remove:
-            os.remove(input_)
+            osremove(input_)
         if os.path.exists(output):
             return output
 
@@ -813,7 +771,7 @@ class TgConverter:
             f'ffmpeg -i {shquote(file)} -preset fast -an -to 00:00:03 -crf 30 -bufsize 256k -b:v {_["bitrate"]} -vf "scale={w}:{h},fps=30" -c:v libvpx-vp9 {shquote(name)} -y'
         )
         if remove:
-            os.remove(file)
+            osremove(file)
         return name
 
     @staticmethod
@@ -826,7 +784,7 @@ class TgConverter:
         ult, roid = img.read()
         cv2.imwrite(name, roid)
         if remove:
-            os.remove(input_)
+            osremove(input_)
         return name
 
     @staticmethod
@@ -854,7 +812,7 @@ class TgConverter:
 
         # Sticker to Something
         if ext == "tgs":
-            for extn in ["webp", "json", "png", "mp4", "gif"]:
+            for extn in ("webp", "json", "png", "mp4", "gif"):
                 if recycle_type(extn):
                     name = outname + "." + extn
                     return await TgConverter.animated_sticker(
@@ -862,7 +820,9 @@ class TgConverter:
                     )
             if recycle_type("webm"):
                 input_file = await TgConverter.convert(
-                    input_file, convert_to="gif", remove_old=remove_old
+                    input_file,
+                    convert_to="gif",
+                    remove_old=remove_old,
                 )
                 return await TgConverter.create_webm(input_file, outname, remove=True)
         # Json -> Tgs
@@ -873,28 +833,28 @@ class TgConverter:
                     input_file, name, remove=remove_old
                 )
         # Video to Something
-        elif ext in ["webm", "mp4", "gif"]:
-            for exte in ["webm", "mp4", "gif"]:
+        elif ext in ("webm", "mp4", "gif"):
+            for exte in ("webm", "mp4", "gif"):
                 if recycle_type(exte):
                     name = outname + "." + exte
                     return await TgConverter.ffmpeg_convert(
                         input_file, name, remove=remove_old
                     )
-            for exte in ["png", "jpg", "jpeg", "webp"]:
+            for exte in ("png", "jpg", "jpeg", "webp"):
                 if recycle_type(exte):
                     name = outname + "." + exte
                     return TgConverter.to_image(input_file, name, remove=remove_old)
         # Image to Something
-        elif ext in ["jpg", "jpeg", "png", "webp"]:
-            for extn in ["png", "webp", "ico"]:
+        elif ext in ("jpg", "jpeg", "png", "webp"):
+            for extn in ("png", "webp", "ico"):
                 if recycle_type(extn):
                     img = Image.open(input_file)
                     name = outname + "." + extn
                     img.save(name, extn.upper())
                     if remove_old:
-                        os.remove(input_file)
+                        osremove(input_file)
                     return name
-            for extn in ["webm", "gif", "mp4"]:
+            for extn in ("webm", "gif", "mp4"):
                 if recycle_type(extn):
                     name = outname + "." + extn
                     if extn == "webm":
@@ -956,28 +916,20 @@ __all__ = (
     "Carbon",
     "LogoHelper",
     "TgConverter",
-    "_package_rpc",
-    "_unquote_text",
     "cmd_regex_replace",
     "create_tl_btn",
-    "duration_s",
     "format_btn",
-    "four_point_transform",
     "genss",
-    "get_all_files",
     "get_chat_and_msgid",
     "get_chatbot_reply",
     "get_file_link",
-    "get_google_images",
     "get_msg_button",
     "get_ofox",
     "get_paste",
     "get_stored_file",
     "is_url_ok",
-    "json_parser",
     "make_html_telegraph",
     "metadata",
-    "order_points",
     "saavn_search",
     "safe_load",
     "set_attributes",

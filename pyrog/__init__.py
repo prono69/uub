@@ -19,7 +19,7 @@ from pyUltroid.custom.init import run_async_task
 try:
     from pyrogram import Client
 except ImportError:
-    pass
+    Client = None
 
 
 PYROG_CLIENTS = {}
@@ -44,6 +44,9 @@ def app(n=None):
 
 def setup_clients():
     # plugins = {"root": "pyrog/plugins"}
+    if not Client:
+        LOGS.warning("'pyrogram' is not installed; skipping pyrogram setup..")
+        return True
     var = "PYROGRAM_CLIENTS"
     stuff = os.environ.get(var)
     if not stuff:

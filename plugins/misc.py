@@ -39,7 +39,8 @@ try:
 except ImportError:
     Img2HTMLConverter = None
 
-from . import async_searcher, get_random_user_data, get_string, ultroid_cmd
+from pyUltroid.fns.misc import get_random_user_data
+from . import async_searcher, get_string, ultroid_cmd
 
 
 @ultroid_cmd(pattern="eod$")

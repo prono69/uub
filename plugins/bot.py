@@ -214,7 +214,8 @@ async def cmds(event):
 )
 async def restartbt(ult):
     ok = await ult.eor(get_string("bot_5"))
-    call_back()
+    if call_back:
+        call_back()
     who = "bot" if ult.client._bot else "user"
     udB.set_key("_RESTART", f"{who}_{ult.chat_id}_{ok.id}")
     if ult.pattern_match.group(1):
@@ -331,7 +332,8 @@ async def _(e):
     if args and args in ("fast", "soft", "now"):
         await asyncio.sleep(3)
         await xx.edit(get_string("upd_7"))
-        call_back()
+        if call_back:
+            call_back()
         await bash("git reset --hard ; git pull --rebase")
         return await restart(ult=xx, edit=False)
 

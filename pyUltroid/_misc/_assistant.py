@@ -17,9 +17,9 @@ from telethon.errors import QueryIdInvalidError, ResultIdDuplicateError
 from telethon.events import CallbackQuery, InlineQuery, NewMessage
 from telethon.tl.types import InputWebDocument
 
-from .. import LOGS, asst, udB, ultroid_bot
-from ..dB._core import LOADED
-from ..fns.admins import admin_check
+from pyUltroid import LOGS, asst, udB, ultroid_bot
+from pyUltroid.dB._core import LOADED
+from pyUltroid.fns.admins import admin_check
 from . import SUDO_M, append_or_update, owner_and_sudos
 
 

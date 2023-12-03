@@ -134,7 +134,7 @@ async def run_bash(event):
         LOGS.debug(cmd)
     xx = await event.eor(get_string("com_1"))
 
-    stdout, stderr = await bash(cmd, run_code=1)
+    stdout, stderr = await bash(cmd)
     if stdout and (carb or rayso):
         color = await _get_colors(pick=True)
         li = await Carbon(
@@ -303,8 +303,10 @@ async def run_eval(event):
         except (ImportError, Exception):
             pass
 
-    if any(item in cmd for item in KEEP_SAFE().All) and (
-        not (event.out or event.sender_id == ultroid_bot.uid)
+    if (
+        KEEP_SAFE
+        and any(item in cmd for item in KEEP_SAFE().All)
+        and (not (event.out or event.sender_id == ultroid_bot.uid))
     ):
         warning = await event.forward_to(udB.get_key("LOG_CHANNEL"))
         await warning.reply(

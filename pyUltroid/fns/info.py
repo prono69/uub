@@ -13,7 +13,7 @@ import math
 
 from telethon.tl import functions, types
 
-from .. import LOGS
+from pyUltroid import LOGS
 
 
 # -----------

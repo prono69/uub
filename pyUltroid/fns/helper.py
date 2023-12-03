@@ -10,24 +10,26 @@ import os
 import re
 import sys
 import time
-from datetime import datetime
-from mimetypes import guess_extension
-from pathlib import Path, PurePath
-from secrets import token_hex
-from shutil import rmtree, which
+from pathlib import Path
 from traceback import format_exc
-from urllib.parse import urlsplit, unquote_plus
-
 # from urllib.request import urlretrieve
 
-try:
-    from aiohttp import ClientSession as aiohttp_client
-except ImportError:
-    aiohttp_client = None
-    try:
-        import requests
-    except ImportError:
-        requests = None
+from telethon.helpers import _maybe_await
+from telethon.tl import types
+from telethon.utils import get_display_name
+# from telethon.errors import MessageNotModifiedError, MessageIdInvalidError
+
+from . import *
+
+from pyUltroid import LOGS, Var
+from pyUltroid._misc import CMD_HELP
+from pyUltroid._misc._wrappers import eod, eor
+from pyUltroid.custom.commons import *
+from pyUltroid.custom.commons import aiohttp_client
+from pyUltroid.dB._core import ADDONS, HELP, LIST, LOADED
+from pyUltroid.version import ultroid_version
+from pyUltroid.exceptions import DownloadError, UploadError
+from pyUltroid.custom.FastTelethon import download_file, upload_file
 
 try:
     import heroku3
@@ -39,39 +41,6 @@ try:
     from git.exc import GitCommandError  # InvalidGitRepositoryError, NoSuchPathError
 except ImportError:
     Repo = None
-
-import asyncio
-import multiprocessing
-from concurrent.futures import ThreadPoolExecutor
-from functools import partial, wraps
-
-from telethon.helpers import _maybe_await
-from telethon.tl import types
-from telethon.utils import get_display_name
-from telethon.errors import MessageNotModifiedError, MessageIdInvalidError
-
-from .._misc import CMD_HELP
-from .._misc._wrappers import eod, eor
-from .. import LOGS, Var
-from . import *
-
-from ..dB._core import ADDONS, HELP, LIST, LOADED
-
-from ..version import ultroid_version
-from ..exceptions import DownloadError, UploadError, DependencyMissingError
-from .FastTelethon import download_file as downloadable
-from .FastTelethon import upload_file as uploadable
-
-
-def run_async(function):
-    @wraps(function)
-    async def wrapper(*args, **kwargs):
-        return await asyncio.get_event_loop().run_in_executor(
-            ThreadPoolExecutor(max_workers=multiprocessing.cpu_count() * 5),
-            partial(function, *args, **kwargs),
-        )
-
-    return wrapper
 
 
 # ~~~~~~~~~~~~~~~~~~~~ small funcs ~~~~~~~~~~~~~~~~~~~~ #
@@ -94,107 +63,6 @@ def inline_mention(user, custom=None, html=False):
             return f"<a href=https://t.me/{user.username}>{mention_text}</a>"
         return f"[{mention_text}](https://t.me/{user.username})"
     return mention_text
-
-
-# ---------------------- custom ------------------------------------------ #
-
-
-def check_filename(filroid):
-    if not isinstance(filroid, PurePath):
-        filroid = Path(filroid)
-    num = 1
-    while filroid.exists():
-        og_stem = filroid.stem.rstrip(f"_{num - 1}") if num != 1 else filroid.stem
-        filroid = filroid.with_stem(f"{og_stem}_{num}")
-        num += 1
-    else:
-        return str(filroid)
-
-
-def osremove(*files, folders=False):
-    get_path = lambda path: path if isinstance(path, PurePath) else Path(str(path))
-    for path in map(get_path, files):
-        try:
-            path.unlink(missing_ok=True)
-        except IsADirectoryError:
-            if folders:
-                rmtree(path, ignore_errors=True)
-
-
-class _TGFilename:
-    __slots__ = ("tg_media",)
-
-    def __init__(self, tg_media):
-        if isinstance(tg_media, types.Message):
-            if not tg_media.media:
-                raise ValueError("Not a media File.")
-            self.tg_media = tg_media.media
-        else:
-            self.tg_media = tg_media
-
-    @classmethod
-    def init(cls, tg_media):
-        self = cls(tg_media)
-        return self.get_filename()
-
-    def generate_filename(self, media_type, ext=None):
-        date = datetime.now()
-        filename = "{}_{}-{:02}-{:02}_{:02}-{:02}-{:02}".format(
-            media_type,
-            date.year,
-            date.month,
-            date.day,
-            date.hour,
-            date.minute,
-            date.second,
-        )
-        return filename + ext if ext else filename
-
-    def get_filename(self):
-        if isinstance(self.tg_media, (types.MessageMediaDocument, types.Document)):
-            doc = (
-                self.tg_media
-                if isinstance(self.tg_media, types.Document)
-                else self.tg_media.document
-            )
-            for attr in doc.attributes:
-                if isinstance(attr, types.DocumentAttributeFilename):
-                    return attr.file_name
-            mime = doc.mime_type
-            return self.generate_filename(
-                mime.split("/", 1)[0], ext=guess_extension(mime)
-            )
-        elif isinstance(self.tg_media, types.MessageMediaPhoto):
-            return self.generate_filename("photo", ext=".jpg")
-        else:
-            raise ValueError("Invalid media File.")
-
-
-get_tg_filename = _TGFilename.init
-
-
-def get_filename_from_url(url):
-    if not (path := urlsplit(url).path):
-        return token_hex(nbytes=8)
-    filename = unquote_plus(Path(path).name)
-    if len(filename) > 62:
-        filename = str(Path(filename).with_stem(filename[:60]))
-    return filename
-
-
-@run_async
-def asyncread(file, binary=False):
-    if not Path(file).is_file():
-        return
-    read_type = "rb" if binary else "r+"
-    with open(file, read_type) as f:
-        return f.read()
-
-
-@run_async
-def asyncwrite(file, data, mode):
-    with open(file, mode) as f:
-        f.write(data)
 
 
 # ----------------- Load \\ Unloader ---------------- #
@@ -250,11 +118,11 @@ async def safeinstall(event):
         return await eod(ok, f"Plugin `{plug}` is already installed.")
     sm = reply.file.name.replace("_", "-").replace("|", "-")
     dl = await reply.download_media(f"addons/{sm}")
-    if event.text[9:] != "f":
+    if event.text[9:] != "f" and KEEP_SAFE:
         read = await asyncread(dl)
         for dan in KEEP_SAFE().All:
             if re.search(dan, read):
-                os.remove(dl)
+                osremove(dl)
                 return await ok.edit(
                     f"**Installation Aborted.**\n**Reason:** Occurance of `{dan}` in `{reply.file.name}`.\n\nIf you trust the provider and/or know what you're doing, use `{HNDLR}install f` to force install.",
                 )
@@ -318,7 +186,7 @@ async def def_logs(ult, file):
         ult.chat_id,
         file=file,
         thumb=ULTConfig.thumb,
-        caption="**Ultroid Logs.**",
+        caption="**Ultroid Logs!**",
     )
 
 
@@ -337,24 +205,6 @@ def gen_chlog(repo, diff):
     if ch_log:
         return str(ch + ch_log), str(ch_tl + tldr_log)
     return ch_log, tldr_log
-
-
-async def bash(cmd, run_code=0):
-    """run any command in subprocess and get output or error"""
-    process = await asyncio.create_subprocess_shell(
-        cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-        executable=which("bash"),
-    )
-    stdout, stderr = await process.communicate()
-    err = stderr.decode(errors="replace").strip() or None
-    out = stdout.decode(errors="replace").strip()
-    if not run_code and err:
-        split = cmd.split()[0]
-        if f"{split}: not found" in err:
-            return out, f"{split.upper()}_NOT_FOUND"
-    return out, err
 
 
 # ---------------------------UPDATER-------------------------------- #
@@ -408,7 +258,7 @@ async def uploader(file, name, taime, event, msg):
     edit_missed = 0
     with open(file, "rb") as f:
         try:
-            result = await uploadable(
+            result = await upload_file(
                 client=event.client,
                 file=f,
                 filename=name,
@@ -438,7 +288,7 @@ async def downloader(filename, file, event, taime, msg):
     edit_missed = 0
     with open(filename, "wb") as fk:
         try:
-            result = await downloadable(
+            result = await download_file(
                 client=event.client,
                 location=file,
                 out=fk,
@@ -505,49 +355,6 @@ async def tg_downloader(
     return path, time.time() - s_time
 
 
-# ~~~~~~~~~~~~~~~ Async Searcher ~~~~~~~~~~~~~~~
-# @buddhhu
-
-
-async def async_searcher(
-    url: str,
-    post: bool = False,
-    method: str = "GET",
-    headers: dict = None,
-    evaluate: callable = None,
-    object: bool = False,
-    re_json: bool = False,
-    re_content: bool = False,
-    *args,
-    **kwargs,
-):
-    if aiohttp_client:
-        async with aiohttp_client(headers=headers) as client:
-            method = "POST" if post else method
-            data = await client.request(method.upper(), url, *args, **kwargs)
-            if evaluate:
-                return await evaluate(data)
-            if re_json:
-                return await data.json()
-            if re_content:
-                return await data.read()
-            if object:
-                return data
-            return await data.text()
-    # elif requests:
-    #     method = "POST" if post else method
-    #     data = requests.request(method.upper(), url, headers=headers, *args, **kwargs)
-    #     if re_json:
-    #         return data.json()
-    #     if re_content:
-    #         return data.content
-    #     if head or object:
-    #         return data
-    #     return data.text
-    else:
-        raise DependencyMissingError("Install 'aiohttp' to use this.")
-
-
 # ~~~~~~~~~~~~~~~~~ DDL Downloader ~~~~~~~~~~~~~~~~
 # @buddhhu @new-dev0
 
@@ -578,7 +385,7 @@ async def fast_download(download_url, filename=None, progress_callback=None):
             total_size = int(response.headers.get("content-length", 0)) or None
             downloaded_size = 0
             start_time = time.time()
-            async for chunk in response.content.iter_chunked(256 * 1024):
+            async for chunk in response.content.iter_chunked(192 * 1024):
                 if chunk:
                     await asyncwrite(filename, chunk, mode="ab+")
                     downloaded_size += len(chunk)
@@ -630,40 +437,6 @@ def mediainfo(media):
 # ------------------Some Small Funcs----------------
 
 
-def time_formatter(milliseconds):
-    minutes, seconds = divmod(int(milliseconds / 1000), 60)
-    hours, minutes = divmod(minutes, 60)
-    days, hours = divmod(hours, 24)
-    weeks, days = divmod(days, 7)
-    tmp = (
-        ((str(weeks) + "w:") if weeks else "")
-        + ((str(days) + "d:") if days else "")
-        + ((str(hours) + "h:") if hours else "")
-        + ((str(minutes) + "m:") if minutes else "")
-        + ((str(seconds) + "s") if seconds else "")
-    )
-    if not tmp:
-        return "0s"
-
-    if tmp.endswith(":"):
-        return tmp[:-1]
-    return tmp
-
-
-def humanbytes(size):
-    if not size:
-        return "0 B"
-    for unit in ["", "K", "M", "G", "T"]:
-        if size < 1024:
-            break
-        size /= 1024
-    if isinstance(size, int):
-        size = f"{size}{unit}B"
-    elif isinstance(size, float):
-        size = f"{size:.2f}{unit}B"
-    return size
-
-
 def numerize(number):
     if not number:
         return None
@@ -677,44 +450,6 @@ def numerize(number):
     elif isinstance(number, float):
         number = f"{number:.2f}{unit}"
     return number
-
-
-No_Flood = {}
-
-
-async def progress(current, total, event, start, type_of_ps, file_name=None):
-    jost = str(event.chat_id) + "_" + str(event.id)
-    plog = No_Flood.get(jost)
-    now = time.time()
-    if plog and current != total:
-        if (now - plog) < 8:  # delay = 8s
-            return
-    diff = now - start
-    percentage = current * 100 / total
-    speed = current / diff
-    time_to_completion = round((total - current) / speed) * 1000
-    bar_count = min(int(percentage // 5), 20)
-    progress_str = "`[{0}{1}] {2}%`\n\n".format(
-        "●" * bar_count,
-        "" * (20 - bar_count),
-        round(percentage, 2),
-    )
-    tmp = progress_str + "`{0} of {1}`\n\n`✦ Speed: {2}/s`\n\n`✦ ETA: {3}`\n\n".format(
-        humanbytes(current),
-        humanbytes(total),
-        humanbytes(speed),
-        time_formatter(time_to_completion),
-    )
-    to_edit = (
-        "`✦ {}`\n\n`File Name: {}`\n\n{}".format(type_of_ps, file_name, tmp)
-        if file_name
-        else "`✦ {}`\n\n{}".format(type_of_ps, tmp)
-    )
-    try:
-        No_Flood.update({jost: now})
-        await event.edit(to_edit)
-    except MessageNotModifiedError as exc:
-        LOGS.warning("err in progress: message_not_modified")
 
 
 # ------------------System\\Heroku stuff----------------
@@ -768,31 +503,20 @@ async def shutdown(ult):
 
 
 __all__ = (
-    "async_searcher",
-    "asyncread",
-    "asyncwrite",
-    "bash",
-    "check_filename",
     "def_logs",
     "download_file",
     "fast_download",
     "gen_chlog",
-    "get_filename_from_url",
-    "get_tg_filename",
     "heroku_logs",
-    "humanbytes",
     "inline_mention",
     "make_mention",
     "mediainfo",
     "numerize",
-    "osremove",
     "progress",
     "restart",
-    "run_async",
     "safeinstall",
     "shutdown",
     "tg_downloader",
-    "time_formatter",
     "un_plug",
     "updater",
 )

@@ -38,20 +38,17 @@ from telethon.events import MessageEdited, NewMessage
 from telethon.tl.types import MessageMediaWebPage
 from telethon.utils import get_display_name
 
-from .. import *
-from .. import _ignore_eval
-from ..dB import DEVLIST
-from ..dB._core import LIST, LOADED
-from ..fns.admins import admin_check
-from ..fns.helper import bash
-from ..fns.helper import time_formatter as tf
-from ..version import __version__ as pyver
-from ..version import ultroid_version as ult_ver
+from pyUltroid import *
+from pyUltroid import _ignore_eval
+from strings import get_string
+from pyUltroid.dB import DEVLIST
+from pyUltroid.dB._core import LIST, LOADED
+from pyUltroid.fns.admins import admin_check
+from pyUltroid.custom.commons import bash, time_formatter as tf
+from pyUltroid.exceptions import DependencyMissingError
+from pyUltroid.version import __version__ as pyver, ultroid_version as ult_ver
 from . import SUDO_M, owner_and_sudos
 from ._wrappers import eod
-
-from strings import get_string
-from pyUltroid.exceptions import DependencyMissingError
 
 
 MANAGER = udB.get_key("MANAGER")

@@ -1,5 +1,4 @@
-from .. import *
-
+# from pyUltroid import *
 
 DEVLIST = [
     719195224,  # @xditya

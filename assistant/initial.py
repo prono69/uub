@@ -9,6 +9,7 @@ import re
 
 from . import *
 
+
 STRINGS = {
     1: """🎇 **Thanks for Deploying Ultroid Userbot!**
 

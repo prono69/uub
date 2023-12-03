@@ -26,10 +26,12 @@ from telethon.errors import (
     MessageIdInvalidError,
 )
 
-from ..configs import Var
-from ..exceptions import DownloadError, UploadError
 from ._logger import TelethonLogger
 from . import *
+from pyUltroid.configs import Var
+from pyUltroid.exceptions import DownloadError, UploadError
+from pyUltroid.custom.FastTelethon import download_file, upload_file
+from pyUltroid.custom.commons import progress, check_filename, get_tg_filename
 
 
 # allows to use spoiler and custom emoji in markdown,
@@ -167,9 +169,6 @@ class UltroidClient(TelegramClient):
                         path.unlink(missing_ok=True)
                     return files["raw_file"], time.time() - start_time
 
-        from pyUltroid.fns.FastTelethon import upload_file
-        from pyUltroid.fns.helper import progress
-
         raw_file, edit_missed = None, 0
         while not raw_file:
             with open(file, "rb") as f:
@@ -220,9 +219,6 @@ class UltroidClient(TelegramClient):
         # Don't show progress bar when file size is less than 10MB.
         if file.size < 10 * 2**20:
             show_progress = False
-
-        from pyUltroid.fns.FastTelethon import download_file
-        from pyUltroid.fns.helper import progress, check_filename, get_tg_filename
 
         # Auto-generate Filename
         filename = check_filename(filename or get_tg_filename(file))

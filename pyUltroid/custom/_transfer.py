@@ -10,7 +10,7 @@
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-__all__ = ("pyroUL", "pyroDL", "pyro_progress")
+__all__ = ("pyroUL", "pyroDL")
 
 import asyncio
 from time import time
@@ -20,7 +20,6 @@ from pathlib import Path
 from mimetypes import guess_extension
 from shlex import quote
 from string import ascii_lowercase
-
 # from mimetypes import guess_all_extensions
 
 from pyrogram.errors import ChannelInvalid
@@ -32,17 +31,17 @@ from telethon.errors import (
 )
 
 from pyrog import app
-from .mediainfo import gen_mediainfo
-from .functions import cleargif, run_async_task
-from pyUltroid.exceptions import DownloadError, UploadError
-from pyUltroid.fns.tools import humanbytes
 from pyUltroid.startup import LOGS
 from pyUltroid import asst, udB, ultroid_bot
-from pyUltroid.fns.helper import (
+from pyUltroid.exceptions import DownloadError, UploadError
+from pyUltroid.fns.helper import inline_mention
+from .mediainfo import gen_mediainfo
+from .functions import cleargif, run_async_task
+from .commons import (
     bash,
     check_filename,
     get_tg_filename,
-    inline_mention,
+    humanbytes,
     osremove,
     progress,
     time_formatter,
@@ -474,11 +473,13 @@ class pyroUL:
         if not (self.force_document or hasattr(self, "thumb")):
             self.thumb = None
             if type == "video":
-                self.thumb = await videoThumb(str(self.file), self.metadata["duration"])
+                self.thumb = await gen_video_thumb(
+                    str(self.file), self.metadata["duration"]
+                )
             elif type == "audio":
-                self.thumb = await audioThumb(str(self.file))
+                self.thumb = await gen_audio_thumb(str(self.file))
             elif type == "gif":
-                self.thumb = await videoThumb(str(self.file), False)
+                self.thumb = await gen_video_thumb(str(self.file), -1, first_frame=True)
 
     @property
     def sleeptime(self):
@@ -673,36 +674,45 @@ class pyroUL:
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-async def videoThumb(path, duration):
-    if duration is False:
+def size_checks(path):
+    if path.is_file():
+        size = path.stat().st_size
+        return size > 0 and size < 10 * 1024 * 1024
+
+
+async def gen_video_thumb(path, duration, first_frame=False):
+    if first_frame or duration < 5:
         dur = 1
-    elif duration > 1:
+    else:
         rnd_dur = choice((0.25, 0.33, 0.4, 0.45, 0.5, 0.55, 0.6, 0.66, 0.75))
         dur = int(duration * rnd_dur)
-    else:
-        dur = 1
     rnds = "".join(choices(ascii_lowercase, k=8))
     thumb_path = Path(check_filename(f"resources/temp/{rnds}-{dur}.jpg")).absolute()
     await bash(
         f"ffmpeg -ss {dur} -i {quote(path)} -vframes 1 {quote(str(thumb_path))} -y"
     )
-    return str(thumb_path) if thumb_path.is_file() else DEFAULT_THUMB
+    return str(thumb_path) if size_checks(thumb_path) else DEFAULT_THUMB
 
 
-async def audioThumb(path):
-    if not (Image and load_file):
+async def gen_audio_thumb(path):
+    if not load_file:
         return DEFAULT_THUMB
 
     rnds = "".join(choices(ascii_lowercase, k=8))
-    thumby = check_filename(f"resources/temp/{rnds}.jpg")
+    thumb = check_filename(f"resources/temp/{rnds}.jpg")
     try:
         load = load_file(path)
         if not (album_art := load.get("artwork")):
             return LOGS.warning(f"no artwork found for: {path}")
 
-        thumb = Image.open(BytesIO(album_art.values[0].data))
-        thumb.save(thumby)
-        return thumby if Path(thumby).exists() else DEFAULT_THUMB
+        byt = BytesIO(album_art.values[0].data)
+        if Image:
+            img = Image.open(byt)
+            img.save(thumb)
+        else:
+            with open(thumb, "wb+") as f:
+                f.write(byt)
+        return thumb if size_checks(thumb) else DEFAULT_THUMB
     except BaseException as exc:
         LOGS.error(exc)
         return DEFAULT_THUMB

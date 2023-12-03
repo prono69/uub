@@ -23,7 +23,7 @@ import glob
 import os
 from shlex import quote
 
-from pyUltroid.fns.tools import set_attributes, _stdr
+from pyUltroid.fns.tools import _stdr, duration_s, set_attributes
 from pyUltroid.custom._transfer import pyroDL, pyroUL
 
 from . import (

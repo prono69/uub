@@ -20,7 +20,18 @@ import uuid
 from html import unescape
 from random import choice, shuffle
 
-from . import LOGS
+from telethon.events import Raw
+from telethon.tl.types import InputMediaPoll, Poll, PollAnswer, UpdateMessagePollVote
+from telethon.errors.rpcerrorlist import (
+    BotMethodInvalidError,
+    ChatSendStickersForbiddenError,
+)
+
+from pyUltroid._misc._decorators import ultroid_cmd
+from pyUltroid.fns.helper import inline_mention
+from pyUltroid.custom.commons import async_searcher
+
+from . import *
 
 try:
     import akinator
@@ -28,18 +39,6 @@ except ImportError:
     akinator = None
     LOGS.error("'akinator' not installed.")
 
-from telethon.errors.rpcerrorlist import (
-    BotMethodInvalidError,
-    ChatSendStickersForbiddenError,
-)
-from telethon.events import Raw
-from telethon.tl.types import InputMediaPoll, Poll, PollAnswer, UpdateMessagePollVote
-
-from pyUltroid._misc._decorators import ultroid_cmd
-from pyUltroid.fns.helper import inline_mention
-from pyUltroid.fns.tools import async_searcher
-
-from . import *
 
 # -------------------------- Akinator ----------------------- #
 

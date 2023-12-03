@@ -14,10 +14,11 @@ from platform import python_version, python_version_tuple
 from telethon import __version__
 from telethon.tl.alltlobjects import LAYER
 
-from ..configs import Var
+from pyUltroid.configs import Var
 from ._extra import _fix_logging, _ask_input
-from ..version import ultroid_version, __version__ as __pyUltroid__
+from pyUltroid.version import ultroid_version, __version__ as __pyUltroid__
 from pyUltroid.custom.tglogger import TGLogHandler
+
 
 # ----------------------------------------------------------------------------
 

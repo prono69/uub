@@ -42,7 +42,7 @@ from .startup.connections import (
     validate_session as _validate_session,
     vc_connection as _vc_connection,
 )
-from .startup.funcs import autobot as _autobot, enable_inline as _enable_inline
+from .startup.funcs import _autobot, _enable_inline
 
 
 _afterBoot(udB)
@@ -71,7 +71,7 @@ else:
         proxy=udB.get_key("TG_PROXY"),
         entity_cache_limit=2000,
     )
-    ultroid_bot.run_in_loop(_autobot())
+    ultroid_bot.run_in_loop(_autobot(ultroid_bot, udB))
 
 if USER_MODE:
     asst = ultroid_bot

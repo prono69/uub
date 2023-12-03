@@ -11,16 +11,15 @@ from random import choice, shuffle
 from re import match, search, findall
 from urllib.parse import quote_plus, unquote
 
-import aiohttp
-
-from .. import LOGS
-from ..fns import some_random_headers
-from ..fns.misc import split_list
-from ..fns.helper import (
+from pyUltroid import LOGS
+from pyUltroid.fns import some_random_headers
+from .commons import (
+    aiohttp_client as aiohttp,
     async_searcher,
     asyncwrite,
     check_filename,
     get_filename_from_url,
+    split_list,
 )
 
 

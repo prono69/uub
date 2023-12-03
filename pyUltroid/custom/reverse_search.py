@@ -9,8 +9,8 @@ import requests
 from bs4 import BeautifulSoup
 
 from pyUltroid import LOGS
-from pyUltroid.fns.helper import run_async
-from pyUltroid.fns.misc import some_random_headers, string_is_url
+from .commons import run_async, string_is_url
+from pyUltroid.fns import some_random_headers
 
 
 class GoogleReverseSearch:

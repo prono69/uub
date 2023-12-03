@@ -13,8 +13,8 @@ from copy import deepcopy
 from json import dump, load
 from sys import executable
 
-from ..configs import Var
-from .. import LOGS, HOSTED_ON
+from . import LOGS, HOSTED_ON
+from pyUltroid.configs import Var
 
 try:
     from redis.exceptions import ResponseError

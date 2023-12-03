@@ -5,7 +5,7 @@
 # PLease read the GNU Affero General Public License in
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
-__all__ = ("validate_session", "vc_connection", "connect_ub")
+__all__ = ("validate_session", "vc_connection")
 
 import base64
 import ipaddress
@@ -16,7 +16,7 @@ from telethon.errors.rpcerrorlist import AuthKeyDuplicatedError
 from telethon.sessions.string import _STRUCT_PREFORMAT, CURRENT_VERSION, StringSession
 
 from strings import get_string
-from ..configs import Var
+from pyUltroid.configs import Var
 from . import *
 
 

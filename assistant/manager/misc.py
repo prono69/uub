@@ -16,9 +16,9 @@ from pyUltroid.fns.admins import admin_check
 from . import *
 
 
-@asst_cmd(pattern="decide")
+@asst_cmd(pattern="decide$")
 async def dheh(e):
-    text = ["Yes", "NoU", "Maybe", "IDK"]
+    text = ("Yes", "NoU", "Maybe", "IDK")
     text = random.choice(text)
     ri = e.reply_to_msg_id or e.id
     await e.client.send_message(e.chat_id, text, reply_to=ri)

@@ -13,13 +13,12 @@ import sys
 from shutil import rmtree
 
 from decouple import config
-from git import Repo
 
-from .. import *
-from ..dB._core import HELP
-from ..loader import Loader
 from . import *
 from .utils import load_addons
+from pyUltroid import *
+from pyUltroid.dB._core import HELP
+from pyUltroid.loader import Loader
 
 
 def _after_load(loader, module, plugin_name=""):
@@ -119,7 +118,7 @@ def load_other_plugins(addons=None, pmbot=None, manager=None, vcbot=None):
     if vcbot and not vcClient._bot:
         try:
             import pytgcalls  # ignore: pylint
-        except ModuleNotFoundError:
+        except ImportError:
             return LOGS.error("'pytgcalls' not installed!\nSkipping loading of VCBOT.")
 
         if os.path.exists("vcbot"):

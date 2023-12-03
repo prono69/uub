@@ -21,12 +21,8 @@ from telethon import Button
 from telethon.errors.rpcerrorlist import UserNotParticipantError
 from telethon.tl import functions, types
 
-try:
-    from .. import _ult_cache
-    from .._misc import SUDO_M
-except ImportError:
-    _ult_cache = {}
-    SUDO_M = None
+from pyUltroid import _ult_cache
+from pyUltroid._misc import SUDO_M
 
 
 def ban_time(time_str):

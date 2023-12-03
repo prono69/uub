@@ -1,3 +1,5 @@
+# some custom functions that do not belong anywhere else..
+
 import asyncio
 from ast import literal_eval
 from functools import wraps
@@ -12,12 +14,16 @@ from telethon.tl.functions.messages import SaveGifRequest
 from telethon.utils import get_display_name, get_input_document
 from telethon.tl.types import InputMessagesFilterPhotos
 
-from .commons import *
+from pyUltroid import LOGS, asst, udB, ultroid_bot
 from ._loop import loop, run_async_task, tasks_db
-from pyUltroid.startup import LOGS
-from pyUltroid.fns.helper import async_searcher, osremove, asyncread, asyncwrite
-from pyUltroid.fns.misc import random_string
-from pyUltroid import asst, udB, ultroid_bot
+from .commons import (
+    async_searcher,
+    asyncread,
+    asyncwrite,
+    json_parser,
+    osremove,
+    random_string,
+)
 
 
 # scheduler
@@ -107,8 +113,6 @@ async def get_imgbb_link(path, url=None, **kwargs):
                 LOGS.warning("ImgBB preview error:", exc_info=True)
         return flink
     else:
-        from pyUltroid.fns.tools import json_parser
-
         return LOGS.error(json_parser(post, indent=4))
 
 

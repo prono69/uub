@@ -7,7 +7,7 @@
 
 from telethon import events
 
-from . import *
+from . import asst, udB
 
 
 @asst.on(events.ChatAction(func=lambda x: x.user_added))

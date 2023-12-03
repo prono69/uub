@@ -26,8 +26,9 @@ from telethon import Button, events
 from telethon.tl.types import MessageMediaWebPage
 from telethon.utils import get_peer_id
 
-from pyUltroid.fns.helper import fast_download, progress
-from pyUltroid.fns.tools import Carbon, async_searcher, get_paste, telegraph_client
+from pyUltroid.fns.helper import fast_download
+from pyUltroid.fns.tools import Carbon, get_paste, telegraph_client
+from pyUltroid.custom.commons import async_searcher, progress
 from pyUltroid.startup.loader import Loader
 
 from . import *
@@ -325,7 +326,8 @@ async def update(eve):
         await eve.edit("`Successfully Updated!\nRestarting, please wait...`")
     else:
         await eve.edit(get_string("clst_1"))
-        call_back()
+        if call_back:
+            call_back()
         await bash("git pull && pip3 install -r requirements.txt")
         execl(sys.executable, sys.executable, "-m", "pyUltroid")
     """

@@ -5,6 +5,16 @@
 # PLease read the GNU Affero General Public License in
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
+__all__ = (
+    "HOSTED_ON",
+    "KEEP_SAFE",
+    "LOGS",
+    "call_back",
+    "cleanup_cache",
+    "TelethonLogger",
+    "where_hosted",
+)
+
 from ._logger import (
     LOGS,
     HOSTED_ON,
@@ -12,18 +22,9 @@ from ._logger import (
     where_hosted,
 )
 
+
 try:
     from safety.tools import *
 except ImportError:
+    KEEP_SAFE, call_back, cleanup_cache = None, None, None
     LOGS.error("'safety' package not found!")
-
-
-__all__ = (
-    "HOSTED_ON",
-    "LOGS",
-    "KEEP_SAFE",
-    "TelethonLogger",
-    "call_back",
-    "cleanup_cache",
-    "where_hosted",
-)

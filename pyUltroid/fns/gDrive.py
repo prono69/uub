@@ -19,10 +19,11 @@ from oauth2client.client import OOB_CALLBACK_URN, OAuth2WebServerFlow
 from oauth2client.client import logger as _logger
 from oauth2client.file import Storage
 
-from .. import udB
-from .helper import humanbytes, time_formatter
+from pyUltroid import udB
+from pyUltroid.custom.commons import humanbytes, time_formatter
 
-for log in [LOGGER, logger, _logger]:
+
+for log in (LOGGER, logger, _logger):
     log.setLevel(WARNING)
 
 

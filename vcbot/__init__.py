@@ -36,14 +36,12 @@ from telethon.errors.rpcerrorlist import (
 from strings import get_string
 from pyUltroid import HNDLR, LOGS, asst, udB, vcClient
 from pyUltroid._misc._decorators import compile_pattern
-from pyUltroid.fns.helper import (
+from pyUltroid.fns.helper import inline_mention, mediainfo, tg_downloader
+from pyUltroid.custom.commons import (
     bash,
     check_filename,
     get_tg_filename,
-    inline_mention,
-    mediainfo,
     osremove,
-    tg_downloader,
     time_formatter,
 )
 from pyUltroid.fns.admins import admin_check

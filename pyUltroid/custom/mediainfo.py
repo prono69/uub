@@ -3,16 +3,19 @@
 __all__ = ("gen_mediainfo", "TGMediaInfo")
 
 import asyncio
-
 from os.path import getsize
 from re import findall
 from shlex import quote
 from shutil import which
 
-from pymediainfo import MediaInfo
-
 from pyUltroid.fns.helper import humanbytes
 from pyUltroid.startup import LOGS
+
+try:
+    from pymediainfo import MediaInfo
+except ImportError:
+    LOGS.warning("'pymediainfo' not Installed. Some Plugins might NOT work.")
+    MediaInfo = None
 
 
 class TGMediaInfo:
@@ -189,5 +192,7 @@ class TGMediaInfo:
 
 
 async def gen_mediainfo(path):
+    if not MediaInfo:
+        return {}
     _mediainfo = TGMediaInfo(path=path)
     return await _mediainfo.run()

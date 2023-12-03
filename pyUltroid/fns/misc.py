@@ -13,27 +13,27 @@ import random
 import string
 from logging import WARNING
 from traceback import format_exc
-from secrets import choice as schoice
-from urllib.parse import unquote, urlparse
-
-from pyUltroid.exceptions import DependencyMissingError
+from urllib.parse import unquote
 
 from telethon.tl import types
 from telethon.utils import get_display_name, get_peer_id
 
-from .. import *
-from .._misc._wrappers import eor
-from ..dB import DEVLIST
-from ..dB._core import LIST
-
 from . import some_random_headers
-from .helper import async_searcher, asyncread, asyncwrite
-from .tools import check_filename, json_parser
 
-try:
-    import aiohttp
-except ImportError:
-    aiohttp = None
+from pyUltroid import *
+from pyUltroid._misc._wrappers import eor
+from pyUltroid.dB import DEVLIST
+from pyUltroid.dB._core import LIST
+from pyUltroid.exceptions import DependencyMissingError
+from pyUltroid.custom.commons import (
+    aiohttp_client as aiohttp,
+    async_searcher,
+    asyncread,
+    asyncwrite,
+    check_filename,
+    json_parser,
+    osremove,
+)
 
 try:
     from PIL import Image
@@ -150,11 +150,6 @@ async def google_search(query):
 # ----------------------------------------------------
 
 
-def string_is_url(url):
-    result = urlparse(url)
-    return bool(result.scheme and result.netloc)
-
-
 async def allcmds(event, telegraph):
     txt = ""
     for z in LIST.keys():
@@ -169,23 +164,27 @@ async def allcmds(event, telegraph):
 async def ReTrieveFile(input_file_name):
     if not aiohttp:
         raise DependencyMissingError("This function needs 'aiohttp' to be installed.")
+
+    async def _func(out):
+        contentType = out.headers.get("content-type")
+        if "image" not in contentType:
+            return (False, await out.json())
+        content = await out.read()
+        path = check_filename("ult-rmbg.png")
+        await asyncwrite(path, content, mode="wb+")
+        return (True, path)
+
     RMBG_API = udB.get_key("RMBG_API")
     headers = {"X-API-Key": RMBG_API}
     files = {"image_file": await asyncread(input_file_name, binary=True)}
-    out = await async_searcher(
+    resp, out = await async_searcher(
         "https://api.remove.bg/v1.0/removebg",
         post=True,
-        object=True,
+        evaluate=_func,
         headers=headers,
         data=files,
     )
-    contentType = out.headers.get("content-type")
-    if "image" not in contentType:
-        return False, (await out.json())
-    content = await out.read()
-    name = check_filename("ult-rmbg.png")
-    await asyncwrite(name, content, mode="wb+")
-    return True, name
+    return out if resp else LOGS.error(out)
 
 
 # ---------------- Unsplash Search ----------------
@@ -307,8 +306,7 @@ class Quotly:
                     )
                 )[0]["src"]
             )
-            os.remove(file)
-            os.remove(file_)
+            osremove(file, file_)
             return uri
 
         if reply and reply.raw_text:
@@ -395,7 +393,7 @@ class Quotly:
         """Create quotely's quote."""
         if not isinstance(event, list):
             event = [event]
-        from .. import udB
+        # from .. import udB
 
         if udB.get_key("OQAPI"):
             url = Quotly._API
@@ -433,14 +431,6 @@ class Quotly:
         raise Exception(str(request))
 
 
-def split_list(List, index):
-    new_ = []
-    while List:
-        new_.extend([List[:index]])
-        List = List[index:]
-    return new_
-
-
 # https://stackoverflow.com/questions/9041681/opencv-python-rotate-image-by-x-degrees-around-specific-point
 def rotate_image(image, angle):
     if not cv2:
@@ -450,36 +440,12 @@ def rotate_image(image, angle):
     return cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
 
 
-def random_string(length=12, numbers=False, symbols=False):
-    """Generate random string of 'n' Length"""
-    # return "".join(choices(string.ascii_uppercase, k=length))
-    _all = list(string.ascii_letters)
-    if numbers:
-        _all.extend(list(string.digits))
-    if symbols:
-        _all.extend(list(string.punctuation))
-    for _ in range(length // 3):
-        random.shuffle(_all)
-    rnd_str = "".join(schoice(_all) for _ in range(length + 12))
-    return "".join(random.sample(rnd_str, length))
-
-
-setattr(random, "random_string", random_string)
-
-
 __all__ = (
     "Quotly",
-    "ReTrieveFile",
     "YtDataScraper",
     "allcmds",
-    "get_random_user_data",
-    "get_synonyms_or_antonyms",
     "google_search",
-    "random_string",
     "randomchannel",
     "rotate_image",
-    "some_random_headers",
-    "split_list",
-    "string_is_url",
     "unsplashsearch",
 )

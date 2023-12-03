@@ -16,9 +16,10 @@ from telethon.tl.types import (
 )
 from telethon.utils import get_display_name
 
-from pyUltroid.fns.helper import inline_mention, time_formatter
-
+from pyUltroid.fns.helper import inline_mention
+from pyUltroid.custom.commons import time_formatter
 from . import asst, asst_cmd
+
 
 AFK = {}
 
