@@ -20,7 +20,7 @@ from pyUltroid._misc._decorators import compile_pattern, ultroid_cmd
 from pyUltroid._misc._wrappers import eod, eor
 
 from pyUltroid import *
-from .dB._core import LIST
+from pyUltroid.dB._core import LIST
 from . import CMD_HELP, SUDO_M  # ignore: pylint
 
 

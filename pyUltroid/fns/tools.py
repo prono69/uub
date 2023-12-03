@@ -1,4 +1,4 @@
-ii  # Ultroid - UserBot
+# Ultroid - UserBot
 # Copyright (C) 2021-2022 TeamUltroid
 #
 # This file is a part of < https://github.com/TeamUltroid/Ultroid/ >

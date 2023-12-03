@@ -384,7 +384,7 @@ async def progress(current, total, event, start, type_of_ps, file_name=None):
 
 __all__ = (
     "run_async",
-    "check_filemame",
+    "check_filename",
     "osremove",
     "get_tg_filename",
     "get_filename_from_url",

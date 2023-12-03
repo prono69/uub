@@ -29,7 +29,6 @@ from pyUltroid.custom._transfer import pyroDL, pyroUL
 from . import (
     ULTConfig,
     bash,
-    duration_s,
     eod,
     genss,
     get_string,

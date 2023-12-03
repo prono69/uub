@@ -27,6 +27,17 @@ except ImportError:
 # ---------------------------------------------------------------------------------------------
 
 
+# just for testing
+xyzdb = {}
+
+
+def xyz(key):
+    try:
+        xyzdb[key] += 1
+    except KeyError:
+        xyzdb[key] = 1
+
+
 class _BaseDatabase:
     __slots__ = ("_cache",)
 
@@ -34,6 +45,7 @@ class _BaseDatabase:
         if self.to_cache:
             self._cache = {}
             self._re_cache()
+            xyzdb.clear()
 
     def ping(self):
         return 1
@@ -78,6 +90,7 @@ class _BaseDatabase:
         elif force:
             # It will sync the cache with db.
             self._cache.pop(key, None)
+            xyz(key)
             value = self._get_data(key=key)
             if not key.startswith("__"):
                 self._cache[key] = value
@@ -504,7 +517,8 @@ def _UltroidDB():
 
             return SqlDB(url=Var.DATABASE_URL, to_cache=True, _name="SQL")
         else:
-            quit(0)  # remove this to use Local DB
+            # quit(0)
+            # use Local DB if available.
 
             if path.exists("localdb.json"):
                 LOGS.info("Connecting to Local Database..")

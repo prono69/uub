@@ -39,7 +39,7 @@ try:
 except ImportError:
     cv2 = None
 
-from pyUltroid.fns.misc import google_search, string_is_url
+from pyUltroid.fns.misc import google_search
 from pyUltroid.fns.tools import get_google_images, saavn_search
 from pyUltroid.custom.reverse_search import GoogleReverseSearch
 
@@ -51,15 +51,16 @@ from . import (
     fast_download,
     get_string,
     osremove,
+    string_is_url,
     ultroid_cmd,
 )
 
 
 @ultroid_cmd(
-    pattern="github (.*)",
+    pattern="github( (.*)|$)",
 )
 async def gitsearch(event):
-    usrname = event.pattern_match.group(1).strip()
+    usrname = event.pattern_match.group(2)
     if not usrname:
         return await event.eor(get_string("srch_1"))
     url = f"https://api.github.com/users/{usrname}"
@@ -120,7 +121,7 @@ async def google(event):
 
 @ultroid_cmd(pattern="img( (.*)|$)")
 async def goimg(event):
-    query = event.pattern_match.group(1).strip()
+    query = event.pattern_match.group(2)
     if not query:
         return await event.eor(get_string("autopic_1"))
     nn = await event.eor(get_string("com_1"))
