@@ -1,9 +1,9 @@
 # better mediainfo! - by @moiusrname (dot arc)
 
-__all__ = ("gen_mediainfo", "TGMediaInfo")
+__all__ = ("gen_mediainfo",)
 
 import asyncio
-from os.path import getsize
+from pathlib import Path, PurePath
 from re import findall
 from shlex import quote
 from shutil import which
@@ -28,7 +28,7 @@ class TGMediaInfo:
 
     async def run(self):
         out = {}
-        out["size"] = humanbytes(getsize(self.path))
+        out["size"] = humanbytes(Path(self.path).stat().st_size)
         _ext = self._getter(self.general_track, "file_extension", False)
         if _ext and _ext.lower() in ("tgs", "webp"):
             out["type"] = "sticker"
@@ -57,7 +57,17 @@ class TGMediaInfo:
             executable=which("bash"),
         )
         stdout, stderr = await process.communicate()
+        stderr = stderr.decode(errors="replace").strip()
+        stdout = stdout.decode(errors="replace").strip()
         return process, stdout, stderr
+
+    @staticmethod
+    def check_output(data):
+        try:
+            chk = findall(r"[\d\.]+", data)
+            return next(filter(bool, chk))
+        except StopIteration:
+            return
 
     # audio stream helper
     @staticmethod
@@ -81,9 +91,8 @@ class TGMediaInfo:
         # -count_frames ~ slow
         try:
             res, output, err = await TGMediaInfo.execute(cmd)
-            if res.returncode == 0:
-                if frame := findall(r"[\d\.]+", output):
-                    return int(frame[0])
+            if res.returncode == 0 and (frames := TGMediaInfo.check_output(output)):
+                return int(frames)
         except Exception as err:
             LOGS.exception(f"Error in getting frame count via ffprobe: {file} | {err}")
 
@@ -93,9 +102,8 @@ class TGMediaInfo:
         cmd = f"ffprobe -hide_banner -v error -select_streams v:0 -show_entries stream=bit_rate -of default=noprint_wrappers=1 {quote(file)}"
         try:
             res, output, err = await TGMediaInfo.execute(cmd)
-            if res.returncode == 0:
-                if b_rate := findall(r"[\d\.]+", output):
-                    return int(b_rate[0])
+            if res.returncode == 0 and (bit_rate := TGMediaInfo.check_output(output)):
+                return int(bit_rate)
         except Exception as err:
             LOGS.exception(f"Error in getting bitrate via ffprobe: {file} | {err}")
 
@@ -105,8 +113,8 @@ class TGMediaInfo:
         cmd = f"ffprobe -hide_banner -v error -show_entries format=duration -of default=noprint_wrappers=1 {quote(file)}"
         try:
             res, output, err = await TGMediaInfo.execute(cmd)
-            _dur = findall(r"[\d\.]+", output) if res.returncode == 0 else None
-            return round(float(_dur[0])) if _dur else 0
+            if res.returncode == 0 and (duration := TGMediaInfo.check_output(output)):
+                return round(float(duration))
         except Exception as err:
             LOGS.exception(f"Error in getting duration via ffprobe: {file} | {err}")
             return 0
@@ -194,5 +202,5 @@ class TGMediaInfo:
 async def gen_mediainfo(path):
     if not MediaInfo:
         return {}
-    _mediainfo = TGMediaInfo(path=path)
+    _mediainfo = TGMediaInfo(path=str(path) if isinstance(path, PurePath) else path)
     return await _mediainfo.run()

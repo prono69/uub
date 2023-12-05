@@ -177,14 +177,16 @@ async def ReTrieveFile(input_file_name):
     RMBG_API = udB.get_key("RMBG_API")
     headers = {"X-API-Key": RMBG_API}
     files = {"image_file": await asyncread(input_file_name, binary=True)}
-    resp, out = await async_searcher(
+    response = await async_searcher(
         "https://api.remove.bg/v1.0/removebg",
         post=True,
         evaluate=_func,
         headers=headers,
         data=files,
     )
-    return out if resp else LOGS.error(out)
+    if not response[0]:
+        LOGS.error(response[1])
+    return response
 
 
 # ---------------- Unsplash Search ----------------
@@ -393,10 +395,14 @@ class Quotly:
         """Create quotely's quote."""
         if not isinstance(event, list):
             event = [event]
-        # from .. import udB
+
+        """
+        from .. import udB
 
         if udB.get_key("OQAPI"):
             url = Quotly._API
+        """
+
         if not bg:
             bg = "#1b1429"
         content = {
@@ -411,19 +417,8 @@ class Quotly:
                 for message in event
             ],
         }
-        try:
-            request = await async_searcher(url, post=True, json=content, re_json=True)
-        except aiohttp.ContentTypeError as er:
-            if url != self._API:
-                return await self.create_quotly(
-                    event,
-                    url=self._API,
-                    bg=bg,
-                    sender=sender,
-                    reply=reply,
-                    file_name=file_name,
-                )
-            raise er
+
+        request = await async_searcher(url, post=True, json=content, re_json=True)
         if request.get("ok"):
             image = base64.decodebytes(request["result"]["image"].encode("utf-8"))
             await asyncwrite(file_name, image, mode="wb+")

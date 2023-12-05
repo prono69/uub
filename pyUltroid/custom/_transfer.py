@@ -169,7 +169,7 @@ class pyroDL:
             LOGS.debug(f"Stopped Downloading - {self.filename}")
         elif self.event and self.show_progress:
             try:
-                msg = f"__**Error While Downloading :**__ \n>  ```{self.relative_path}``` \n>  `{error}`"
+                msg = f"__**Error While Downloading :**__ \n>  `{self.relative_path}` \n>  `{error}`"
                 await self.event.edit(msg)
             except Exception as exc:
                 LOGS.exception(exc)
@@ -373,7 +373,9 @@ class pyroUL:
             setattr(self, k, v)
         if self.event and self.show_progress:
             setattr(self.event, "is_cancelled", False)
-            self.progress_text = f"```{self.count}/{self.total_files} | Uploading {self.relative_path}..```"
+            self.progress_text = (
+                f"`{self.count}/{self.total_files} | Uploading {self.relative_path}..`"
+            )
 
     async def pre_upload(self):
         self.start_time = time()
@@ -431,14 +433,14 @@ class pyroUL:
         await asyncio.sleep(0.6)
         if self.auto_edit and self.event:
             await self.event.edit(
-                f"__**Successfully Uploaded!  ({self.count}/{self.total_files})**__ \n**>**  ```{self.relative_path}```",
+                f"__**Successfully Uploaded!  ({self.count}/{self.total_files})**__ \n**>**  `{self.relative_path}`",
             )
 
     async def handle_error(self, error):
         self.failed += 1
         if self.event and self.show_progress:
             try:
-                msg = f"__**Error While Uploading :**__ \n>  ```{self.relative_path}``` \n>  `{error}`"
+                msg = f"__**Error While Uploading :**__ \n>  `{self.relative_path}` \n>  `{error}`"
                 await self.event.edit(msg)
             except Exception as exc:
                 LOGS.exception(exc)
@@ -504,7 +506,7 @@ class pyroUL:
                     "$$base", self.file.name
                 )
         else:
-            self.caption = "__**Uploaded in {0}** • ({1})__ \n**>**  ```{2}```".format(
+            self.caption = "__**Uploaded in {0}** • ({1})__ \n**>**  `{2}`".format(
                 self.ul_time,
                 self.metadata["size"],
                 self.relative_path,
