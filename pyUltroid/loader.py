@@ -5,6 +5,7 @@
 # PLease read the GNU Affero General Public License in
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
+import asyncio
 import contextlib
 import glob
 import os
@@ -12,16 +13,18 @@ from importlib import import_module
 from logging import Logger
 
 from pyUltroid.startup import LOGS
-from pyUltroid.custom.commons import get_all_files
+from pyUltroid.custom.commons import get_all_files, split_list
 
 
 class Loader:
+    __slots__ = ("path", "key", "_logger")
+
     def __init__(self, path="plugins", key="Official", logger: Logger = LOGS):
         self.path = path
         self.key = key
         self._logger = logger
 
-    def load(
+    async def load(
         self,
         log=True,
         func=import_module,
@@ -51,11 +54,13 @@ class Loader:
                     if not path.startswith("_"):
                         with contextlib.suppress(ValueError):
                             files.remove(f"{self.path}/{path}.py")
+
         if log and not _single:
             self._logger.info(
                 f"• Installing {self.key} Plugins || Count : {len(files)} •"
             )
-        for plugin in sorted(files):
+
+        async def load_it(plugin):
             if func == import_module:
                 plugin = plugin.replace(".py", "").replace("/", ".").replace("\\", ".")
             try:
@@ -63,14 +68,21 @@ class Loader:
             except ModuleNotFoundError as er:
                 modl = None
                 self._logger.error(f"{plugin}: '{er.name}' not installed!")
-                continue
+                return
             except Exception:
                 modl = None
                 self._logger.exception(f"pyUltroid - {self.key} - ERROR - {plugin}")
-                continue
+                return
+
             if _single and log:
                 self._logger.info(f"Successfully Loaded {plugin}!")
             if callable(after_load):
                 if func == import_module:
                     plugin = plugin.split(".")[-1]
                 after_load(self, modl, plugin_name=plugin)
+
+        for plugins in split_list(sorted(files), 6):
+            await asyncio.gather(
+                *[load_it(plug) for plug in plugins],
+                return_exceptions=True,
+            )

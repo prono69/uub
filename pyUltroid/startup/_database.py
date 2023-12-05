@@ -517,16 +517,21 @@ def _UltroidDB():
 
             return SqlDB(url=Var.DATABASE_URL, to_cache=True, _name="SQL")
         else:
-            # quit(0)
             # use Local DB if available.
+            LOGS.info("Connecting to Local Database..")
+            if not path.exists("localdb.json"):
+                LOGS.info("Creating new LocalDB JSON file..")
+                with open("localdb.json", "w+") as f:
+                    f.write("{}")
 
-            if path.exists("localdb.json"):
-                LOGS.info("Connecting to Local Database..")
-                return LocalDB()
+            return LocalDB()
+
+            """
             LOGS.critical(
                 "No DB requirements fullfilled!\nPlease install Redis, Mongo or SQL dependencies.\n\nTill then using LocalDB as your Database."
             )
             quit(0)
+            """
     except BaseException as err:
         LOGS.exception(err)
     quit(0)

@@ -518,7 +518,7 @@ def telegraph_client():
         LOGS.info("'Telegraph' is not Installed!")
         return
 
-    # from .. import udB, ultroid_bot
+    from pyUltroid import udB, ultroid_bot
 
     token = udB.get_key("_TELEGRAPH_TOKEN")
     TelegraphClient = Telegraph(token)
@@ -594,7 +594,7 @@ async def Carbon(
 
 
 async def get_file_link(msg):
-    # from .. import udB
+    from pyUltroid import udB
 
     msg_id = await msg.forward_to(udB.get_key("LOG_CHANNEL"))
     await msg_id.reply(
@@ -607,7 +607,7 @@ async def get_file_link(msg):
 
 
 async def get_stored_file(event, hash):
-    # from .. import udB, asst
+    from pyUltroid import asst, udB
 
     msg_id = get_stored_msg(hash)
     if not msg_id:

@@ -17,11 +17,8 @@ from traceback import format_exc
 from telethon.helpers import _maybe_await
 from telethon.tl import types
 from telethon.utils import get_display_name
-# from telethon.errors import MessageNotModifiedError, MessageIdInvalidError
 
-from . import *
-
-from pyUltroid import LOGS, Var
+from pyUltroid import *
 from pyUltroid._misc import CMD_HELP
 from pyUltroid._misc._wrappers import eod, eor
 from pyUltroid.custom.commons import *
@@ -69,7 +66,7 @@ def inline_mention(user, custom=None, html=False):
 
 
 def un_plug(shortname):
-    from .. import asst, ultroid_bot
+    from pyUltroid import asst, ultroid_bot
 
     try:
         name = f"addons.{shortname}"
@@ -99,8 +96,8 @@ def un_plug(shortname):
 
 
 async def safeinstall(event):
-    from .. import HNDLR
-    from ..startup.utils import load_addons
+    from pyUltroid import HNDLR
+    from pyUltroid.startup.utils import load_addons
 
     if not event.reply_to:
         return await eod(event, f"Please use `{HNDLR}install` as reply to a .py file.")
@@ -155,7 +152,7 @@ async def safeinstall(event):
 
 async def heroku_logs(event):
     """post heroku logs"""
-    from ..heroku import Heroku
+    from pyUltroid.custom.heroku import Heroku
 
     xx = await eor(event, "`Processing...`")
     if err := Heroku.get("err"):
@@ -457,7 +454,7 @@ def numerize(number):
 
 
 async def restart(ult=None, edit=False):
-    from .. import HOSTED_ON, ultroid_bot
+    from pyUltroid import HOSTED_ON, ultroid_bot
 
     if edit and ult:
         ult = await ult.eor("`Restarting your app, please wait for a minute!`")
@@ -482,7 +479,7 @@ async def restart(ult=None, edit=False):
 
 
 async def shutdown(ult):
-    from .. import HOSTED_ON, ultroid_bot
+    from pyUltroid import HOSTED_ON, ultroid_bot
 
     ult = await ult.eor("`Shutting Down..`")
     if HOSTED_ON == "heroku":
