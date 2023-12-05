@@ -13,7 +13,7 @@ from importlib import import_module
 from logging import Logger
 
 from pyUltroid.startup import LOGS
-from pyUltroid.custom.commons import get_all_files, split_list
+from pyUltroid.custom.commons import get_all_files, run_async
 
 
 class Loader:
@@ -60,7 +60,8 @@ class Loader:
                 f"• Installing {self.key} Plugins || Count : {len(files)} •"
             )
 
-        async def load_it(plugin):
+        @run_async
+        def load_it(plugin):
             if func == import_module:
                 plugin = plugin.replace(".py", "").replace("/", ".").replace("\\", ".")
             try:
@@ -81,8 +82,11 @@ class Loader:
                     plugin = plugin.split(".")[-1]
                 after_load(self, modl, plugin_name=plugin)
 
-        for plugins in split_list(sorted(files), 6):
-            await asyncio.gather(
-                *[load_it(plug) for plug in plugins],
-                return_exceptions=True,
+        out = await asyncio.gather(
+            *[load_it(plug) for plug in sorted(files)],
+            return_exceptions=True,
+        )
+        for i in filter(lambda j: isinstance(j, Exception), out):
+            self._logger.exception(
+                f"ERROR in loading {self.key}, {self.path} plugins ..(!?).."
             )
