@@ -219,7 +219,14 @@ async def restartbt(ult):
     who = "bot" if ult.client._bot else "user"
     udB.set_key("_RESTART", f"{who}_{ult.chat_id}_{ok.id}")
     if ult.pattern_match.group(1):
-        await bash("git reset --hard; git pull --rebase")
+        out = await asyncio.gather(
+            bash("git reset --hard; git pull --rebase"),
+            bash("(cd addons && git reset --hard; git pull --rebase)"),
+            return_exceptions=True,
+        )
+        for i in filter(lambda j: isinstance(j, Exception), out):
+            LOGS.exception(i)
+        await asyncio.sleep(5)
     return await restart(ult=ok, edit=True)
 
     """
