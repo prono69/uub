@@ -14,6 +14,7 @@ import ssl
 from base64 import b64decode
 from random import choice, shuffle
 from io import BytesIO
+from pathlib import Path
 from shlex import quote as shquote
 from shutil import copy2
 from traceback import format_exc
@@ -152,11 +153,10 @@ async def set_attributes(file):
                 supports_streaming=True,
             )
         ]
-    ext = "." + file.split(".")[-1]
     return [
         DocumentAttributeAudio(
             duration=data.get("duration", 0),
-            title=data.get("title", file.split("/")[-1].replace(ext, "")),
+            title=data.get("title", Path(file).stem),
             performer=data.get("performer"),
         )
     ]

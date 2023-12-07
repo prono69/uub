@@ -52,7 +52,7 @@ def run_async(function):
     @wraps(function)
     async def wrapper(*args, **kwargs):
         loop = asyncio.get_running_loop()
-        return loop.run_in_executor(
+        return await loop.run_in_executor(
             ThreadPoolExecutor(max_workers=multiprocessing.cpu_count() * 2),
             partial(function, *args, **kwargs),
         )

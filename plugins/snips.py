@@ -42,6 +42,8 @@ async def add_snips(e):
         msg = k["msg"]
         media = k["media"]
         rep = await e.get_reply_message()
+        if e.out:
+            await e.try_delete()
         if rep:
             if k.get("button"):
                 btn = create_tl_btn(k["button"])
@@ -52,8 +54,6 @@ async def add_snips(e):
                 btn = create_tl_btn(k["button"])
                 return await something(e, msg, media, btn, reply=None)
             await not_so_fast(e.respond, msg, file=media)
-        if e.out:
-            await e.try_delete()
 
 
 @ultroid_cmd(pattern="addsnip( (.*)|$)")
