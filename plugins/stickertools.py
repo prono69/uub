@@ -380,7 +380,10 @@ async def hehe(args):
                 await conv.send_message(packname)
                 await conv.get_response()
                 await ultroid_bot.send_read_acknowledge(conv.chat_id)
-        osremove(photo)
+        try:
+            osremove(photo)
+        except Exception:
+            pass
         await xx.edit(
             get_string("sts_12").format(emoji, packname),
             parse_mode="md",
