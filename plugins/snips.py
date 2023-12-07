@@ -34,14 +34,35 @@ from . import events, get_string, mediainfo, not_so_fast, udB, ultroid_bot, ultr
 from ._inline import something
 
 
+_SNIP_PREFIX = "$"
+
+
+async def add_snips(e):
+    if k := get_snips(e.text.lstrip(_SNIP_PREFIX)):
+        msg = k["msg"]
+        media = k["media"]
+        rep = await e.get_reply_message()
+        if rep:
+            if k.get("button"):
+                btn = create_tl_btn(k["button"])
+                return await something(rep, msg, media, btn)
+            await not_so_fast(rep.reply, msg, file=media)
+        else:
+            if k.get("button"):
+                btn = create_tl_btn(k["button"])
+                return await something(e, msg, media, btn, reply=None)
+            await not_so_fast(e.respond, msg, file=media)
+        if e.out:
+            await e.try_delete()
+
+
 @ultroid_cmd(pattern="addsnip( (.*)|$)")
-async def an(e):
-    wrd = (e.pattern_match.group(1).strip()).lower()
+async def touchsnip(e):
+    wrd = e.pattern_match.group(2)
     wt = await e.get_reply_message()
     if not (wt and wrd):
         return await e.eor(get_string("snip_1"))
-    if "$" in wrd:
-        wrd = wrd.replace("$", "")
+    wrd = wrd.lower().lstrip(_SNIP_PREFIX)
     btn = format_btn(wt.buttons) if wt.buttons else None
     if wt and wt.media:
         wut = mediainfo(wt.media)
@@ -71,52 +92,40 @@ async def an(e):
         if not btn:
             txt, btn = get_msg_button(wt.text)
         add_snip(wrd, txt, None, btn)
-    await e.eor(f"Done : snip `${wrd}` Saved.")
-    ultroid_bot.add_handler(add_snips, events.NewMessage())
+    await e.eor(f"Done: snip `${wrd}` Saved.")
+    for func, _ in ultroid_bot.list_event_handlers():
+        if func == add_snips:
+            return
+    func = lambda e: (
+        (e.text and e.text.startswith(_SNIP_PREFIX))
+        and not e.media
+        and (e.out or e.sender_id in sudoers())
+    )
+    ultroid_bot.add_handler(add_snips, events.NewMessage(func=func))
 
 
 @ultroid_cmd(pattern="remsnip( (.*)|$)")
-async def rs(e):
-    wrd = (e.pattern_match.group(1).strip()).lower()
+async def rmsnip(e):
+    wrd = e.pattern_match.group(2)
     if not wrd:
         return await e.eor(get_string("snip_2"))
-    if wrd.startswith("$"):
-        wrd = wrd.replace("$", "")
+    wrd = wrd.lower().lstrip(_SNIP_PREFIX)
     rem_snip(wrd)
     await e.eor(f"Done : snip `${wrd}` Removed.")
 
 
-@ultroid_cmd(pattern="listsnip")
-async def lsnote(e):
+@ultroid_cmd(pattern="listsnip$")
+async def lssnips(e):
     if x := list_snip():
         sd = "SNIPS Found :\n\n"
         return await e.eor(sd + x)
-    await e.eor("No Snips Found Here..")
-
-
-async def add_snips(e):
-    if not e.out and e.sender_id not in sudoers():
-        return
-    xx = [z.replace("$", "") for z in e.text.lower().split() if z.startswith("$")]
-    for z in xx:
-        if k := get_snips(z):
-            msg = k["msg"]
-            media = k["media"]
-            rep = await e.get_reply_message()
-            if rep:
-                if k.get("button"):
-                    btn = create_tl_btn(k["button"])
-                    return await something(rep, msg, media, btn)
-                await not_so_fast(rep.reply, msg, file=media)
-            else:
-                # await e.try_delete()
-                if k.get("button"):
-                    btn = create_tl_btn(k["button"])
-                    return await something(e, msg, media, btn, reply=None)
-                await not_so_fast(ultroid_bot.send_message, e.chat_id, msg, file=media)
+    await e.eor("No Snips Found in Database..")
 
 
 if udB.get_key("SNIP"):
-    ultroid_bot.add_handler(
-        add_snips, events.NewMessage(func=lambda e: e.text and not e.media)
+    func = lambda e: (
+        (e.text and e.text.startswith(_SNIP_PREFIX))
+        and not e.media
+        and (e.out or e.sender_id in sudoers())
     )
+    ultroid_bot.add_handler(add_snips, events.NewMessage(func=func))

@@ -5,6 +5,7 @@ import os
 import json
 import random
 import string
+import time
 from datetime import datetime
 from functools import partial, wraps
 from mimetypes import guess_extension
@@ -33,12 +34,9 @@ try:
     from aiohttp import ClientSession as aiohttp_client
 except ImportError:
     aiohttp_client = None
-    try:
-        from pyUltroid.startup import LOGS
+    from pyUltroid.startup import LOGS
 
-        LOGS.warning("'aiohttp' is missing, some plugins will not work.")
-    except ImportError:
-        pass
+    LOGS.warning("'aiohttp' is missing, some plugins will not work.")
 
 
 # ---------------------------------------------------------------- #
@@ -239,7 +237,12 @@ async def async_searcher(
     elif requests:
         method = "POST" if post else method
         data = await run_async(
-            requests.request, method.upper(), url, headers=headers, *args, **kwargs
+            requests.request,
+            method.upper(),
+            url,
+            headers=headers,
+            *args,
+            **kwargs,
         )
         if re_json:
             return data.json()

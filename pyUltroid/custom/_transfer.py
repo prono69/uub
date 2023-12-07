@@ -32,12 +32,13 @@ from telethon.errors import (
 
 from pyrog import app
 from pyUltroid.startup import LOGS
-from pyUltroid import asst, udB, ultroid_bot
+from pyUltroid import ULTConfig, asst, udB, ultroid_bot
 from pyUltroid.exceptions import DownloadError, UploadError
 from pyUltroid.fns.helper import inline_mention
 from .mediainfo import gen_mediainfo
 from .functions import cleargif, run_async_task
 from .commons import (
+    asyncwrite,
     bash,
     check_filename,
     get_tg_filename,
@@ -63,8 +64,6 @@ except ImportError:
 DUMP_CHANNEL = udB.get_key("TAG_LOG")
 PROGRESS_LOG = {}
 LOGGER_MSG = "Uploading {} | Path: {} | DC: {} | Size: {}"
-DEFAULT_THUMB = str(Path.cwd().joinpath("resources/extras/ultroid.jpg"))
-
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -117,6 +116,14 @@ async def pyro_progress(
         pass
     except MessageIdInvalidError:
         setattr(message, "is_cancelled", True)
+
+
+# default thumbnail
+def default_thumb():
+    cnfg = getattr(ULTConfig, "thumb", None)
+    if cnfg and Path(cnfg).is_file():
+        return cnfg
+    return str(Path.cwd().joinpath("resources/extras/ultroid.jpg"))
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -317,6 +324,7 @@ class pyroUL:
         self.success = 0
         self.failed = 0
         self.silent = True
+        self.skip_finalize = False
         self.force_document = False
         self.delay = 8  # progress edit delay
 
@@ -338,7 +346,10 @@ class pyroUL:
                     # Process Cancelled // Event message Deleted..
                     return LOGS.debug(f"Stopped Uploading - {str(self.file)}")
                 if self.return_obj:
-                    return out  # for single file
+                    return out
+                elif self.skip_finalize:
+                    await asyncio.sleep(self.sleeptime)
+                    continue
                 await self.finalize(out)
                 await self.handle_edits()
                 await asyncio.sleep(self.sleeptime)
@@ -683,7 +694,7 @@ def size_checks(path):
 
 
 async def gen_video_thumb(path, duration, first_frame=False):
-    if first_frame or duration < 5:
+    if first_frame or duration < 6:
         dur = 1
     else:
         rnd_dur = choice((0.25, 0.33, 0.4, 0.45, 0.5, 0.55, 0.6, 0.66, 0.75))
@@ -693,12 +704,12 @@ async def gen_video_thumb(path, duration, first_frame=False):
     await bash(
         f"ffmpeg -ss {dur} -i {quote(path)} -vframes 1 {quote(str(thumb_path))} -y"
     )
-    return str(thumb_path) if size_checks(thumb_path) else DEFAULT_THUMB
+    return str(thumb_path) if size_checks(thumb_path) else default_thumb()
 
 
 async def gen_audio_thumb(path):
     if not load_file:
-        return DEFAULT_THUMB
+        return default_thumb()
 
     rnds = "".join(choices(ascii_lowercase, k=8))
     thumb = check_filename(f"resources/temp/{rnds}.jpg")
@@ -712,9 +723,8 @@ async def gen_audio_thumb(path):
             img = Image.open(byt)
             img.save(thumb)
         else:
-            with open(thumb, "wb+") as f:
-                f.write(byt)
-        return thumb if size_checks(thumb) else DEFAULT_THUMB
+            await asyncwrite(thumb, byt, mode="wb+")
+        return thumb if size_checks(thumb) else default_thumb()
     except BaseException as exc:
         LOGS.error(exc)
-        return DEFAULT_THUMB
+        return default_thumb()

@@ -4,6 +4,7 @@
 # This file is a part of < https://github.com/TeamUltroid/Ultroid/ >
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
+
 """
 ✘ Commands Available -
 
@@ -20,7 +21,7 @@
     Forward that replied msg to ur saved messages.
 """
 
-from . import HNDLR, eod, get_string, ultroid_cmd
+from . import HNDLR, eod, get_string, ultroid_bot, ultroid_cmd
 
 
 @ultroid_cmd(pattern="(send|dm)( (.*)|$)", fullsudo=True)
@@ -69,7 +70,7 @@ async def saf(e):
             e, "Reply to Any Message to save it to ur saved messages", time=5
         )
     if e.pattern_match.group(1).strip() == "f":
-        await x.forward_to(e.sender_id)
+        await x.forward_to(ultroid_bot.uid)
     else:
-        await e.client.send_message(e.sender_id, x)
+        await e.client.send_message(ultroid_bot.uid, x)
     await e.eor("Message saved to Your Pm/Saved Messages.", time=5)

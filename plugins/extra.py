@@ -18,22 +18,20 @@ from . import get_string, ultroid_cmd
     pattern="del$",
     manager=True,
 )
-async def delete_it(delme):
+async def delete__it(delme):
     msg_src = await delme.get_reply_message()
     if not msg_src:
         return
-    await msg_src.try_delete()
-    await delme.try_delete()
+    await asyncio.gather(msg_src.try_delete(), delme.try_delete())
 
 
 @ultroid_cmd(
     pattern="copy$",
 )
-async def copy(e):
+async def _copy(e):
     reply = await e.get_reply_message()
     if reply:
-        await reply.reply(reply)
-        return await e.try_delete()
+        return await asyncio.gather(e.try_delete(), reply.reply(reply))
     await e.eor(get_string("ex_1"), time=5)
 
 
@@ -47,39 +45,42 @@ async def editer(edit):
     reply = await edit.get_reply_message()
     if reply and reply.text:
         try:
-            await reply.edit(string)
-            await edit.delete()
+            await asyncio.gather(reply.edit(string), edit.try_delete())
         except BaseException:
             pass
     else:
-        i = 1
-        async for message in edit.client.iter_messages(chat, from_user="me", limit=2):
-            if i == 2:
-                await message.edit(string)
-                await edit.delete()
-                break
-            i += 1
+        async for message in edit.client.iter_messages(
+            chat, from_user="me", max_id=e.id, limit=1
+        ):
+            await asyncio.gather(
+                message.edit(string),
+                edit.try_delete(),
+            )
 
 
 @ultroid_cmd(
     pattern="reply$",
+    fullsudo=True,
 )
-async def _(e):
+async def _replyy(e):
     if e.reply_to_msg_id:
         chat = e.chat_id
         try:
-            msg = (await e.client.get_messages(e.chat_id, limit=1, max_id=e.id))[0]
+            msg = (
+                await e.client.get_messages(
+                    e.chat_id, limit=1, from_user="me", max_id=e.id
+                )
+            )[0]
         except IndexError:
             return await e.eor(
                 "`You have previously sent no message to reply again...`", time=5
             )
         except BaseException as er:
             return await e.eor(f"**ERROR:** `{er}`")
-        await asyncio.wait(
-            [
-                e.client.delete_messages(chat, [e.id, msg.id]),
-                e.client.send_message(chat, msg, reply_to=e.reply_to_msg_id),
-            ]
+        await asyncio.gather(
+            e.try_delete(),
+            msg.try_delete(),
+            e.client.send_message(chat, msg, reply_to=e.reply_to_msg_id),
         )
     else:
         await e.try_delete()

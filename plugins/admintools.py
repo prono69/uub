@@ -306,7 +306,9 @@ async def pin_message(ult):
         LOGS.exception(er)
 
 
-@ultroid_cmd(pattern=r"purge( (\d*)|$)", manager=True, require="delete_messages")
+@ultroid_cmd(
+    pattern=r"purge( (\d*)|$)", fullsudo=True, manager=True, require="delete_messages"
+)
 async def fastpurger(purg):
     match = purg.pattern_match.group(2)
     match = int(match) if match else None
@@ -341,6 +343,7 @@ async def fastpurger(purg):
 
 @ultroid_cmd(
     pattern=r"purgeme( (\d*)|$)",
+    fullsudo=True,
 )
 async def fastpurgeme(purg):
     num = purg.pattern_match.group(2)
@@ -370,6 +373,7 @@ async def fastpurgeme(purg):
 
 @ultroid_cmd(
     pattern="purgeall$",
+    fullsudo=True,
 )
 async def _(e):
     if not e.is_reply:
@@ -438,6 +442,7 @@ async def get_all_pinned(event):
 @ultroid_cmd(
     pattern="autodelete( (.*)|$)",
     admins_only=True,
+    fullsudo=True,
 )
 async def autodelte(ult):
     match = ult.pattern_match.group(1).strip()

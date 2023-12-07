@@ -13,13 +13,15 @@ import asyncio
 import glob
 import os
 import time
+from pathlib import Path
 
 from aiohttp.client_exceptions import InvalidURL
 from telethon.errors.rpcerrorlist import MessageNotModifiedError
+from telethon.tl.types import DocumentAttributeAudio, DocumentAttributeVideo
 
 from pyUltroid.fns.helper import time_formatter
-from pyUltroid.fns.tools import get_chat_and_msgid, set_attributes
-from pyUltroid.custom._transfer import pyroDL, pyroUL
+from pyUltroid.fns.tools import get_chat_and_msgid
+from pyUltroid.custom._transfer import gen_video_thumb, gen_audio_thumb, pyroDL, pyroUL
 
 from . import (
     LOGS,
@@ -27,6 +29,7 @@ from . import (
     check_filename,
     cleargif,
     fast_download,
+    gen_mediainfo,
     get_all_files,
     get_string,
     get_tg_filename,
@@ -114,14 +117,45 @@ async def pyro_dl(event):
     await dlx.download(**args.kwargs)
 
 
+async def get_metadata(path, gen_thumb):
+    data = await gen_mediainfo(path)
+    if not data:
+        return None, None
+
+    thumb, attributes = None, None
+    if data.get("type") == "audio":
+        if gen_thumb:
+            thumb = await gen_audio_thumb(path)
+        attributes = [
+            DocumentAttributeAudio(
+                duration=data.get("duration", 0),
+                title=data.get("title", Path(path).stem),
+                performer=data.get("performer"),
+            )
+        ]
+    elif data.get("type") == "video":
+        if gen_thumb:
+            thumb = await gen_video_thumb(
+                path, data.get("duration"), data.get("type") == "gif"
+            )
+        attributes = [
+            DocumentAttributeVideo(
+                duration=data.get("duration", 0),
+                w=data.get("width", 512),
+                h=data.get("height", 512),
+                supports_streaming=True,
+            )
+        ]
+
+    return thumb, attributes
+
+
 @ultroid_cmd(
     pattern="ul( (.*)|$)",
 )
-async def umplomder(event):
+async def ul_uploamder(event):
     msg = await event.eor(get_string("com_1"))
-    match = event.pattern_match.group(1)
-    if match:
-        match = match.strip()
+    match = event.pattern_match.group(2)
     if any(i in match.lower() for i in (".env", ".session")):
         return await event.reply("`You can't do this...`")
     stream, force_doc, delete, thumb = (
@@ -158,6 +192,7 @@ async def umplomder(event):
             LOGS.exception(er)
         return await msg.eor(get_string("ls1"))
     for result in results:
+        _thumb = thumb
         if os.path.isdir(result):
             c, s = 0, 0
             for files in get_all_files(result):
@@ -168,20 +203,20 @@ async def umplomder(event):
                     continue
                 attributes = None
                 if stream:
-                    try:
-                        attributes = await set_attributes(files)
-                    except KeyError as er:
-                        LOGS.exception(er)
+                    _thumb, attributes = await get_metadata(files, thumb)
                 try:
                     file, _ = await event.client.fast_uploader(
-                        files, show_progress=True, event=msg, to_delete=delete
+                        files,
+                        show_progress=True,
+                        event=msg,
+                        to_delete=delete,
                     )
                     y = await event.client.send_file(
                         event.chat_id,
                         file,
                         supports_streaming=stream,
                         force_document=force_doc,
-                        thumb=thumb,
+                        thumb=_thumb,
                         attributes=attributes,
                         caption=f"`Uploaded` `{files}` `in {time_formatter(_*1000)}`",
                         reply_to=event.reply_to_msg_id or event,
@@ -191,25 +226,25 @@ async def umplomder(event):
                 except (ValueError, IsADirectoryError):
                     c += 1
                 finally:
-                    await asyncio.sleep(3)
+                    await asyncio.sleep(5)
             break
         if os.path.getsize(result) == 0:
             return await msg.edit(f"`file size is 0B..`\n`{result}`")
         attributes = None
         if stream:
-            try:
-                attributes = await set_attributes(result)
-            except KeyError as er:
-                LOGS.exception(er)
+            _thumb, attributes = await get_metadata(files, thumb)
         file, _ = await event.client.fast_uploader(
-            result, show_progress=True, event=msg, to_delete=delete
+            result,
+            show_progress=True,
+            event=msg,
+            to_delete=delete,
         )
         y = await event.client.send_file(
             event.chat_id,
             file,
             supports_streaming=stream,
             force_document=force_doc,
-            thumb=thumb,
+            thumb=_thumb,
             attributes=attributes,
             caption=f"`Uploaded` `{result}` `in {time_formatter(_*1000)}`",
         )

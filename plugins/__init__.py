@@ -68,8 +68,6 @@ def inline_pic():
 List = []
 Dict = {}
 N = 0
-h1, h2 = [], {}
-h3, h4 = set(), 0
 
 # Chats, which needs to be ignore for some cases
 # Considerably, there can be many
