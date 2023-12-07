@@ -3,9 +3,11 @@
 import asyncio
 import os
 import json
+import multiprocessing
 import random
 import string
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from functools import partial, wraps
 from mimetypes import guess_extension
@@ -50,7 +52,10 @@ def run_async(function):
     @wraps(function)
     async def wrapper(*args, **kwargs):
         loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(None, partial(function, *args, **kwargs))
+        return loop.run_in_executor(
+            ThreadPoolExecutor(max_workers=multiprocessing.cpu_count() * 2),
+            partial(function, *args, **kwargs),
+        )
 
     return wrapper
 
@@ -235,6 +240,7 @@ async def async_searcher(
             else:
                 return await data.text()
     elif requests:
+        # todo: use run_async decorator
         method = "POST" if post else method
         data = await run_async(
             requests.request,

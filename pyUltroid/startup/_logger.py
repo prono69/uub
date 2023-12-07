@@ -17,7 +17,6 @@ from telethon.tl.alltlobjects import LAYER
 from pyUltroid.configs import Var
 from ._extra import _fix_logging, _ask_input
 from pyUltroid.version import ultroid_version, __version__ as __pyUltroid__
-from pyUltroid.custom.tglogger import TGLogHandler
 
 
 # ----------------------------------------------------------------------------
@@ -107,6 +106,8 @@ setup_log_handlers()
 
 
 def setup_tglogger():
+    from pyUltroid.custom.tglogger import TGLogHandler
+
     tglogger = TGLogHandler(
         chat=LOG_DATA.get("chat"),
         token=LOG_DATA.get("token"),

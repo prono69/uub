@@ -232,7 +232,7 @@ async def ul_uploamder(event):
             return await msg.edit(f"`file size is 0B..`\n`{result}`")
         attributes = None
         if stream:
-            _thumb, attributes = await get_metadata(files, thumb)
+            _thumb, attributes = await get_metadata(result, thumb)
         file, _ = await event.client.fast_uploader(
             result,
             show_progress=True,

@@ -70,6 +70,9 @@ def startup_tasks():
 
 
 def extra_tasks():
+    pass
+
+    """
     # for pillow v10
     try:
         from PIL import Image
@@ -78,6 +81,7 @@ def extra_tasks():
             Image.ANTIALIAS = Image.LANCZOS
     except ImportError:
         pass
+    """
 
 
 startup_tasks()
