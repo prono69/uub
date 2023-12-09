@@ -14,7 +14,7 @@ import sys
 from io import BytesIO
 from functools import wraps
 from pathlib import Path
-from time import gmtime, strftime
+from time import gmtime, sleep, strftime
 from traceback import format_exc
 
 from telethon import Button
@@ -134,16 +134,17 @@ def ultroid_cmd(
             try:
                 await dec(ult)
             except FloodWaitError as fwerr:
-                await asst.send_message(
+                client = ultroid_bot if ult.client._bot else asst
+                await client.send_message(
                     udB.get_key("LOG_CHANNEL"),
-                    f"`FloodWaitError:\n{str(fwerr)}\n\nSleeping for {tf((fwerr.seconds + 10)*1000)}`",
+                    f"`FloodWaitError:\n{str(fwerr)}\n\nBot Sleeping for {tf((fwerr.seconds + 15)*1000)}`",
                 )
                 # await ultroid_bot.disconnect()
-                await asyncio.sleep(fwerr.seconds + 10)
+                sleep(fwerr.seconds + 15)
                 # await ultroid_bot.connect()
-                await asst.send_message(
+                await client.send_message(
                     udB.get_key("LOG_CHANNEL"),
-                    "`Bot is working again`",
+                    "`Bot is working again!!`",
                 )
                 return
             except ChatSendInlineForbiddenError:

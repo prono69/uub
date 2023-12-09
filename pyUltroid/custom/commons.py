@@ -3,13 +3,10 @@
 import asyncio
 import os
 import json
-import multiprocessing
 import random
 import string
 import time
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from functools import partial, wraps
 from mimetypes import guess_extension
 from pathlib import Path
 from secrets import choice, token_hex
@@ -17,47 +14,25 @@ from shutil import rmtree, which
 from urllib.parse import urlsplit, urlparse, unquote_plus
 
 from telethon.tl import types
-from telethon.helpers import _maybe_await
 from telethon.errors import MessageNotModifiedError
 
-from pyUltroid.exceptions import DependencyMissingError
+from pyUltroid.startup import LOGS
+from ._extras import *
 
 try:
     import aiofiles
 except ImportError:
     aiofiles = None
 
-try:
-    import requests
-except ImportError:
-    requests = None
-
-try:
-    from aiohttp import ClientSession as aiohttp_client
-except ImportError:
-    aiohttp_client = None
-    from pyUltroid.startup import LOGS
-
-    LOGS.warning("'aiohttp' is missing, some plugins will not work.")
-
 
 # ---------------------------------------------------------------- #
 
 
+if not aiohttp_client:
+    LOGS.warning("'aiohttp' is missing, some plugins will not work.")
+
 async_lock = asyncio.Lock()
 _PROGRESS_LOG = {}
-
-
-def run_async(function):
-    @wraps(function)
-    async def wrapper(*args, **kwargs):
-        loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(
-            ThreadPoolExecutor(max_workers=multiprocessing.cpu_count() * 2),
-            partial(function, *args, **kwargs),
-        )
-
-    return wrapper
 
 
 # used in pmlogger, taglog, botpmlogger, etc.
@@ -85,12 +60,14 @@ def check_filename(filroid):
 
 
 def osremove(*files, folders=False):
-    for path in map(lambda i: Path(i), files):
+    for path in files:
         try:
-            path.unlink(missing_ok=True)
+            Path(path).unlink(missing_ok=True)
         except IsADirectoryError:
             if folders:
                 rmtree(path, ignore_errors=True)
+        except Exception:
+            LOGS.exception(f"Error in deleting {path}..")
 
 
 class _TGFilename:
@@ -212,57 +189,6 @@ async def bash(cmd, shell=which("bash")):
 
 
 # source: fns/helper.py
-# Async Searcher -> @buddhhu
-async def async_searcher(
-    url: str,
-    post: bool = False,
-    method: str = "GET",
-    headers: dict = None,
-    evaluate: callable = None,
-    object: bool = False,
-    re_json: bool = False,
-    re_content: bool = False,
-    *args,
-    **kwargs,
-):
-    if aiohttp_client:
-        async with aiohttp_client(headers=headers) as client:
-            method = "POST" if post else method
-            data = await client.request(method.upper(), url, *args, **kwargs)
-            if evaluate:
-                return await _maybe_await(evaluate(data))
-            elif re_json:
-                return await data.json()
-            elif re_content:
-                return await data.read()
-            elif object:
-                return data
-            else:
-                return await data.text()
-    elif requests:
-        # todo: use run_async decorator
-        method = "POST" if post else method
-        data = await run_async(
-            requests.request,
-            method.upper(),
-            url,
-            headers=headers,
-            *args,
-            **kwargs,
-        )
-        if re_json:
-            return data.json()
-        elif re_content:
-            return data.content
-        elif head or object:
-            return data
-        else:
-            return data.text
-    else:
-        raise DependencyMissingError("Install 'aiohttp' to use this.")
-
-
-# source: fns/helper.py
 def time_formatter(milliseconds):
     minutes, seconds = divmod(int(milliseconds / 1000), 60)
     hours, minutes = divmod(minutes, 60)
@@ -361,7 +287,7 @@ async def progress(current, total, event, start, type_of_ps, file_name=None):
     plog = _PROGRESS_LOG.get(jost)
     now = time.time()
     if plog and current != total:
-        if (now - plog) < 8:  # delay = 8s
+        if (now - plog) < 8:  # delay of 8s b/w each edit
             return
     diff = now - start
     percentage = current * 100 / total
@@ -394,6 +320,7 @@ async def progress(current, total, event, start, type_of_ps, file_name=None):
 __all__ = (
     "run_async",
     "check_filename",
+    "cpu_bound",
     "osremove",
     "get_tg_filename",
     "get_filename_from_url",

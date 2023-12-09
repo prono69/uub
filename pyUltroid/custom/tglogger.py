@@ -8,9 +8,8 @@ import asyncio
 from io import BytesIO
 from logging import StreamHandler
 
-from aiohttp import ClientSession
-
 from ._loop import loop, run_async_task
+from ._extras import async_searcher
 
 
 _TG_MSG_LIMIT = 4000
@@ -93,10 +92,8 @@ class TGLogHandler(StreamHandler):
         for _ in range(len(db)):
             self.log_db.pop(0)
 
-    async def send_request(self, url, payload):
-        async with ClientSession() as session:
-            async with session.request("POST", url, json=payload) as response:
-                return await response.json()
+    async def send_request(self, url, **kwargs):
+        return await async_searcher(url, post=True, re_json=True, **kwargs)
 
     async def handle_floodwait(self, sleep):
         await asyncio.sleep(sleep)
@@ -113,7 +110,7 @@ class TGLogHandler(StreamHandler):
         payload["text"] = TGLogHandler._filter_text(message)
         if self.message_id:
             payload["reply_to_message_id"] = self.message_id
-        res = await self.send_request(self.__tgtoken + "/sendMessage", payload)
+        res = await self.send_request(self.__tgtoken + "/sendMessage", json=payload)
         if res.get("ok"):
             self.message_id = int(res["result"]["message_id"])
             self.current_log_msg = message
@@ -128,7 +125,7 @@ class TGLogHandler(StreamHandler):
         payload.update(
             {"message_id": self.message_id, "text": TGLogHandler._filter_text(message)}
         )
-        res = await self.send_request(self.__tgtoken + "/editMessageText", payload)
+        res = await self.send_request(self.__tgtoken + "/editMessageText", json=payload)
         self.current_log_msg = message
         if not res.get("ok"):
             await self.handle_error(res)
@@ -137,18 +134,16 @@ class TGLogHandler(StreamHandler):
         logs = logs.lstrip()
         file = BytesIO(logs.encode())
         file.name = "tglogging.txt"
-        url = self.__tgtoken + "/sendDocument"
         payload = _PAYLOAD.copy()
-        payload["caption"] = "Too much logs, hence sending as file."
+        payload["caption"] = "Too much logs, hence sending as File."
         if self.message_id:
             payload["reply_to_message_id"] = self.message_id
-        files = {"document": file}
         payload.pop("disable_web_page_preview", None)
-        async with ClientSession() as session:
-            async with session.request(
-                "POST", url, params=payload, data=files
-            ) as response:
-                res = await response.json()
+        res = await self.send_request(
+            self.__tgtoken + "/sendDocument",
+            params=payload,
+            data={"document": file},
+        )
         if res.get("ok"):
             self.message_id = int(res["result"]["message_id"])
             self.current_log_msg = ""
