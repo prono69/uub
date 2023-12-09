@@ -15,7 +15,7 @@ import os
 import time
 from pathlib import Path
 
-from aiohttp.client_exceptions import InvalidURL
+# from aiohttp.client_exceptions import InvalidURL
 from telethon.errors.rpcerrorlist import MessageNotModifiedError
 from telethon.tl.types import DocumentAttributeAudio, DocumentAttributeVideo
 
@@ -46,7 +46,7 @@ async def _url_downloader(link, filename, event):
     start = time.time()
     link = link if len(link) < 201 else (link[:200] + " ...")
     task = lambda d, t: asyncio.create_task(
-        progress(d, t, event, start, f"Downloading from {link}")
+        progress(d, t, event, start, f"Downloading from {link[:64]}...")
     )
     return await fast_download(link, filename, progress_callback=task)
 
@@ -65,8 +65,10 @@ async def downlomder(event):
         link, filename = matched, None
     try:
         filename, d = await _url_downloader(link, filename, msg)
-    except InvalidURL:
-        return await msg.eor("`Invalid URL provided :(`", time=5)
+    except Exception as exc:
+        LOGS.exception(exc)
+        return await msg.edit(f"**Error in URL download:** \n`{exc}`")
+
     await msg.edit(f"Downloaded to `{filename}` \nin {time_formatter(d*1000)}.")
 
 

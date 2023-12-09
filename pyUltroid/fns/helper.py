@@ -360,12 +360,25 @@ async def download_file(link, name, validate=False):
     """for files, without progress callback with aiohttp"""
     name = check_filename(name)
 
-    async def _download(content):
-        if validate and "application/json" in content.headers.get("Content-Type"):
-            return None, await content.json()
-        data = await content.read()
-        await asyncwrite(name, data, mode="ab+")
-        return name, ""
+    if aiohttp_client:
+
+        async def _download(response):
+            if validate and "application/json" in response.headers.get("Content-Type"):
+                return None, await response.json()
+            async for chunk in response.content.iter_chunked(256 * 1024):
+                if chunk:
+                    await asyncwrite(name, chunk, mode="ab+")
+            return name, ""
+    else:
+
+        def _download(response):
+            if validate and "application/json" in response.headers.get("Content-Type"):
+                return None, response.json()
+            for chunk in response.iter_content(chunk_size=256 * 1024):
+                if chunk:
+                    with open(name, "ab+") as f:
+                        f.write(chunk)
+            return name, ""
 
     return await async_searcher(link, evaluate=_download)
 
@@ -374,15 +387,19 @@ async def fast_download(download_url, filename=None, progress_callback=None):
     if not filename:
         filename = get_filename_from_url(download_url)
         filename = check_filename(Path("resources/downloads") / filename)
+
+    start_time = time.time()
     if not aiohttp_client:
-        return await download_file(download_url, filename)[0], None
+        # without progress callback..
+        dl = await download_file(download_url, filename)
+        return dl[0], time.time() - start_time
 
     async with aiohttp_client() as session:
         async with session.get(download_url, timeout=None) as response:
             total_size = int(response.headers.get("content-length", 0)) or None
             downloaded_size = 0
             start_time = time.time()
-            async for chunk in response.content.iter_chunked(192 * 1024):
+            async for chunk in response.content.iter_chunked(256 * 1024):
                 if chunk:
                     await asyncwrite(filename, chunk, mode="ab+")
                     downloaded_size += len(chunk)

@@ -3,7 +3,7 @@
 __all__ = ("aiohttp_client", "cpu_bound", "run_async", "async_searcher")
 
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from functools import partial, wraps
 
 from pyUltroid.exceptions import DependencyMissingError
