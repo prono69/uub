@@ -1290,7 +1290,7 @@ async def fdroid_dler(event):
     file, _ = await fast_download(
         dl_,
         filename=f"{title}.apk",
-        progress_callback=lambda d, t: asyncio.get_event_loop().create_task(
+        progress_callback=lambda d, t: loop.create_task(
             progress(
                 d,
                 t,

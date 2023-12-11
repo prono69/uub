@@ -259,7 +259,7 @@ async def uploader(file, name, taime, event, msg):
                 client=event.client,
                 file=f,
                 filename=name,
-                progress_callback=lambda d, t: asyncio.get_event_loop().create_task(
+                progress_callback=lambda d, t: loop.create_task(
                     progress(
                         d,
                         t,
@@ -289,7 +289,7 @@ async def downloader(filename, file, event, taime, msg):
                 client=event.client,
                 location=file,
                 out=fk,
-                progress_callback=lambda d, t: asyncio.get_event_loop().create_task(
+                progress_callback=lambda d, t: loop.create_task(
                     progress(
                         d,
                         t,

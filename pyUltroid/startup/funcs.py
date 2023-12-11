@@ -37,7 +37,7 @@ from telethon.tl.types import (
 from telethon.utils import get_peer_id
 from decouple import config, RepositoryEnv
 
-from pyUltroid import LOGS, ULTConfig
+from pyUltroid import LOGS, Var, ULTConfig
 from pyUltroid.fns.helper import download_file, inline_mention, updater
 # from pyUltroid.custom.commons import bash
 
@@ -130,7 +130,7 @@ async def startup_stuff():
 
 
 async def _autobot(ultroid_bot, udB):
-    if udB.get_key("BOT_TOKEN"):
+    if udB.get_key("BOT_TOKEN") or Var.BOT_TOKEN:
         return
     await ultroid_bot.start()
     LOGS.info("MAKING A TELEGRAM BOT FOR YOU AT @BotFather, Kindly Wait")
