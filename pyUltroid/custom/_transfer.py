@@ -527,7 +527,7 @@ class pyroUL:
         if self.delete_file:
             osremove(self.file)
         if x := getattr(self, "thumb", None):
-            if self.delete_thumb and "ultroid.jpg" not in x:
+            if self.delete_thumb and "ultroid.jpg" not in x and x != ULTConfig.thumb:
                 osremove(x)
         if hasattr(self, "thumb"):
             delattr(self, "thumb")

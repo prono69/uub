@@ -154,7 +154,7 @@ async def reverse(event):
             dl = await reply.download_media()
             target = await con.convert(dl, convert_to="png")
     if not target:
-        return await ult.eor("`Reply to an Image or give a URL..`", target=8)
+        return await ult.eor("`Reply to an Image or give a URL..`", time=8)
 
     try:
         response = await GoogleReverseSearch.init(target, similar_results=False)

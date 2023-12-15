@@ -188,7 +188,7 @@ async def _(event):
     except UnicodeDecodeError:
         return await xx.eor(get_string("cvt_8"), time=5)
     try:
-        await xx.edit(f"```{d}```")
+        await xx.edit(f"<code>{d}</code>", parse_mode="html")
     except BaseException:
         what, key = await get_paste(d)
         await xx.edit(

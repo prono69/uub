@@ -5,6 +5,7 @@
 # PLease read the GNU Affero General Public License in
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
+import asyncio
 import glob
 import os
 import re
@@ -107,6 +108,9 @@ async def download_yt(event, link, ytd):
                 delete_file=True,
                 reply_to=reply_to,
             )
+            await event.edit(f"`Uploaded {title}!`")
+            await asyncio.sleep(3)
+
         return await event.try_delete()
 
     # single file
@@ -139,7 +143,7 @@ async def download_yt(event, link, ytd):
         auto_edit=False,
         reply_to=reply_to,
         delete_file=True,
-        caption=f"```{title}```",
+        caption=f"`{title}`",
     )
     await event.try_delete()
 

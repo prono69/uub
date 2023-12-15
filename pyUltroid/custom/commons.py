@@ -67,7 +67,7 @@ def osremove(*files, folders=False):
             if folders:
                 rmtree(path, ignore_errors=True)
         except Exception:
-            LOGS.exception(f"Error in deleting {path}..")
+            LOGS.exception(f"Error in deleting: {path}")
 
 
 class _TGFilename:

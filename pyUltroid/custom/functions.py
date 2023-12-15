@@ -91,30 +91,33 @@ async def get_imgbb_link(path, url=None, **kwargs):
             osremove(path)
     else:
         image_data = url
-    post = await async_searcher(
-        "https://api.imgbb.com/1/upload",
-        post=True,
-        data={
-            "key": api,
-            "image": image_data,
-            "name": kwargs.get("title", random_string(length=9)),
-            "expiration": str(kwargs.get("expire", 0)),
-        },
-        re_json=True,
-    )
-    if post.get("status") == 200:
-        flink = post["data"]["url"] if kwargs.get("hq") else post["data"]["display_url"]
-        if "preview" in kwargs:
-            try:
-                await not_so_fast(
-                    asst.send_message, udB.get_key("TAG_LOG"), flink, link_preview=True
-                )
-                await asyncio.sleep(3)
-            except Exception as exc:
-                LOGS.warning("ImgBB preview error:", exc_info=True)
-        return flink
-    else:
+    try:
+        post = await async_searcher(
+            "https://api.imgbb.com/1/upload",
+            post=True,
+            data={
+                "key": api,
+                "image": image_data,
+                "name": kwargs.get("title", random_string(length=9)),
+                "expiration": str(kwargs.get("expire", 0)),
+            },
+            re_json=True,
+        )
+    except Exception as exc:
+        return LOGS.exception("Error in posting data to ImgBB Server!")
+
+    if post.get("status") != 200:
         return LOGS.error(json_parser(post, indent=4))
+    flink = post["data"]["url"] if kwargs.get("hq") else post["data"]["display_url"]
+    if kwargs.get("preview"):
+        try:
+            await not_so_fast(
+                asst.send_message, udB.get_key("TAG_LOG"), flink, link_preview=True
+            )
+            await asyncio.sleep(3)
+        except Exception as exc:
+            LOGS.warning("ImgBB preview error:", exc_info=True)
+    return flink
 
 
 class RandomPhotoHandler:

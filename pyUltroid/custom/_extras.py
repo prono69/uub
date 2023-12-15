@@ -41,10 +41,11 @@ def cpu_bound(function):
     @wraps(function)
     async def wrapper(*args, **kwargs):
         with ProcessPoolExecutor(max_workers=_workers) as pool:
-            return await loop.run_in_executor(
+            output = await loop.run_in_executor(
                 pool,
                 partial(function, *args, **kwargs),
             )
+        return output
 
     return wrapper
 
