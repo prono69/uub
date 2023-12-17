@@ -164,6 +164,7 @@ class TGLogHandler(StreamHandler):
                 for i in (
                     "MESSAGE_ID_INVALID",
                     "Bad Request: message to edit not found",
+                    "Bad Request: message to reply not found",
                 )
             ):
                 # deleted message
