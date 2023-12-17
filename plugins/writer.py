@@ -37,7 +37,7 @@ from . import (
 
 @ultroid_cmd(pattern="gethtml( (.*)|$)")
 async def ghtml(e):
-    if txt := e.pattern_match.group(1).strip():
+    if txt := e.pattern_match.group(2):
         link = e.text.split(maxsplit=1)[1]
     else:
         return await e.eor("`Give any URL to generate html elements.`", time=5)
@@ -74,13 +74,13 @@ async def f2i(e):
     await m.delete()
 
 
-@ultroid_cmd(pattern="write( (.*)|$)")
+@ultroid_cmd(pattern="write( ([\s\S]*)|$)")
 async def writer(e):
     if e.reply_to:
         reply = await e.get_reply_message()
         text = reply.message
-    elif e.pattern_match.group(1).strip():
-        text = e.text.split(maxsplit=1)[1]
+    elif inpt := e.pattern_match.group(2):
+        text = inpt
     else:
         return await e.eor(get_string("writer_1"), time=5)
     k = await e.eor(get_string("com_1"))

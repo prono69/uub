@@ -42,20 +42,16 @@ yt-dlp
 # addons
 covid
 emoji
-fonttools
+fonttools  # qbot
 gtts
-jikanpy
 git+https://github.com/New-dev0/AsyncLyricsExtractor.git
-phlogo
-pokedex.py
-pyfiglet
-pygments
+pygments  # ncode
 pyjokes
 quotefancy
 shazamio
-speechrecognition
+speechrecognition  # stt
 speedtest-cli
-textblob
+textblob  # spellcheck
 wikipedia
 
 # custom
