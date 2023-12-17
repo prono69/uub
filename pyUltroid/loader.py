@@ -5,7 +5,6 @@
 # PLease read the GNU Affero General Public License in
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
-import asyncio
 import contextlib
 import glob
 import os
@@ -14,7 +13,6 @@ from logging import Logger
 
 from pyUltroid.startup import LOGS
 from pyUltroid.custom.commons import get_all_files
-from pyUltroid.custom._loop import run_async_task, tasks_db
 
 
 class Loader:
@@ -25,7 +23,7 @@ class Loader:
         self.key = key
         self._logger = logger
 
-    async def load(
+    def load(
         self,
         log=True,
         func=import_module,
@@ -61,7 +59,7 @@ class Loader:
                 f"• Installing {self.key} Plugins || Count : {len(files)} •"
             )
 
-        async def load_it(plugin):
+        for plugin in sorted(files):
             if func == import_module:
                 plugin = plugin.replace(".py", "").replace("/", ".").replace("\\", ".")
             try:
@@ -69,11 +67,11 @@ class Loader:
             except ModuleNotFoundError as er:
                 modl = None
                 self._logger.error(f"{plugin}: '{er.name}' not installed!")
-                return
+                continue
             except Exception:
                 modl = None
                 self._logger.exception(f"pyUltroid - {self.key} - ERROR - {plugin}")
-                return
+                continue
 
             if _single and log:
                 self._logger.info(f"Successfully Loaded {plugin}!")
@@ -82,10 +80,11 @@ class Loader:
                     plugin = plugin.split(".")[-1]
                 after_load(self, modl, plugin_name=plugin)
 
-        for count, plugin in enumerate(sorted(files)):
-            count = str(count)
-            run_async_task(load_it, plugin, id="load_plugin_" + count)
 
-        # wait until plugins are loaded..
-        while "load_plugin_" + count in tasks_db:
-            await asyncio.sleep(4)
+# for async loading ..
+# for count, plugin in enumerated(sorted(files)):
+# run_async_task(load_it, plugin, id="load_plugin_" + count)
+
+# wait until plugins are loaded..
+# while "load_plugin_" + count in tasks_db:
+# await asyncio.sleep(3)
