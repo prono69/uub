@@ -47,7 +47,11 @@ def _after_load(loader, module, plugin_name=""):
 
 def load_other_plugins(addons=None, pmbot=None, manager=None, vcbot=None):
     # for official
-    _exclude = udB.get_key("EXCLUDE_OFFICIAL") or udB.get_key("__EXCLUDE_OFFICIAL", force=True) or config("EXCLUDE_OFFICIAL", None)
+    _exclude = (
+        udB.get_key("EXCLUDE_OFFICIAL")
+        or udB.get_key("__EXCLUDE_OFFICIAL", force=True)
+        or config("EXCLUDE_OFFICIAL", None)
+    )
     _exclude = _exclude.split() if _exclude else []
 
     # "INCLUDE_ONLY" was added to reduce Big List in "EXCLUDE_OFFICIAL" Plugin
@@ -96,7 +100,9 @@ def load_other_plugins(addons=None, pmbot=None, manager=None, vcbot=None):
             )
         """
 
-        _exclude = udB.get_key("EXCLUDE_ADDONS") or udB.get_key("__EXCLUDE_ADDONS", force=True)
+        _exclude = udB.get_key("EXCLUDE_ADDONS") or udB.get_key(
+            "__EXCLUDE_ADDONS", force=True
+        )
         _exclude = _exclude.split() if _exclude else []
         _in_only = udB.get_key("INCLUDE_ADDONS")
         _in_only = _in_only.split() if _in_only else []

@@ -74,7 +74,7 @@ async def f2i(e):
     await m.delete()
 
 
-@ultroid_cmd(pattern="write( ([\s\S]*)|$)")
+@ultroid_cmd(pattern=r"write( ([\s\S]*)|$)")
 async def writer(e):
     if e.reply_to:
         reply = await e.get_reply_message()

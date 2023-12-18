@@ -65,7 +65,13 @@ async def DummyHandler(ult):
     # clean chat actions
     key = udB.get_key("CLEANCHAT") or []
     if ult.chat_id in key:
-        await ult.try_delete()
+        try:
+            await ult.try_delete()
+        except AttributeError:
+            try:
+                await ult.delete()
+            except Exception:
+                pass
 
     # force subscribe
     if (

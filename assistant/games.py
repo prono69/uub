@@ -21,7 +21,13 @@ from html import unescape
 from random import choice, shuffle
 
 from telethon.events import Raw
-from telethon.tl.types import InputMediaPoll, Poll, PollAnswer, UpdateMessagePollVote
+from telethon.tl.types import (
+    InputMediaPoll,
+    InputWebDocument,
+    Poll,
+    PollAnswer,
+    UpdateMessagePollVote,
+)
 from telethon.errors.rpcerrorlist import (
     BotMethodInvalidError,
     ChatSendStickersForbiddenError,
@@ -121,7 +127,7 @@ async def okah(e):
 @in_pattern(re.compile("aki_?(.*)"), owner=True)
 async def eiagx(e):
     bts = Button.inline(get_string("aki_2"), data=e.text)
-    ci = types.InputWebDocument(aki_photo, 0, "image/jpeg", [])
+    ci = InputWebDocument(aki_photo, 0, "image/jpeg", [])
     ans = [
         await e.builder.article(
             "Akinator",

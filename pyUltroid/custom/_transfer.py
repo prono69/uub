@@ -712,7 +712,7 @@ async def gen_audio_thumb(path):
         return default_thumb()
 
     rnds = "".join(choices(ascii_lowercase, k=8))
-    thumb = check_filename(f"resources/temp/{rnds}.jpg")
+    thumb = Path(check_filename(f"resources/temp/{rnds}.jpg"))
     try:
         load = load_file(path)
         if not (album_art := load.get("artwork")):
@@ -724,7 +724,7 @@ async def gen_audio_thumb(path):
             img.save(thumb)
         else:
             await asyncwrite(thumb, byt, mode="wb+")
-        return thumb if size_checks(thumb) else default_thumb()
+        return str(thumb) if size_checks(thumb) else default_thumb()
     except BaseException as exc:
         LOGS.error(exc)
         return default_thumb()
