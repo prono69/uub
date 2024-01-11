@@ -112,11 +112,11 @@ my_bot = asst.me.username
 
 def update_pm(userid, message, warns_given):
     try:
-        WARN_MSGS.update({userid: message})
+        WARN_MSGS[userid] = message
     except KeyError:
         pass
     try:
-        U_WARNS.update({userid: warns_given})
+        U_WARNS[userid] = warns_given
     except KeyError:
         pass
 
@@ -351,7 +351,7 @@ if udB.get_key("PMSETTING"):
                         _to_delete[user.id] = await ultroid_bot.send_message(
                             user.id, message_
                         )
-                LASTMSG.update({user.id: event.text})
+                LASTMSG[user.id] = event.text
             else:
                 await delete_pm_warn_msgs(user.id)
                 message_ = UNAPPROVED_MSG.format(
@@ -386,9 +386,9 @@ if udB.get_key("PMSETTING"):
                     _to_delete[user.id] = await ultroid_bot.send_message(
                         user.id, message_
                     )
-            LASTMSG.update({user.id: event.text})
+            LASTMSG[user.id] = event.text
             if user.id not in COUNT_PM:
-                COUNT_PM.update({user.id: 1})
+                COUNT_PM[user.id] = 1
             else:
                 COUNT_PM[user.id] = COUNT_PM[user.id] + 1
             if COUNT_PM[user.id] >= WARNS:

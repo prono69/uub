@@ -38,7 +38,7 @@ class TGLogHandler(StreamHandler):
         self.is_active = False
         self._floodwait = False
         self.sent_as_file = False
-        _PAYLOAD.update({"chat_id": chat})
+        _PAYLOAD["chat_id"] = chat
         StreamHandler.__init__(self)
 
     async def _tg_logger(self):
@@ -93,7 +93,12 @@ class TGLogHandler(StreamHandler):
             self.log_db.pop(0)
 
     async def send_request(self, url, **kwargs):
-        return await async_searcher(url, post=True, re_json=True, ssl=False, **kwargs)
+        try:
+            return await async_searcher(
+                url, post=True, re_json=True, ssl=False, **kwargs
+            )
+        except Exception as exc:
+            return {"error": f"tglogger: error in send_request - {exc}"}
 
     async def handle_floodwait(self, sleep):
         await asyncio.sleep(sleep)
@@ -107,9 +112,9 @@ class TGLogHandler(StreamHandler):
 
     async def send_message(self, message):
         payload = _PAYLOAD.copy()
-        payload["text"] = TGLogHandler._filter_text(message)
         if self.message_id:
             payload["reply_to_message_id"] = self.message_id
+        payload["text"] = TGLogHandler._filter_text(message)
         res = await self.send_request(self.__tgtoken + "/sendMessage", json=payload)
         if res.get("ok"):
             self.message_id = int(res["result"]["message_id"])
@@ -122,23 +127,21 @@ class TGLogHandler(StreamHandler):
         if not self.message_id or self.sent_as_file:
             return await self.send_message(message)
         payload = _PAYLOAD.copy()
-        payload.update(
-            {"message_id": self.message_id, "text": TGLogHandler._filter_text(message)}
-        )
+        payload["message_id"] = self.message_id
+        payload["text"] = TGLogHandler._filter_text(message)
         res = await self.send_request(self.__tgtoken + "/editMessageText", json=payload)
         self.current_log_msg = message
         if not res.get("ok"):
             await self.handle_error(res)
 
     async def send_file(self, logs):
-        logs = logs.lstrip()
-        file = BytesIO(logs.encode())
-        file.name = "tglogging.txt"
         payload = _PAYLOAD.copy()
         payload["caption"] = "Too much logs, hence sending as File."
+        payload.pop("disable_web_page_preview", None)
         if self.message_id:
             payload["reply_to_message_id"] = self.message_id
-        payload.pop("disable_web_page_preview", None)
+        file = BytesIO(logs.lstrip().encode())
+        file.name = "tglogging.txt"
         res = await self.send_request(
             self.__tgtoken + "/sendDocument",
             params=payload,

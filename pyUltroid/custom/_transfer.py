@@ -110,7 +110,7 @@ async def pyro_progress(
     )
 
     try:
-        PROGRESS_LOG.update({unique_id: now})
+        PROGRESS_LOG[unique_id] = now
         await message.edit(to_edit)
     except MessageNotModifiedError:
         pass
@@ -232,7 +232,8 @@ class pyroDL:
             }
             if self.event and self.show_progress:
                 progress_text = self.progress_text.replace("`", "")
-                args.update({"event": self.event, "message": progress_text})
+                args["event"] = self.event
+                args["message"] = progress_text
             dlx, dl_time = await self.event.client.fast_downloader(**args)
             dlx, self.dl_time = dlx.name, time_formatter(dl_time * 1000)
         else:
@@ -267,7 +268,8 @@ class pyroDL:
                 self.client,
                 self.delay,
             )
-            args.update({"progress": pyro_progress, "progress_args": progress_args})
+            args["progress"] = pyro_progress
+            args["progress_args"] = progress_args
         if self.schd_delete and self.is_copy:
             run_async_task(self.delTask, self.msg)
 
@@ -668,12 +670,8 @@ class pyroUL:
                 self.client,
                 self.delay,
             )
-            args.update(
-                {
-                    "progress": pyro_progress,
-                    "progress_args": progress_args,
-                }
-            )
+            args["progress"] = pyro_progress
+            args["progress_args"] = progress_args
         return args
 
     def _handle_upload_error(self, type, error):

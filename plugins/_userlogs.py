@@ -67,9 +67,9 @@ async def all_messages_catcher(e):
             asst.send_message, NEEDTOLOG, e.message, buttons=buttons
         )
         if TAG_EDITS.get(e.chat_id):
-            TAG_EDITS[e.chat_id].update({e.id: {"id": sent.id, "msg": e}})
+            TAG_EDITS[e.chat_id][e.id] = {"id": sent.id, "msg": e}
         else:
-            TAG_EDITS.update({e.chat_id: {e.id: {"id": sent.id, "msg": e}}})
+            TAG_EDITS[e.chat_id] = {e.id: {"id": sent.id, "msg": e}}
     except ChatForwardsRestrictedError:
         return
     except MediaEmptyError:
@@ -77,9 +77,9 @@ async def all_messages_catcher(e):
             msg = await asst.get_messages(e.chat_id, ids=e.id)
             sent = await not_so_fast(asst.send_message, NEEDTOLOG, msg, buttons=buttons)
             if TAG_EDITS.get(e.chat_id):
-                TAG_EDITS[e.chat_id].update({e.id: {"id": sent.id, "msg": e}})
+                TAG_EDITS[e.chat_id][e.id] = {"id": sent.id, "msg": e}
             else:
-                TAG_EDITS.update({e.chat_id: {e.id: {"id": sent.id, "msg": e}}})
+                TAG_EDITS[e.chat_id] = {e.id: {"id": sent.id, "msg": e}}
         except Exception as me:
             if not isinstance(me, (PeerIdInvalidError, ValueError)):
                 LOGS.exception("UnHandled Error:")
@@ -96,9 +96,9 @@ async def all_messages_catcher(e):
                 )
                 sent = await not_so_fast(_get.copy, NEEDTOLOG, buttons=buttons)
                 if TAG_EDITS.get(e.chat_id):
-                    TAG_EDITS[e.chat_id].update({e.id: {"id": sent.id, "msg": e}})
+                    TAG_EDITS[e.chat_id][e.id] = {"id": sent.id, "msg": e}
                 else:
-                    TAG_EDITS.update({e.chat_id: {e.id: {"id": sent.id, "msg": e}}})
+                    TAG_EDITS[e.chat_id] = {e.id: {"id": sent.id, "msg": e}}
                 return
             except Exception as er:
                 LOGS.exception(er)
@@ -114,7 +114,7 @@ async def all_messages_catcher(e):
                 udB.get_key("LOG_CHANNEL"),
                 get_string("userlogs_1"),
             )
-            CACHE_SPAM.update({NEEDTOLOG: True})
+            CACHE_SPAM[NEEDTOLOG] = True
     except ChatWriteForbiddenError:
         try:
             await asst.get_permissions(NEEDTOLOG, "me")
@@ -125,7 +125,7 @@ async def all_messages_catcher(e):
             CACHE_SPAM[NEEDTOLOG]
         except KeyError:
             await not_so_fast(asst.send_message, LOG_CHANNEL, MSG)
-            CACHE_SPAM.update({NEEDTOLOG: True})
+            CACHE_SPAM[NEEDTOLOG] = True
     except Exception as er:
         LOGS.exception(er)
 
@@ -164,9 +164,9 @@ if udB.get_key("TAG_LOG"):
                     except Exception as er:
                         return LOGS.exception(er)
                     if TAG_EDITS.get(event.chat_id):
-                        TAG_EDITS[event.chat_id].update({event.id: {"id": sent.id}})
+                        TAG_EDITS[event.chat_id][event.id] = {"id": sent.id}
                     else:
-                        TAG_EDITS.update({event.chat_id: {event.id: {"id": sent.id}}})
+                        TAG_EDITS[event.chat_id] = {event.id: {"id": sent.id}}
             return
         d_ = TAG_EDITS[event.chat_id]
         if not d_.get(event.id):
@@ -179,7 +179,7 @@ if udB.get_key("TAG_LOG"):
             d_["count"] += 1
         else:
             msg = True
-            d_.update({"count": 1})
+            d_["count"] = 1
         # some limit to take edits
         if d_["count"] > 10:
             return

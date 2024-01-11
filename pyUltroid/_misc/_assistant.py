@@ -102,7 +102,7 @@ def callback(data=None, from_users=[], admins=False, owner=False, **kwargs):
             if LOADED.get(stem):
                 LOADED[stem].append(callback_wrapper)
             else:
-                LOADED.update({stem: [callback_wrapper]})
+                LOADED[stem] = [callback_wrapper]
 
     return callback_wrap
 
@@ -172,6 +172,6 @@ def in_pattern(pattern=None, owner=False, **kwargs):
             if LOADED.get(stem):
                 LOADED[stem].append(inline_wrapper)
             else:
-                LOADED.update({stem: [inline_wrapper]})
+                LOADED[stem] = [inline_wrapper]
 
     return inline_wrap

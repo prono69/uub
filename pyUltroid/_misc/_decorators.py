@@ -75,7 +75,7 @@ def _add_func_to_loaded(func, file):
         if LOADED.get(file.stem):
             LOADED[file.stem].append(func)
         else:
-            LOADED.update({file.stem: [func]})
+            LOADED[file.stem] = [func]
 
 
 def ultroid_cmd(
@@ -388,7 +388,7 @@ def ultroid_cmd(
             if LIST.get(file.stem):
                 LIST[file.stem].append(pattern)
             else:
-                LIST.update({file.stem: [pattern]})
+                LIST[file.stem] = [pattern]
         return in_wrapper
 
     return out_wrapper

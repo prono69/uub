@@ -55,5 +55,6 @@ def append_or_update(load, func, name, arggs):
         return load.append(func)
     if isinstance(load, dict):
         if load.get(name):
-            return load[name].append((func, arggs))
-        return load.update({name: [(func, arggs)]})
+            load[name].append((func, arggs))
+        else:
+            load[name] = [(func, arggs)]
