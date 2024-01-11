@@ -93,7 +93,7 @@ class TGLogHandler(StreamHandler):
             self.log_db.pop(0)
 
     async def send_request(self, url, **kwargs):
-        return await async_searcher(url, post=True, re_json=True, **kwargs)
+        return await async_searcher(url, post=True, re_json=True, ssl=False, **kwargs)
 
     async def handle_floodwait(self, sleep):
         await asyncio.sleep(sleep)

@@ -2,6 +2,8 @@ from .. import udB
 
 
 class KeyManager:
+    __slots__ = ("_key", "_cast")
+
     def __init__(self, key, cast=None) -> None:
         self._key = key
         self._cast = cast

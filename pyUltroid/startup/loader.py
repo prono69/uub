@@ -80,10 +80,10 @@ def load_other_plugins(addons=None, pmbot=None, manager=None, vcbot=None):
             )
             subprocess.run(f"git clone -q {url} addons", shell=True)
 
-        if not os.path.exists("addons"):
+        if not os.path.isdir("addons"):
             _fetch_addons()
-        if not os.path.exists("addons/.git"):
-            rmtree("addons")
+        if not os.path.isdir("addons/.git"):
+            rmtree("addons", ignore_errors=True)
             _fetch_addons()
         else:
             subprocess.run("(cd addons && git pull --rebase)", shell=True)
