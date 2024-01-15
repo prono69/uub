@@ -228,10 +228,11 @@ class PyroTGLogHandler(StreamHandler):
             api_id=6,
             api_hash="eb06d4abfb49dc3eeb1aeb98ae0f581e",
             bot_token=bot_token,
-            workdir="resources/temp/",
+            # workdir="resources/temp/",
             sleep_threshold=300,
             workers=1,
             no_updates=True,
+            in_memory=True,
             max_concurrent_transmissions=1,
             message_cache=16,
         )
