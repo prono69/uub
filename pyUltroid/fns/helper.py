@@ -380,7 +380,7 @@ async def download_file(link, name, validate=False):
                         f.write(chunk)
             return name, ""
 
-    return await async_searcher(link, evaluate=_download)
+    return await async_searcher(link, ssl=False, evaluate=_download)
 
 
 async def fast_download(download_url, filename=None, progress_callback=None):
@@ -395,7 +395,7 @@ async def fast_download(download_url, filename=None, progress_callback=None):
         return dl[0], time.time() - start_time
 
     async with aiohttp_client() as session:
-        async with session.get(download_url, timeout=None) as response:
+        async with session.get(download_url, ssl=False, timeout=None) as response:
             total_size = int(response.headers.get("content-length", 0)) or None
             downloaded_size = 0
             start_time = time.time()
