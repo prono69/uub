@@ -12,7 +12,6 @@
 import asyncio
 from ast import literal_eval
 from copy import deepcopy
-import os
 
 from pyUltroid import LOGS
 from pyUltroid.configs import Var
@@ -30,12 +29,12 @@ _workers = 2 if os.cpu_count() < 3 else min(6, os.cpu_count())
 _default_client_values = {
     "api_id": Var.API_ID,
     "api_hash": Var.API_HASH,
-    "workdir": os.getcwd() + "/resources/temp/",
-    "sleep_threshold": 120,
+    "workdir": "resources/temp/",
+    "sleep_threshold": 150,
     "workers": _workers,
     "no_updates": True,
     "max_concurrent_transmissions": 1,
-    "message_cache": 768,
+    "message_cache": 512,
 }
 
 
@@ -47,12 +46,13 @@ def app(n=None):
 def setup_clients():
     # plugins = {"root": "pyrog/plugins"}
     if not Client:
-        LOGS.warning("'pyrogram' is not installed; skipping pyrogram setup..")
+        LOGS.warning("'pyrogram' is not installed; Skipping pyrogram setup..")
         return True
+
     var = "PYROGRAM_CLIENTS"
     stuff = os.environ.get(var)
     if not stuff:
-        LOGS.warning("Var 'PYROGRAM_CLIENTS' not found; skipping pyrogram setup..")
+        LOGS.warning("Var 'PYROGRAM_CLIENTS' not found; Skipping pyrogram setup..")
         return True
 
     data = literal_eval(stuff)

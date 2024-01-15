@@ -106,12 +106,12 @@ setup_log_handlers()
 
 
 def setup_tglogger():
-    from pyUltroid.custom.tglogger import TGLogHandler
+    if LOG_DATA.get("pyro") == True:
+        from pyUltroid.custom.tglogger import PyroTGLogHandler as TGLogger
+    else:
+        from pyUltroid.custom.tglogger import TGLogHandlerBotAPI as TGLogger
 
-    tglogger = TGLogHandler(
-        chat=LOG_DATA.get("chat"),
-        token=LOG_DATA.get("token"),
-    )
+    tglogger = TGLogger(chat=LOG_DATA.get("chat"), token=LOG_DATA.get("token"))
     uname = LOG_DATA.get("name", "TGLogger")
     tglogger.setLevel(logging.DEBUG)
     tglogger.setFormatter(

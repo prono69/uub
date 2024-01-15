@@ -100,9 +100,7 @@ class TGLogHandlerBotAPI(StreamHandler):
             self.log_db.pop(0)
 
     async def send_request(self, url, **kwargs):
-        return await async_searcher(
-            url, post=True, re_json=True, ssl=False, **kwargs
-        )
+        return await async_searcher(url, post=True, re_json=True, ssl=False, **kwargs)
 
     async def handle_floodwait(self, sleep):
         await asyncio.sleep(sleep)
@@ -253,7 +251,7 @@ class PyroTGLogHandler(StreamHandler):
         self.log_db.append("\n\n" + msg)
         if not (self.is_active or self._floodwait):
             self.is_active = True
-            run_async_task(self._tg_logger, id="logger_task")
+            run_async_task(self._tg_logger, id="pyro_logger_task")
 
     def _splitter(self, logs):
         _log = []
@@ -305,11 +303,11 @@ class PyroTGLogHandler(StreamHandler):
         payload["reply_to_message_id"] = getattr(self, "message_id", None)
         payload["text"] = TGLogHandler._filter_text(message)
         try:
-            res = await self.app.send_message(**payload)
+            msg = await self.app.send_message(**payload)
         except Exception as exc:
             await self.handle_error(exc)
         else:
-            self.message_id = res.id
+            self.message_id = msg.id
             self.current_log_msg = message
             self.sent_as_file = False
 
@@ -317,13 +315,14 @@ class PyroTGLogHandler(StreamHandler):
         if not self.message_id or self.sent_as_file:
             return await self.send_message(message)
         payload = _PAYLOAD.copy()
-        payload["message_id"] = self.message_id
+        payload["message_id"] = getattr(self, "message_id", None)
         payload["text"] = TGLogHandler._filter_text(message)
         try:
             msg = await self.edit_message_text(**payload)
-            self.current_log_msg = message
         except Exception as exc:
             await self.handle_error(exc)
+        else:
+            self.current_log_msg = message
 
     async def send_file(self, logs):
         payload = _PAYLOAD.copy()
@@ -338,7 +337,7 @@ class PyroTGLogHandler(StreamHandler):
         except Exception as exc:
             await self.handle_error(exc)
         else:
-            self.message_id = m.id
+            self.message_id = msg.id
             self.current_log_msg = ""
             self.sent_as_file = True
 
@@ -350,14 +349,14 @@ class PyroTGLogHandler(StreamHandler):
             self._floodwait = True
             s = exc.value
             print(f"tglogger: floodwait of {s}s")
-            run_async_task(self.handle_floodwait, s + s // 4, id="pyro_tglogger_floodwait")
+            run_async_task(
+                self.handle_floodwait, s + s // 4, id="pyro_tglogger_floodwait"
+            )
         elif isinstance(exc, errors.MessageIdInvalid):
             # deleted message
             self.message_id = None
-            return
         elif isinstance(exc, errors.MessageNotModified):
             # same message content
             return
         else:
-            print(f"Errors while updating TG logs: {resp}")
-            return
+            print(f"Errors while updating TG logs: {exc}")
