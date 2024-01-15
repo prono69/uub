@@ -106,7 +106,7 @@ setup_log_handlers()
 
 
 def setup_tglogger():
-    if LOG_DATA.get("pyro") == True:
+    if LOG_DATA.get("pyro") in (True, "True"):
         from pyUltroid.custom.tglogger import PyroTGLogHandler as TGLogger
     else:
         from pyUltroid.custom.tglogger import TGLogHandlerBotAPI as TGLogger
@@ -124,7 +124,7 @@ def setup_tglogger():
     LOG_HANDLERS.append(tglogger)
 
 
-if LOG_DATA.get("tglog") is True:
+if LOG_DATA.get("tglog") in (True, "True"):
     setup_tglogger()
 
 # ----------------------------------------------------------------------------

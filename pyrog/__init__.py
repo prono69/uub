@@ -10,6 +10,7 @@
 # 15-01-2024 // removed plugin support.
 
 import asyncio
+import os
 from ast import literal_eval
 from copy import deepcopy
 

@@ -116,7 +116,7 @@ class TGLogHandlerBotAPI(StreamHandler):
         payload = _PAYLOAD.copy()
         if self.message_id:
             payload["reply_to_message_id"] = self.message_id
-        payload["text"] = TGLogHandler._filter_text(message)
+        payload["text"] = TGLogHandlerBotAPI._filter_text(message)
         res = await self.send_request(self.__tgtoken + "/sendMessage", json=payload)
         if res.get("ok"):
             self.message_id = int(res["result"]["message_id"])
@@ -130,7 +130,7 @@ class TGLogHandlerBotAPI(StreamHandler):
             return await self.send_message(message)
         payload = _PAYLOAD.copy()
         payload["message_id"] = self.message_id
-        payload["text"] = TGLogHandler._filter_text(message)
+        payload["text"] = TGLogHandlerBotAPI._filter_text(message)
         res = await self.send_request(self.__tgtoken + "/editMessageText", json=payload)
         self.current_log_msg = message
         if not res.get("ok"):
@@ -301,7 +301,7 @@ class PyroTGLogHandler(StreamHandler):
     async def send_message(self, message):
         payload = _PAYLOAD.copy()
         payload["reply_to_message_id"] = getattr(self, "message_id", None)
-        payload["text"] = TGLogHandler._filter_text(message)
+        payload["text"] = PyroTGLogHandler._filter_text(message)
         try:
             msg = await self.app.send_message(**payload)
         except Exception as exc:
@@ -316,7 +316,7 @@ class PyroTGLogHandler(StreamHandler):
             return await self.send_message(message)
         payload = _PAYLOAD.copy()
         payload["message_id"] = getattr(self, "message_id", None)
-        payload["text"] = TGLogHandler._filter_text(message)
+        payload["text"] = PyroTGLogHandler._filter_text(message)
         try:
             msg = await self.edit_message_text(**payload)
         except Exception as exc:
