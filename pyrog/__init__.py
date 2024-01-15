@@ -3,9 +3,11 @@
 # This is just for personal use,
 # cz telethon is quite slow in transferring files.
 #
-# Edited on 13-05-2022 // for pyrogram v2.
+# Edited on -
+# 13-05-2022 // for pyrogram v2.
 # 28-06-2022 // added asyncio.gather for faster startup.
 # 22-05-2023 // slower startup ~ clients starting one by one in background.
+# 15-01-2024 // removed plugin support.
 
 import asyncio
 from ast import literal_eval
@@ -33,7 +35,7 @@ _default_client_values = {
     "workers": _workers,
     "no_updates": True,
     "max_concurrent_transmissions": 1,
-    "message_cache": 1024,
+    "message_cache": 768,
 }
 
 
@@ -52,17 +54,15 @@ def setup_clients():
     if not stuff:
         LOGS.warning("Var 'PYROGRAM_CLIENTS' not found; skipping pyrogram setup..")
         return True
+
     data = literal_eval(stuff)
     if Var.HOST.lower() == "heroku":
         os.environ.pop(var, None)
     for k, v in data.items():
         _default = deepcopy(_default_client_values)
-        _default.update({"name": "bot_" + str(k)})
-        if type(v) == dict:
-            _default |= v
-        else:
-            _default.update({"bot_token": v})
-        PYROG_CLIENTS.update({int(k): Client(**_default)})
+        _default["name"] = "bot_" + str(k)
+        _default["bot_token"] = v.get("bot_token") if type(v) == dict else v
+        PYROG_CLIENTS[int(k)] = Client(**_default)
 
 
 async def pyro_startup():
