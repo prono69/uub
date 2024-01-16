@@ -318,7 +318,7 @@ class PyroTGLogHandler(StreamHandler):
         payload = _PAYLOAD.copy()
         payload["message_id"] = getattr(self, "message_id", None)
         payload["text"] = PyroTGLogHandler._filter_text(message)
-        payload.pop("disable_web_page_preview", None)
+        payload.pop("disable_notification", None)
         try:
             msg = await self.app.edit_message_text(**payload)
         except Exception as exc:
