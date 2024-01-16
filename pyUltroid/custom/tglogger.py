@@ -318,8 +318,9 @@ class PyroTGLogHandler(StreamHandler):
         payload = _PAYLOAD.copy()
         payload["message_id"] = getattr(self, "message_id", None)
         payload["text"] = PyroTGLogHandler._filter_text(message)
+        payload.pop("disable_web_page_preview", None)
         try:
-            msg = await self.edit_message_text(**payload)
+            msg = await self.app.edit_message_text(**payload)
         except Exception as exc:
             await self.handle_error(exc)
         else:
@@ -328,13 +329,13 @@ class PyroTGLogHandler(StreamHandler):
     async def send_file(self, logs):
         payload = _PAYLOAD.copy()
         payload["caption"] = "Too much logs, hence sending as File."
-        payload.pop("disable_web_page_preview", None)
         payload["reply_to_message_id"] = getattr(self, "message_id", None)
+        payload.pop("disable_web_page_preview", None)
         file = BytesIO(logs.lstrip().encode())
         file.name = "tglogging.txt"
         payload["document"] = file
         try:
-            msg = await self.send_document(**payload)
+            msg = await self.app.send_document(**payload)
         except Exception as exc:
             await self.handle_error(exc)
         else:

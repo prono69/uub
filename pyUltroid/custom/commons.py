@@ -4,6 +4,7 @@ import asyncio
 import os
 import json
 import random
+import re
 import string
 import time
 from datetime import datetime
@@ -52,7 +53,10 @@ def check_filename(filroid):
     filroid = Path(filroid)
     num = 1
     while filroid.exists():
-        og_stem = filroid.stem.rstrip(f"_{num - 1}") if num != 1 else filroid.stem
+        og_stem = filroid.stem
+        if suffix := re.search(r"(?:.+)_(\d+)$", og_stem):
+            og_stem = og_stem.rsplit("_", maxsplit=1)[0]
+            num = int(suffix.group(1)) + 1
         filroid = filroid.with_stem(f"{og_stem}_{num}")
         num += 1
     else:
