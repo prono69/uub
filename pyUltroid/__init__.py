@@ -15,6 +15,9 @@ except ImportError:
     print("Telethon Patch Missing..")
 
 
+_shutdown_tasks = []
+
+
 from .version import __version__, ultroid_version
 from .custom.init import loop
 from .configs import Var

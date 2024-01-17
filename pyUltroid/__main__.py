@@ -11,9 +11,7 @@ import sys
 import time
 
 from . import *
-
-
-shutdown_tasks = []
+from . import _shutdown_tasks
 
 
 def main():
@@ -110,9 +108,9 @@ async def init_shutdown():
     from pyUltroid.custom.commons import split_list
 
     if ultroid_bot.is_connected():
-        shutdown_tasks.append(ultroid_bot.disconnect())
+        _shutdown_tasks.append(ultroid_bot.disconnect())
     if vcClient.uid != ultroid_bot.uid and vcClient.is_connected():
-        shutdown_tasks.append(vcClient.disconnect())
+        _shutdown_tasks.append(vcClient.disconnect())
     if not BOT_MODE:
         msg1, msg2 = (
             ("#restart", "Restarting Ultroid Bot.")
@@ -127,10 +125,10 @@ async def init_shutdown():
         except Exception:
             pass
         finally:
-            shutdown_tasks.append(asst.disconnect())
+            _shutdown_tasks.append(asst.disconnect())
 
     await asyncio.sleep(6)
-    for task in split_list(shutdown_tasks, 3):
+    for task in split_list(_shutdown_tasks, 3):
         await asyncio.gather(*task, return_exceptions=True)
     sys.stdout.flush()
     await asyncio.sleep(4)

@@ -14,7 +14,7 @@ import os
 from ast import literal_eval
 from copy import deepcopy
 
-from pyUltroid import LOGS
+from pyUltroid import LOGS, _shutdown_tasks
 from pyUltroid.configs import Var
 from pyUltroid.custom.init import run_async_task
 
@@ -70,8 +70,6 @@ async def pyro_startup():
     if setup_clients():
         return
 
-    from pyUltroid.__main__ import shutdown_tasks
-
     LOGS.info("Starting Pyrogram...")
     for count, client in PYROG_CLIENTS.copy().items():
         try:
@@ -81,7 +79,7 @@ async def pyro_startup():
             LOGS.debug("error:", exc_info=True)
             PYROG_CLIENTS.pop(count, None)
         else:
-            shutdown_tasks.append(client.stop())
+            _shutdown_tasks.append(client.stop())
         finally:
             await asyncio.sleep(2)
 

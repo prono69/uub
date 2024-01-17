@@ -222,21 +222,25 @@ class PyroTGLogHandler(StreamHandler):
             print("Install 'pyrogram' to use PyroTGLogger :)")
             quit(0)
 
+        __import__("os").makedirs("resources/temp", exist_ok=True)
         _PAYLOAD["parse_mode"] = ParseMode.HTML
         self.app = Client(
             name="pyro_tglogger",
             api_id=6,
             api_hash="eb06d4abfb49dc3eeb1aeb98ae0f581e",
             bot_token=bot_token,
-            # workdir="resources/temp/",
+            workdir="resources/temp/",
             sleep_threshold=300,
             workers=1,
             no_updates=True,
-            in_memory=True,
+            # in_memory=True,
             max_concurrent_transmissions=1,
             message_cache=16,
         )
         self.app.start()
+        from pyUltroid import _shutdown_tasks
+
+        _shutdown_tasks.append(self.app.stop())
 
     async def _tg_logger(self):
         try:
