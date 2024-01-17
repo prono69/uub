@@ -211,10 +211,15 @@ class PyroTGLogHandler(StreamHandler):
                 "disable_notification": True,
             }
         )
-        self.client_startup(bot_token=token)
+        self.initializer(bot_token=token)
         StreamHandler.__init__(self)
 
-    def client_startup(self, bot_token):
+    def initializer(self, bot_token):
+        from pyUltroid.custom._loop import loop
+
+        loop.run_until_complete(self.client_startup(bot_token))
+
+    async def client_startup(self, bot_token):
         try:
             from pyrogram import Client
             from pyrogram.enums import ParseMode
@@ -237,7 +242,7 @@ class PyroTGLogHandler(StreamHandler):
             max_concurrent_transmissions=1,
             message_cache=16,
         )
-        self.app.start()
+        await self.app.start()
         from pyUltroid import _shutdown_tasks
 
         _shutdown_tasks.append(self.app.stop())
