@@ -90,6 +90,7 @@ class BingScrapper:
         try:
             await async_searcher(
                 link,
+                ssl=False,
                 raise_for_status=True,
                 timeout=aiohttp.ClientTimeout(total=10),
                 evaluate=partial(self._handle_download, filename),
@@ -103,7 +104,7 @@ class BingScrapper:
             extra_args = f"&first={self.page_counter}&count={self.limit}&adlt={self.hide_nsfw}{self.url_args}"
             request_url = f"https://www.bing.com/images/async?q={quote_plus(self.query)}{extra_args}"
             try:
-                response = await async_searcher(request_url, headers=self.headers)
+                response = await async_searcher(request_url, headers=self.headers, ssl=False)
             except Exception:
                 response = ""
                 LOGS.debug(
