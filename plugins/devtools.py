@@ -9,16 +9,16 @@ from . import get_help
 
 __doc__ = get_help("help_devtools")
 
-import inspect
+import asyncio
+import os
+import random
 import sys
 import traceback
 from io import BytesIO, StringIO
-from os import remove
 from pathlib import Path
-from pprint import pprint
-from random import choice
 
 from telethon.utils import get_display_name
+from telethon.tl import functions
 
 from pyUltroid import _ignore_eval
 from pyUltroid.custom.multi_db import *
@@ -44,7 +44,6 @@ except ImportError:
 else:
     from rich.console import Console
 
-from telethon.tl import functions
 
 fn = functions
 
@@ -196,7 +195,7 @@ async def run_bash(event):
         await u._evalogger(cmd, event, "bash")
 
 
-pp = pprint  # ignore: pylint
+pp = __import__("pprint").pprint  # ignore: pylint
 bot = ultroid = ultroid_bot
 
 
@@ -337,9 +336,13 @@ async def run_eval(event):
     if value:
         try:
             if mode == "gsource":
-                exc = inspect.getsource(value)
+                from inspect import getsource
+
+                exc = getsource(value)
             elif mode == "gargs":
-                args = inspect.signature(value).parameters.values()
+                from inspect import signature
+
+                args = signature(value).parameters.values()
                 name = ""
                 if hasattr(value, "__name__"):
                     name = value.__name__

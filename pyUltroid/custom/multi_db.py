@@ -6,6 +6,7 @@ from redis.exceptions import ConnectionError, TimeoutError
 from pyUltroid import udB, Var
 from pyUltroid.startup import HOSTED_ON, LOGS
 from pyUltroid.startup._database import MongoDB, RedisDB, SqlDB
+from pyUltroid.custom.commons import json_parser
 
 
 def _connect_single_db(data, type, petname, cache):
@@ -36,7 +37,7 @@ def _connect_single_db(data, type, petname, cache):
                 _name=name,
                 platform=HOSTED_ON,
                 decode_responses=True,
-                socket_timeout=5,
+                socket_timeout=6,
                 retry_on_timeout=True,
                 to_cache=cache,
             )
@@ -79,19 +80,24 @@ def _init_multi_dbs(var):
             db_type = "sql"
 
         if DB := _connect_single_db(data, db_type, name, to_cache):
-            try:
-                if randrange(100) > 75:
-                    DB.del_key("__nocache__")
-            except Exception as exc:
-                LOGS.warning(f"MultiDB: Error in {name}")
-                LOGS.debug(exc, exc_info=True)
-                continue
+            if randrange(100) > 50:
+                keyy = "__temp"
+                try:
+                    if db_type == "redis":
+                        DB.del_key(keyy) or DB.set_key(keyy, "tmp")
+                    elif db_type == "mongo":
+                        if randrange(100) > 50:
+                            DB.del_key(keyy)
+                        else:
+                            DB.set_key(keyy, "tmp")
+                except Exception as exc:
+                    LOGS.warning(f"MultiDB: Error in udB{count} - {name}")
+                    LOGS.debug(exc, exc_info=True)
+                    continue
 
             multi_db[count] = f"{name} -> {db_type}"
             globals()[redis_instance] = DB
 
     if multi_db:
-        from pyUltroid.fns.tools import json_parser
-
         LOGS.debug(json_parser(multi_db, indent=2))
         LOGS.info("Loaded all DB's!")

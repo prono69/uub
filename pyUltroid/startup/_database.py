@@ -150,7 +150,7 @@ class MongoDB(_BaseDatabase):
         else:
             self.db[key].insert_one({"_id": key, "value": str(value)})
         if self.to_cache:
-            self._cache.update({key: value})
+            self._cache[key] = value
         return True
 
     def delete(self, key):
@@ -248,7 +248,7 @@ class SqlDB(_BaseDatabase):
             pass
         except Exception as er:
             LOGS.exception(er)
-        self._cache.update({key: value})
+        self._cache[key] = value
         self._cursor.execute(f"ALTER TABLE Ultroid ADD {key} TEXT")
         self._cursor.execute(f"INSERT INTO Ultroid ({key}) values (%s)", (str(value),))
         return True

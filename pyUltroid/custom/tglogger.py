@@ -217,6 +217,7 @@ class PyroTGLogHandler(StreamHandler):
     def initializer(self, bot_token):
         from pyUltroid.custom._loop import loop
 
+        print("Starting TGLogger Pyrogram Client!")
         loop.run_until_complete(self.client_startup(bot_token))
 
     async def client_startup(self, bot_token):
