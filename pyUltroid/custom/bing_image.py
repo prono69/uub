@@ -104,7 +104,9 @@ class BingScrapper:
             extra_args = f"&first={self.page_counter}&count={self.limit}&adlt={self.hide_nsfw}{self.url_args}"
             request_url = f"https://www.bing.com/images/async?q={quote_plus(self.query)}{extra_args}"
             try:
-                response = await async_searcher(request_url, headers=self.headers, ssl=False)
+                response = await async_searcher(
+                    request_url, headers=self.headers, ssl=False
+                )
             except Exception:
                 response = ""
                 LOGS.debug(

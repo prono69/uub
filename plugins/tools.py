@@ -277,16 +277,22 @@ _FilesEMOJI = {
     pattern="ls( (.*)|$)",
 )
 async def _(e):
-    files = e.pattern_match.group(1).strip()
-    if not files:
+    _files = files = e.pattern_match.group(2)
+    if not _files:
         files = "*"
-    elif files.endswith("/"):
+    elif _files.endswith("/"):
         files += "*"
-    elif "*" not in files:
+    elif not _files.endswith("/*"):
         files += "/*"
     files = glob.glob(files)
     if not files:
-        return await e.eor("`Directory Empty or Incorrect.`", time=5)
+        out = (
+            f"`Empty Directory - {_files}`"
+            if os.path.exists(_files)
+            else f"`Incorrect Directory - {_files}`"
+        )
+        return await e.eor(out, time=8)
+
     folders = []
     allfiles = []
     for file in sorted(files):
