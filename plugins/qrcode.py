@@ -4,6 +4,7 @@
 # This file is a part of < https://github.com/TeamUltroid/Ultroid/ >
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
+
 """
 ✘ Commands Available -
 
@@ -16,9 +17,8 @@
 • `{i}qrdecode <reply to qrcode>`
    `It decodes the qrcode.`
 """
-import os
 
-from pyUltroid import ULTConfig
+import os
 
 try:
     import cv2
@@ -29,7 +29,7 @@ import qrcode
 from PIL import Image
 from telethon.tl.types import MessageMediaDocument as doc
 
-from . import check_filename, get_string, ultroid_bot, ultroid_cmd
+from . import ULTConfig, check_filename, get_string, ultroid_bot, ultroid_cmd
 
 
 @ultroid_cmd(pattern="qrcode( (.*)|$)")
@@ -39,14 +39,15 @@ async def cd(e):
     if reply and reply.text:
         msg = reply.text
     elif not msg:
-        return await e.eor("`Give Some Text or Reply", time=5)
+        return await e.eor("`Give Some Text or Reply..`", time=5)
+
     default, cimg = ULTConfig.thumb, None
+    kk = await e.eor(get_string("com_1"))
     if reply and (reply.sticker or reply.photo):
         cimg = await reply.download_media()
     elif ultroid_bot.me.photo and not ultroid_bot.me.photo.has_video:
-        cimg = await e.client.get_profile_photos(ultroid_bot.uid, limit=1)[0]
+        cimg = (await e.client.get_profile_photos(ultroid_bot.uid, limit=1))[0]
 
-    kk = await e.eor(get_string("com_1"))
     img = cimg or default
     ok = Image.open(img)
     logo = ok.resize((60, 60))
@@ -84,8 +85,8 @@ async def qrwater(e):
     img_bg.paste(img_qr, pos)
     img_bg.save(dl)
     await e.client.send_file(e.chat_id, dl, supports_streaming=True)
-    await kk.delete()
     os.remove(dl)
+    await kk.delete()
 
 
 @ultroid_cmd(pattern="qrdecode$")
@@ -98,12 +99,12 @@ async def decod(e):
         r, thumb=-1 if isinstance(r.media, doc) else None
     )
     if not dl:
-        return
+        return await kk.delete()
     im = cv2.imread(dl)
+    os.remove(dl)
     try:
         det = cv2.QRCodeDetector()
         tx, y, z = det.detectAndDecode(im)
         await kk.edit("**Decoded Text:\n\n**" + tx)
     except BaseException:
         await kk.edit("`Reply To Media in Which Qr image present.`")
-    os.remove(dl)

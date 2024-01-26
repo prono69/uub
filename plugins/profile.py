@@ -27,36 +27,31 @@
     Upload the photo of Chat/User if Available.
 """
 
-import os
+import asyncio
 
 from telethon.tl.functions.account import UpdateProfileRequest
 from telethon.tl.functions.photos import DeletePhotosRequest, UploadProfilePhotoRequest
 
-from . import eod, eor, get_string, mediainfo, ultroid_cmd
+from . import get_string, mediainfo, ultroid_cmd, osremove
 
-TMP_DOWNLOAD_DIRECTORY = "resources/downloads/"
 
 # bio changer
-
-
 @ultroid_cmd(pattern="setbio( (.*)|$)", fullsudo=True)
-async def _(ult):
+async def setbio_(ult):
     ok = await ult.eor("...")
     set = ult.pattern_match.group(1).strip()
     try:
         await ult.client(UpdateProfileRequest(about=set))
-        await eod(ok, f"Profile bio changed to\n`{set}`")
+        await ok.eor(f"Profile bio changed to - `{set}`", time=6)
     except Exception as ex:
-        await eod(ok, f"Error occured.\n`{str(ex)}`")
+        await ok.edit(f"**Error occured.**\n`{str(ex)}`")
 
 
 # name changer
-
-
 @ultroid_cmd(pattern="setname ?((.|//)*)", fullsudo=True)
-async def _(ult):
+async def setname_(ult):
     ok = await ult.eor("...")
-    names = first_name = ult.pattern_match.group(1).strip()
+    names = first_name = ult.pattern_match.group(2)
     last_name = ""
     if "//" in names:
         first_name, last_name = names.split("//", 1)
@@ -67,16 +62,14 @@ async def _(ult):
                 last_name=last_name,
             ),
         )
-        await eod(ok, f"Name changed to `{names}`")
+        await ok.eor(f"Name changed to `{names}`", time=10)
     except Exception as ex:
-        await eod(ok, f"Error occured.\n`{str(ex)}`")
+        await ok.edit(f"Error occured.\n`{str(ex)}`")
 
 
 # profile pic
-
-
 @ultroid_cmd(pattern="setpic$", fullsudo=True)
-async def _(ult):
+async def setpic_(ult):
     if not ult.is_reply:
         return await ult.eor("`Reply to a Media..`", time=5)
     reply_message = await ult.get_reply_message()
@@ -88,19 +81,17 @@ async def _(ult):
             await ult.client(UploadProfilePhotoRequest(file=file))
         else:
             await ult.client(UploadProfilePhotoRequest(video=file))
-        await eod(ok, "`My Profile Photo has Successfully Changed !`")
+        osremove(replfile)
+        await ok.edit("`My Profile Photo has Successfully Changed !`")
     except Exception as ex:
-        await eod(ok, f"Error occured.\n`{str(ex)}`")
-    os.remove(replfile)
+        await ok.edit(f"**Error occured.**\n`{str(ex)}`")
 
 
 # delete profile pic(s)
-
-
 @ultroid_cmd(pattern="delpfp( (.*)|$)", fullsudo=True)
 async def remove_profilepic(delpfp):
-    ok = await eor(delpfp, "`...`")
-    group = delpfp.text[8:]
+    ok = await delpfp.eor("`...`")
+    group = delpfp.pattern_match.group(2)
     if group == "all":
         lim = 0
     elif group.isdigit():
@@ -109,62 +100,55 @@ async def remove_profilepic(delpfp):
         lim = 1
     pfplist = await delpfp.client.get_profile_photos("me", limit=lim)
     await delpfp.client(DeletePhotosRequest(pfplist))
-    await eod(ok, f"`Successfully deleted {len(pfplist)} profile picture(s).`")
+    await ok.edit(f"`Successfully deleted {len(pfplist)} profile picture(s).`")
 
 
 @ultroid_cmd(pattern="poto( (.*)|$)")
 async def gpoto(e):
-    ult = e.pattern_match.group(1).strip()
-
-    if e.is_reply:
+    inpt = e.pattern_match.group(2)
+    limit = 1
+    if e.reply_to:
         gs = await e.get_reply_message()
         user_id = gs.sender_id
-    elif ult:
-        split = ult.split()
-        user_id = split[0]
-        if len(ult) > 1:
-            ult = ult[-1]
+        limit = inpt if inpt else None
+    elif inpt:
+        split = inpt.split(maxsplit=1)
+        if len(split) > 1:
+            user_id, limit = split
+            try:
+                user_id = int(user_id)
+            except ValueError:
+                pass
         else:
-            ult = None
+            user_id = inpt
     else:
         user_id = e.chat_id
 
     a = await e.eor(get_string("com_1"))
-    limit = None
+    try:
+        limit = int(limit)
+    except ValueError:
+        limit = 1
 
-    just_dl = ult in ["-dl", "--dl"]
-    if just_dl:
-        ult = None
+    okla = []
+    if limit == "all":
+        limit = None
 
-    if ult and ult != "all":
-        try:
-            limit = int(ult)
-        except ValueError:
-            pass
-
-    if not limit or e.client._bot:
-        okla = await e.client.download_profile_photo(user_id)
+    if limit == 1 or e.client._bot:
+        okla.append(await e.client.download_profile_photo(user_id))
     else:
-        okla = []
-        if limit == "all":
-            limit = None
         async for photo in e.client.iter_profile_photos(user_id, limit=limit):
             photo_path = await e.client.download_media(photo)
             if photo.video_sizes:
-                await e.respond(file=photo_path)
-                os.remove(photo_path)
+                await e.respond(f"`{user_id}`", file=photo_path)
+                osremove(photo_path)
+                await asyncio.sleep(3)
             else:
                 okla.append(photo_path)
-    if not okla:
-        return await eor(a, "`Pfp Not Found...`")
-    if not just_dl:
-        await a.delete()
-        await e.reply(file=okla)
-        if not isinstance(okla, list):
-            okla = [okla]
-        for file in okla:
-            os.remove(file)
-        return
-    if isinstance(okla, list):
-        okla = "\n".join(okla)
-    await a.edit(f"Downloaded pfp to [ `{okla}` ].")
+
+    if not okla or okla[0] == None:
+        return await a.eor(f"`Pfp Not Found for {user_id}...`", time=8)
+
+    await e.respond(f"`{user_id}`", file=okla)
+    osremove(*okla)
+    await a.edit(f"`Uploaded {len(okla)} pfp(s) of {user_id}!`")

@@ -126,7 +126,7 @@ class RandomPhotoHandler:
     def __init__(self):
         self.ok = bool(udB.get_key("__RANDOM_PIC", force=True))
         self.running = False
-        self.photos_to_store = 16
+        self.photos_to_store = 15
         self.sources = (
             ("r_wallpapers", 9547, 31000),
             ("Anime_hot_wallpapers", 5, 12000),
