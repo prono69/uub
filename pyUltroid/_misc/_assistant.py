@@ -99,9 +99,9 @@ def callback(data=None, from_users=[], admins=False, owner=False, **kwargs):
         _file = inspect.stack()[1].filename
         if "addons/" in _file:
             stem = Path(_file).stem
-            if LOADED.get(stem):
+            try:
                 LOADED[stem].append(callback_wrapper)
-            else:
+            except KeyError:
                 LOADED[stem] = [callback_wrapper]
 
     return callback_wrap
@@ -169,9 +169,9 @@ def in_pattern(pattern=None, owner=False, **kwargs):
         _file = inspect.stack()[1].filename
         if "addons/" in _file:
             stem = Path(_file).stem
-            if LOADED.get(stem):
+            try:
                 LOADED[stem].append(inline_wrapper)
-            else:
+            except KeyError:
                 LOADED[stem] = [inline_wrapper]
 
     return inline_wrap

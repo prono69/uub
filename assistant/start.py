@@ -86,9 +86,9 @@ async def closet(lol):
         await lol.answer("MESSAGE_TOO_OLD", alert=True)
 
 
-@asst_cmd(pattern="start( (.*)|$)", forwards=False, func=lambda x: not x.is_group)
+@asst_cmd(pattern="start( (.*)|$)", forwards=False, func=lambda x: x.is_private)
 async def ultroid(event):
-    args = event.pattern_match.group(1).strip()
+    args = event.pattern_match.group(2)
     keym = KeyManager("BOT_USERS", cast=list)
     if not keym.contains(event.sender_id) and event.sender_id not in owner_and_sudos():
         keym.add(event.sender_id)

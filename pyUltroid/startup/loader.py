@@ -36,9 +36,9 @@ def _after_load(loader, module, plugin_name=""):
             )
 
         try:
-            if HELP.get(loader.key) == None:
-                HELP[loader.key] = {}
             HELP[loader.key][plugin_name] = doc
+        except KeyError:
+            HELP[loader.key] = {plugin_name: doc}
         except Exception:
             loader._logger.exception(
                 f"Error in adding __doc__ of {plugin_name} to HELP!"

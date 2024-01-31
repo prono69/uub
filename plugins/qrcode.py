@@ -46,7 +46,7 @@ async def cd(e):
     if reply and (reply.sticker or reply.photo):
         cimg = await reply.download_media()
     elif ultroid_bot.me.photo and not ultroid_bot.me.photo.has_video:
-        cimg = (await e.client.get_profile_photos(ultroid_bot.uid, limit=1))[0]
+        cimg = await e.client.download_profile_photo(ultroid_bot.uid)
 
     img = cimg or default
     ok = Image.open(img)
@@ -60,10 +60,10 @@ async def cd(e):
     newname = check_filename("qr.jpg")
     imgg.save(newname)
     await e.client.send_file(e.chat_id, newname, supports_streaming=True)
-    await kk.delete()
     os.remove(newname)
     if cimg:
         os.remove(cimg)
+    await kk.delete()
 
 
 @ultroid_cmd(pattern="addqr( (.*)|$)")
@@ -101,10 +101,11 @@ async def decod(e):
     if not dl:
         return await kk.delete()
     im = cv2.imread(dl)
-    os.remove(dl)
     try:
         det = cv2.QRCodeDetector()
         tx, y, z = det.detectAndDecode(im)
         await kk.edit("**Decoded Text:\n\n**" + tx)
     except BaseException:
         await kk.edit("`Reply To Media in Which Qr image present.`")
+    finally:
+        os.remove(dl)

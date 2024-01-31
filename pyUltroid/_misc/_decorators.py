@@ -72,9 +72,9 @@ def compile_pattern(data, hndlr):
 
 def _add_func_to_loaded(func, file):
     if "addons/" in str(file):
-        if LOADED.get(file.stem):
+        try:
             LOADED[file.stem].append(func)
-        else:
+        except KeyError:
             LOADED[file.stem] = [func]
 
 
@@ -385,10 +385,11 @@ def ultroid_cmd(
         if manager and MANAGER:
             _add_func_to_loaded(manager_cmd, file)
         if pattern:
-            if LIST.get(file.stem):
+            try:
                 LIST[file.stem].append(pattern)
-            else:
+            except KeyError:
                 LIST[file.stem] = [pattern]
+
         return in_wrapper
 
     return out_wrapper

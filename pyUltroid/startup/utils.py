@@ -10,6 +10,7 @@ __all__ = ("load_addons",)
 from importlib import util
 from sys import modules
 
+
 # for addons
 
 configPaths = (
@@ -90,9 +91,8 @@ def load_addons(plugin_name):
     modules[name] = mod
     doc = modules[name].__doc__.format(i=HNDLR) if modules[name].__doc__ else ""
     try:
-        if "Addons" in HELP.keys():
-            HELP["Addons"][base_name] = doc
-        else:
-            HELP.update({"Addons": {base_name: doc}})
+        HELP["Addons"][base_name] = doc
+    except KeyError:
+        HELP["Addons"] = {base_name: doc}
     except Exception:
         pass

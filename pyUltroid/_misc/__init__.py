@@ -54,7 +54,7 @@ def append_or_update(load, func, name, arggs):
     if isinstance(load, list):
         return load.append(func)
     if isinstance(load, dict):
-        if load.get(name):
+        try:
             load[name].append((func, arggs))
-        else:
+        except KeyError:
             load[name] = [(func, arggs)]

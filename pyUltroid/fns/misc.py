@@ -383,10 +383,11 @@ class Quotly:
 
         return message
 
+    # old api - https://bot.lyo.su/quote/generate
     async def create_quotly(
         self,
         event,
-        url="https://bot.lyo.su/quote/generate",
+        url="https://quoteampi.onrender.com/generate",
         reply={},
         bg=None,
         sender=None,
@@ -396,12 +397,10 @@ class Quotly:
         if not isinstance(event, list):
             event = [event]
 
-        """
-        from .. import udB
+        from pyUltroid import udB
 
         if udB.get_key("OQAPI"):
             url = Quotly._API
-        """
 
         if not bg:
             bg = "#1b1429"
