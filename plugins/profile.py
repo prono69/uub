@@ -125,14 +125,14 @@ async def gpoto(e):
         user_id = e.chat_id
 
     a = await e.eor(get_string("com_1"))
-    try:
-        limit = int(limit)
-    except ValueError:
-        limit = 1
-
     okla = []
     if limit == "all":
         limit = None
+    else:
+        try:
+            limit = int(limit)
+        except ValueError:
+            limit = 1
 
     if limit == 1 or e.client._bot:
         okla.append(await e.client.download_profile_photo(user_id))
