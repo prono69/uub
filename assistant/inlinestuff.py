@@ -31,26 +31,17 @@ from . import *
 from . import _ult_cache
 
 
-SUP_BUTTONS = [
-    [
-        Button.url("• Repo •", url="https://github.com/TeamUltroid/Ultroid"),
-        Button.url("• Support •", url="t.me/UltroidSupportChat"),
-    ],
-]
-
-ofox = "https://graph.org/file/231f0049fcd722824f13b.jpg"
-gugirl = "https://graph.org/file/0df54ae4541abca96aa11.jpg"
-ultpic = "https://graph.org/file/4136aa1650bc9d4109cc5.jpg"
-
-apis = [
+MOD_APIS = (
     "QUl6YVN5QXlEQnNZM1dSdEI1WVBDNmFCX3c4SkF5NlpkWE5jNkZV",
     "QUl6YVN5QkYwenhMbFlsUE1wOXh3TVFxVktDUVJxOERnZHJMWHNn",
     "QUl6YVN5RGRPS253blB3VklRX2xiSDVzWUU0Rm9YakFLSVFWMERR",
-]
+)
+CACHE = {"app": {}, "fdroid": {}, "saavn": {}, "google": {}, "mods": {}}
 
 
 @in_pattern("ofox", owner=True)
-async def _(e):
+async def orenge_fomx(e):
+    ofox = "https://graph.org/file/231f0049fcd722824f13b.jpg"
     try:
         match = e.text.split(" ", maxsplit=1)[1]
     except IndexError:
@@ -66,7 +57,7 @@ async def _(e):
         fox = []
         fullname = device["full_name"]
         codename = device["codename"]
-        str(device["supported"])
+        # str(device["supported"])
         maintainer = device["maintainer"]["name"]
         link = f"https://orangefox.download/device/{codename}"
         for data in releases["data"]:
@@ -98,7 +89,10 @@ async def _(e):
                 )
             )
         await e.answer(
-            fox, switch_pm="OrangeFox Recovery Search.", switch_pm_param="start"
+            fox,
+            switch_pm="OrangeFox Recovery Search.",
+            switch_pm_param="start",
+            cache_time=150,
         )
     else:
         await e.answer(
@@ -107,7 +101,7 @@ async def _(e):
 
 
 @in_pattern("fl2lnk ?(.*)", fullsudo=True)
-async def _(e):
+async def fille_leenks(e):
     match = e.pattern_match.group(1)
     chat_id, msg_id = match.split(":")
     filename = _webupload_cache[int(chat_id)][int(msg_id)]
@@ -167,7 +161,14 @@ async def file_linkk(e):
 
 
 @in_pattern("repo", owner=True)
-async def repo(e):
+async def rempu(e):
+    ultpic = "https://graph.org/file/4136aa1650bc9d4109cc5.jpg"
+    SUP_BUTTONS = [
+        [
+            Button.url("• Repo •", url="https://github.com/TeamUltroid/Ultroid"),
+            Button.url("• Support •", url="t.me/UltroidSupportChat"),
+        ],
+    ]
     res = [
         await e.builder.article(
             title="Ultroid Userbot",
@@ -180,7 +181,7 @@ async def repo(e):
     await e.answer(res, switch_pm="Ultroid Repo.", switch_pm_param="start")
 
 
-@in_pattern("go", fullsudo=True)
+@in_pattern("go", owner=True)
 async def gsearch(q_event):
     try:
         match = q_event.text.split(maxsplit=1)[1]
@@ -188,7 +189,13 @@ async def gsearch(q_event):
         return await q_event.answer(
             [], switch_pm="Google Search. Enter a query!", switch_pm_param="start"
         )
+
+    if match in CACHE["google"]:
+        return await q_event.answer(
+            CACHE["google"][match], switch_pm="Google Search.", switch_pm_param="start"
+        )
     searcher = []
+    gugirl = "https://graph.org/file/0df54ae4541abca96aa11.jpg"
     gresults = await google_search(match)
     for i in gresults[:50]:
         try:
@@ -221,24 +228,28 @@ async def gsearch(q_event):
             )
         except IndexError:
             break
-    await q_event.answer(
-        searcher,
-        switch_pm="Google Search.",
-        switch_pm_param="start",
-        cache_time=30,
-    )
+    await q_event.answer(searcher, switch_pm="Google Search.", switch_pm_param="start")
+    CACHE["google"][match] = searcher
 
 
 @in_pattern("mods", fullsudo=True)
-async def _(e):
+async def search_mod(e):
     try:
         quer = e.text.split(" ", maxsplit=1)[1]
     except IndexError:
         return await e.answer(
             [], switch_pm="Mod Apps Search. Enter app name!", switch_pm_param="start"
         )
+
+    if quer in CACHE["mods"]:
+        return await e.answer(
+            CACHE["mods"][quer],
+            switch_pm="Search Mod Applications.",
+            switch_pm_param="start",
+        )
+
     start = 0 * 3 + 1
-    da = base64.b64decode(choice(apis)).decode("ascii")
+    da = base64.b64decode(choice(MOD_APIS)).decode("ascii")
     url = f"https://www.googleapis.com/customsearch/v1?key={da}&cx=25b3b50edb928435b&q={quer}&start={start}"
     data = await async_searcher(url, re_json=True)
     search_items = data.get("items", [])
@@ -272,34 +283,31 @@ async def _(e):
                 ],
             ),
         )
-    await e.answer(modss, switch_pm="Search Mod Applications.", switch_pm_param="start")
+    await e.answer(
+        modss[:50], switch_pm="Search Mod Applications.", switch_pm_param="start"
+    )
+    CACHE["mods"][quer] = modss[:50]
 
 
-APP_CACHE = {}
-RECENTS = {}
 PLAY_API = "https://googleplay.onrender.com/api/apps?q="
 
 
 @in_pattern("app", owner=True)
-async def _(e):
+async def find_apps(e):
     try:
         f = e.text.split(maxsplit=1)[1].lower()
     except IndexError:
-        get_string("instu_1")
-        res = []
-        if APP_CACHE and RECENTS.get(e.sender_id):
-            res.extend(
-                APP_CACHE[a][0] for a in RECENTS[e.sender_id] if APP_CACHE.get(a)
-            )
         return await e.answer(
-            res, switch_pm=get_string("instu_2"), switch_pm_param="start"
+            [],
+            switch_pm="Enter app name to Search on Play Store!",
+            switch_pm_param="start",
         )
-    try:
+
+    if f in CACHE["app"]:
         return await e.answer(
-            APP_CACHE[f], switch_pm="Application Searcher.", switch_pm_param="start"
+            CACHE["app"][f], switch_pm="Application Searcher.", switch_pm_param="start"
         )
-    except KeyError:
-        pass
+
     foles = []
     url = PLAY_API + f.replace(" ", "+")
     aap = await async_searcher(url, re_json=True)
@@ -335,12 +343,8 @@ async def _(e):
                 ],
             ),
         )
-    APP_CACHE[f] = foles
-    try:
-        RECENTS[e.sender_id].append(f)
-    except KeyError:
-        RECENTS[e.sender_id] = [f]
     await e.answer(foles, switch_pm="Application Searcher.", switch_pm_param="start")
+    CACHE["app"][f] = foles
 
 
 PISTON_URI = "https://emkc.org/api/v2/piston/"
@@ -351,8 +355,7 @@ PISTON_LANGS = {}
 async def piston_run(event):
     global PISTON_LANGS
     try:
-        lang = event.text.split()[1]
-        code = event.text.split(maxsplit=2)[2]
+        _, lang, code = event.text.split(maxsplit=2)
     except IndexError:
         result = await event.builder.article(
             title="Bad Query",
@@ -363,9 +366,11 @@ async def piston_run(event):
             text=f'**Inline Usage**\n\n`@{asst.me.username} run python print("hello world")`\n\n[Language List](https://graph.org/Ultroid-09-01-6)',
         )
         return await event.answer([result])
+
     if not PISTON_LANGS:
-        se = await async_searcher(f"{PISTON_URI}runtimes", re_json=True)
-        PISTON_LANGS = {lang.pop("language"): lang for lang in se}
+        resp = await async_searcher(f"{PISTON_URI}runtimes", re_json=True)
+        PISTON_LANGS = {lang.pop("language"): lang for lang in resp}
+
     if lang in PISTON_LANGS.keys():
         version = PISTON_LANGS[lang]["version"]
     else:
@@ -404,9 +409,6 @@ async def piston_run(event):
     await event.answer([result], switch_pm="• Piston •", switch_pm_param="start")
 
 
-FDROID_ = {}
-
-
 @in_pattern("fdroid", owner=True)
 async def do_magic(event):
     try:
@@ -415,9 +417,12 @@ async def do_magic(event):
         return await event.answer(
             [], switch_pm="Enter Query to Search", switch_pm_param="start"
         )
-    if match in FDROID_:
+
+    if match in CACHE["fdroid"]:
         return await event.answer(
-            FDROID_[match], switch_pm=f"• Results for {match}", switch_pm_param="start"
+            CACHE["fdroid"][match],
+            switch_pm=f"• Results for {match}",
+            switch_pm_param="start",
         )
     link = "https://search.f-droid.org/?q=" + match.replace(" ", "+")
     content = await async_searcher(link, re_content=True)
@@ -451,8 +456,8 @@ async def do_magic(event):
             )
         )
     msg = f"Showing {len(ress)} Results!" if ress else "No Results Found"
-    FDROID_[match] = ress[:50]
     await event.answer(ress[:50], switch_pm=msg, switch_pm_param="start")
+    CACHE["fdroid"][quer] = ress[:50]
 
 
 """
@@ -518,23 +523,23 @@ async def twitter_search(event):
         _ult_cache.update({"twitter": {match: reso}})
 """
 
-_savn_cache = {}
-
 
 @in_pattern("saavn", owner=True)
-async def savn_s(event):
+async def saavn_search(event):
     try:
         query = event.text.split(maxsplit=1)[1].lower()
     except IndexError:
         return await event.answer(
             [], switch_pm="Enter Query to search 🔍", switch_pm_param="start"
         )
-    if query in _savn_cache:
+
+    if query in CACHE["saavn"]:
         return await event.answer(
-            _savn_cache[query],
+            CACHE["saavn"][query],
             switch_pm=f"Showing Results for {query}",
             switch_pm_param="start",
         )
+
     results = await saavn_search(query)
     swi = "🎵 Saavn Search" if results else "No Results Found!"
     res = []
@@ -570,8 +575,8 @@ async def savn_s(event):
                 ),
             )
         )
-    await event.answer(res, switch_pm=swi, switch_pm_param="start")
-    _savn_cache[query] = res
+    await event.answer(res[:50], switch_pm=swi, switch_pm_param="start")
+    CACHE["saavn"][query] = res[:50]
 
 
 @in_pattern("tl", owner=True)
