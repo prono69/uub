@@ -12,7 +12,11 @@ __doc__ = get_help("help_admintools")
 import asyncio
 
 from telethon.errors import BadRequestError
-from telethon.errors.rpcerrorlist import ChatNotModifiedError, UserIdInvalidError
+from telethon.errors.rpcerrorlist import (
+    ChatNotModifiedError,
+    UserIdInvalidError,
+    MessageIdInvalidError,
+)
 from telethon.tl.functions.channels import EditAdminRequest, GetFullChannelRequest
 from telethon.tl.functions.messages import GetFullChatRequest, SetHistoryTTLRequest
 from telethon.tl.types import InputMessagesFilterPinned
@@ -329,7 +333,10 @@ async def fastpurger(purg):
                 p += 1
             except Exception:
                 pass
-        await purg.eor(f"__Purged {p} Messages!__", time=5)
+        try:
+            await purg.eor(f"__Purged {p} Messages!__", time=5)
+        except MessageIdInvalidError:
+            pass
         return
 
     from_id = reply_id or purg.id - match
@@ -338,7 +345,10 @@ async def fastpurger(purg):
         await purg.client.delete_messages(purg.chat_id, purge_range)
     except Exception as er:
         LOGS.exception(er)
-    await purg.eor("__Fast purge complete!__", time=5)
+    try:
+        await purg.eor("__Fast purge complete!__", time=5)
+    except MessageIdInvalidError:
+        pass
 
 
 @ultroid_cmd(
@@ -368,7 +378,10 @@ async def fastpurgeme(purg):
         except Exception:
             pass
 
-    return await purg.eor(f"__Purged {count} Messages!__", time=5)
+    try:
+        await purg.eor(f"__Purged {count} Messages!__", time=5)
+    except MessageIdInvalidError:
+        pass
 
 
 @ultroid_cmd(
@@ -387,6 +400,8 @@ async def _(e):
     try:
         await e.client.delete_messages(e.chat_id, from_user=msg.sender_id)
         await e.eor(get_string("purgeall_2").format(name.first_name), time=5)
+    except MessageIdInvalidError:
+        pass
     except Exception as er:
         return await e.eor(str(er), time=5)
 
