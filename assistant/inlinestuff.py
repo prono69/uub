@@ -153,7 +153,7 @@ async def _(e):
     ),
     fullsudo=True,
 )
-async def _(e):
+async def file_linkk(e):
     t = (e.data).decode("UTF-8")
     data = t[2:]
     host = data.split("//")[0]
@@ -335,11 +335,11 @@ async def _(e):
                 ],
             ),
         )
-    APP_CACHE.update({f: foles})
-    if RECENTS.get(e.sender_id):
+    APP_CACHE[f] = foles
+    try:
         RECENTS[e.sender_id].append(f)
-    else:
-        RECENTS.update({e.sender_id: [f]})
+    except KeyError:
+        RECENTS[e.sender_id] = [f]
     await e.answer(foles, switch_pm="Application Searcher.", switch_pm_param="start")
 
 
@@ -347,8 +347,9 @@ PISTON_URI = "https://emkc.org/api/v2/piston/"
 PISTON_LANGS = {}
 
 
-@in_pattern("run", fullsudo=True)
+@in_pattern("run", owner=True)
 async def piston_run(event):
+    global PISTON_LANGS
     try:
         lang = event.text.split()[1]
         code = event.text.split(maxsplit=2)[2]
@@ -364,7 +365,7 @@ async def piston_run(event):
         return await event.answer([result])
     if not PISTON_LANGS:
         se = await async_searcher(f"{PISTON_URI}runtimes", re_json=True)
-        PISTON_LANGS.update({lang.pop("language"): lang for lang in se})
+        PISTON_LANGS = {lang.pop("language"): lang for lang in se}
     if lang in PISTON_LANGS.keys():
         version = PISTON_LANGS[lang]["version"]
     else:
@@ -414,7 +415,7 @@ async def do_magic(event):
         return await event.answer(
             [], switch_pm="Enter Query to Search", switch_pm_param="start"
         )
-    if FDROID_.get(match):
+    if match in FDROID_:
         return await event.answer(
             FDROID_[match], switch_pm=f"• Results for {match}", switch_pm_param="start"
         )
@@ -450,8 +451,8 @@ async def do_magic(event):
             )
         )
     msg = f"Showing {len(ress)} Results!" if ress else "No Results Found"
-    FDROID_.update({match: ress})
-    await event.answer(ress, switch_pm=msg, switch_pm_param="start")
+    FDROID_[match] = ress[:50]
+    await event.answer(ress[:50], switch_pm=msg, switch_pm_param="start")
 
 
 """
@@ -570,7 +571,7 @@ async def savn_s(event):
             )
         )
     await event.answer(res, switch_pm=swi, switch_pm_param="start")
-    _savn_cache.update({query: res})
+    _savn_cache[query] = res
 
 
 @in_pattern("tl", owner=True)
@@ -591,7 +592,8 @@ async def inline_tl(ult):
             switch_pm="Tl Search 🔍",
             switch_pm_param="start",
         )
-    res = []
+
+    items = []
     for key in tlobjects.values():
         if match.lower() in key.__name__.lower():
             tyyp = "Function" if "tl.functions." in str(key) else "Type"
@@ -603,16 +605,30 @@ async def inline_tl(ult):
                 for para in args.split(","):
                     text += " " * 4 + "`" + para + "`\n"
             text += f"\n**Layer:** `{LAYER}`"
-            res.append(
-                await ult.builder.article(
-                    title=key.__name__,
-                    description=tyyp,
-                    url="https://t.me/TeamUltroid",
-                    text=text[:4000],
-                )
+            items.append((key.__name__, tyyp, text[:4080]))
+
+    ac_total = len(items)
+    offset = int(ult.query.offset or "0")
+    if offset > len(items):
+        items = []
+    else:
+        items = [
+            await ult.builder.article(
+                title=item[0],
+                description=item[1],
+                url="https://t.me/TeamUltroid",
+                text=item[2],
             )
-    mo = f"Showing {len(res)} results!" if res else f"No Results for {match}!"
-    await ult.answer(res[:50], switch_pm=mo, switch_pm_param="start", cache_time=30)
+            for item in items[offset : offset + 50]
+        ]
+    mo = f"Found {ac_total} results for {match}!"
+    await ult.answer(
+        items,
+        switch_pm=mo,
+        switch_pm_param="start",
+        cache_time=15,
+        next_offset=str(offset + 50),
+    )
 
 
 InlinePlugin.update(

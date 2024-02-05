@@ -85,7 +85,7 @@ async def inline_alive(o):
     await o.answer(
         RES,
         private=True,
-        cache_time=300,
+        # cache_time=300,
         switch_pm="👥 ULTROID PORTAL",
         switch_pm_param="start",
     )
