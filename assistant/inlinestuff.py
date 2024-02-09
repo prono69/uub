@@ -45,7 +45,7 @@ async def orenge_fomx(e):
     try:
         match = e.text.split(" ", maxsplit=1)[1]
     except IndexError:
-        kkkk = e.builder.article(
+        kkkk = await e.builder.article(
             title="Enter Device Codename",
             thumb=wb(ofox, 0, "image/jpeg", []),
             text="**OFᴏx🦊Rᴇᴄᴏᴠᴇʀʏ**\n\nYou didn't search anything",
@@ -457,7 +457,7 @@ async def do_magic(event):
         )
     msg = f"Showing {len(ress)} Results!" if ress else "No Results Found"
     await event.answer(ress[:50], switch_pm=msg, switch_pm_param="start")
-    CACHE["fdroid"][quer] = ress[:50]
+    CACHE["fdroid"][match] = ress[:50]
 
 
 """
