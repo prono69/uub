@@ -1,9 +1,16 @@
 # additional functions that must be seperate from commons..
 
-__all__ = ("aiohttp_client", "cpu_bound", "run_async", "async_searcher")
+__all__ = (
+    "aiohttp_client",
+    "cpu_bound",
+    "run_async",
+    "async_searcher",
+    "FixedSizeDict",
+)
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from collections import UserDict
 from functools import partial, wraps
 
 from pyUltroid.exceptions import DependencyMissingError
@@ -48,6 +55,21 @@ def cpu_bound(function):
         return output
 
     return wrapper
+
+
+class FixedSizeDict(UserDict):
+    """dict with maxsize"""
+
+    __slots__ = ("maxsize", "data")
+
+    def __init__(self, *args, **kwargs):
+        self.maxsize = kwargs.pop("maxsize", 32)
+        super().__init__(*args, **kwargs)
+
+    def __setitem__(self, key, value):
+        self.data[key] = value
+        if len(self.data) > self.maxsize:
+            self.data.pop(next(iter(self.data)), None)
 
 
 # source: fns/helper.py

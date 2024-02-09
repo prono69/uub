@@ -18,6 +18,7 @@ from telethon.tl.alltlobjects import LAYER, tlobjects
 from telethon.tl.types import DocumentAttributeAudio as Audio
 from telethon.tl.types import InputWebDocument as wb
 
+from pyUltroid.custom._extras import FixedSizeDict
 from pyUltroid.fns.misc import google_search
 from pyUltroid.fns.tools import (
     _webupload_cache,
@@ -36,7 +37,15 @@ MOD_APIS = (
     "QUl6YVN5QkYwenhMbFlsUE1wOXh3TVFxVktDUVJxOERnZHJMWHNn",
     "QUl6YVN5RGRPS253blB3VklRX2xiSDVzWUU0Rm9YakFLSVFWMERR",
 )
-CACHE = {"app": {}, "fdroid": {}, "saavn": {}, "google": {}, "mods": {}}
+
+
+CACHE = {
+    "app": FixedSizeDict(maxsize=16),
+    "fdroid": FixedSizeDict(maxsize=16),
+    "saavn": FixedSizeDict(),  # default = 32
+    "google": FixedSizeDict(maxsize=20),
+    "mods": FixedSizeDict(maxsize=10),
+}
 
 
 @in_pattern("ofox", owner=True)
