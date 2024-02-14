@@ -90,4 +90,4 @@ async def pyro_startup():
 
 async def _init_pyrog():
     run_async_task(pyro_startup, id="pyrogram_startup")
-    await asyncio.sleep(6)
+    await asyncio.sleep(9)

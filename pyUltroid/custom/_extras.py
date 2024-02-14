@@ -102,6 +102,7 @@ async def async_searcher(
                 return data
             else:
                 return await data.text()
+
     elif requests:
 
         @run_async

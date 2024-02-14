@@ -83,4 +83,5 @@ def get_languages() -> Dict[str, Union[str, List[str]]]:
             "authors": data["authors"],
         }
         out.update({lang: lang_info})
+
     return out

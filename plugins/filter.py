@@ -38,7 +38,7 @@ async def af(e):
             variable = uf(dl)
             m = f"https://graph.org{variable[0]}"
         elif wut == "video":
-            if wt.media.document.size > 8 * 1000 * 1000:
+            if wt.media.document.size > 6 * 1000 * 1000:
                 return await e.eor(get_string("com_4"), time=5)
             dl = await wt.download_media()
             variable = uf(dl)
@@ -59,7 +59,9 @@ async def af(e):
             txt, btn = get_msg_button(wt.text)
         add_filter(chat, wrd, txt, None, btn)
     await e.eor(get_string("flr_4").format(wrd))
-    ultroid_bot.add_handler(filter_func, events.NewMessage())
+    ultroid_bot.add_handler(
+        filter_func, events.NewMessage(func=lambda e: e.text and not e.media)
+    )
 
 
 @ultroid_cmd(pattern="remfilter( (.*)|$)")
@@ -81,7 +83,7 @@ async def lsnote(e):
 
 
 async def filter_func(e):
-    if isinstance(e.sender, User) and e.sender.bot:
+    if e.sender.bot:
         return
     xx = (e.text).lower()
     chat = e.chat_id

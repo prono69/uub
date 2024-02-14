@@ -176,9 +176,9 @@ async def ul_uploamder(event):
     arguments = ("--stream", "--delete", "--no-thumb")
     if any(item in match for item in arguments):
         match = (
-            match.replace("--stream", "")
-            .replace("--delete", "")
-            .replace("--no-thumb", "")
+            match.replace("--stream", "", count=1)
+            .replace("--delete", "", count=1)
+            .replace("--no-thumb", "", count=1)
             .strip()
         )
     if match.endswith("/"):

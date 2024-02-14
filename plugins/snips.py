@@ -124,8 +124,8 @@ async def lssnips(e):
 
 if udB.get_key("SNIP"):
     func = lambda e: (
-        (e.text and e.text.startswith(_SNIP_PREFIX))
-        and not e.media
+        not e.media
+        and (e.text and e.text.startswith(_SNIP_PREFIX))
         and (e.out or e.sender_id in sudoers())
     )
     ultroid_bot.add_handler(add_snips, events.NewMessage(func=func))
