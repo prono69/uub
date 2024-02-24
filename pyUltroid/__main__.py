@@ -152,6 +152,8 @@ if __name__ == "__main__":
     try:
         main()
         loop.run_until_complete(ultroid_bot.disconnected)
+    except KeyboardInterrupt:
+        pass  # for termux
     except BaseException as exc:
         LOGS.exception(exc)
     finally:

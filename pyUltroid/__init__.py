@@ -12,7 +12,7 @@ start_time = time.time()
 try:
     import telethonpatch as _telepatch
 except ImportError:
-    print("Telethon Patch Missing..")
+    print("running without telethonpatch >>>")
 
 
 _shutdown_tasks = []

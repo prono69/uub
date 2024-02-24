@@ -1,6 +1,6 @@
 # Important Requirements here.
 https://github.com/lanowde/telethon/archive/main.zip
-https://github.com/lanowde/telethon-patch/archive/main.zip
+# https://github.com/lanowde/telethon-patch/archive/main.zip
 python-decouple
 python-dotenv
 
@@ -57,11 +57,12 @@ wikipedia
 # custom
 https://github.com/null-nick/Pyrogram-Mod/archive/refs/heads/main.zip
 pymediainfo
+aiofiles
 music_tag
 uvloop
 
 # Extras:
-# - spotdl, pygithub, imgur_python, openai
+# - spotdl, pygithub, imgur_python
 # - https://github.com/1Danish-00/glitch_me.git#egg=glitch_me
 # - https://github.com/lanowde/instagrapi/archive/master.zip
 # - flask, gunicorn, scikit-image

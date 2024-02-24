@@ -95,7 +95,8 @@ def get_message_link(self):
     return f"https://t.me/c/{chat}/{self.id}"
 
 
-setattr(Message, "try_delete", _try_delete)
+if not hasattr(Message, "try_delete"):
+    setattr(Message, "try_delete", _try_delete)
 
 if not hasattr(Message, "message_link"):
     Message.message_link = property(get_message_link)
