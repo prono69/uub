@@ -166,21 +166,16 @@ async def ul_uploamder(event):
         False,
         ULTConfig.thumb,
     )
-    if "--stream" in match:
+    args = unix_parser(match or "")
+    match = args.args
+    if args.kwargs.get("-stream"):
         stream = True
         force_doc = False
-    if "--delete" in match:
+    if args.kwargs.get("-delete"):  # --delete
         delete = True
-    if "--no-thumb" in match:
+    if args.kwargs.get("-no-thumb"):
         thumb = None
-    arguments = ("--stream", "--delete", "--no-thumb")
-    if any(item in match for item in arguments):
-        match = (
-            match.replace("--stream", "", count=1)
-            .replace("--delete", "", count=1)
-            .replace("--no-thumb", "", count=1)
-            .strip()
-        )
+
     if match.endswith("/"):
         match += "*"
     results = glob.glob(match)
@@ -228,7 +223,7 @@ async def ul_uploamder(event):
                 except (ValueError, IsADirectoryError):
                     c += 1
                 finally:
-                    await asyncio.sleep(5)
+                    await asyncio.sleep(6)
             break
         if os.path.getsize(result) == 0:
             return await msg.edit(f"`file size is 0B..`\n`{result}`")
