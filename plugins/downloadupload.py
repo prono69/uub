@@ -155,19 +155,22 @@ async def get_metadata(path, gen_thumb):
 @ultroid_cmd(
     pattern="ul( (.*)|$)",
 )
-async def ul_uploamder(event):
+async def uploamder(event):
     msg = await event.eor(get_string("com_1"))
-    match = event.pattern_match.group(2)
+    args = event.pattern_match.group(2)
+    args = unix_parser(args or "")
+    if not (match := args.args):
+        return await event.eor("`What Should I Upload !??`")
+
     if any(i in match.lower() for i in (".env", ".session")):
         return await event.reply("`You can't do this...`")
+
     stream, force_doc, delete, thumb = (
         False,
         True,
         False,
         ULTConfig.thumb,
     )
-    args = unix_parser(match or "")
-    match = args.args
     if args.kwargs.get("-stream"):
         stream = True
         force_doc = False
@@ -188,6 +191,7 @@ async def ul_uploamder(event):
         except Exception as er:
             LOGS.exception(er)
         return await msg.eor(get_string("ls1"))
+
     for result in results:
         _thumb = thumb
         if os.path.isdir(result):
