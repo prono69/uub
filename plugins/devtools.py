@@ -133,7 +133,10 @@ async def run_bash(event):
         LOGS.debug(cmd)
     xx = await event.eor(get_string("com_1"))
 
+    d_time = time.perf_counter()
     stdout, stderr = await bash(cmd)
+    d_time = (time.perf_counter() - d_time) * 1000
+
     if stdout and (carb or rayso):
         color = await _get_colors(pick=True)
         li = await Carbon(
@@ -153,8 +156,11 @@ async def run_bash(event):
             )
             await asyncio.sleep(2)
 
+    timeform = time_formatter(d_time)
+    if timeform == "0s":
+        timeform = f"{d_time:.3f}ms"
     if not (carb or rayso) and len(cmd + str(stderr) + str(stdout)) > 4000:
-        OUT = f"☞ BASH\n\n\n• COMMAND:\n{cmd} \n\n\n"
+        OUT = f"☞ BASH ({timeform})\n\n\n• COMMAND:\n{cmd} \n\n\n"
         if stderr:
             OUT += f"• ERROR:\n{stderr} \n\n\n"
         if stdout:
@@ -164,7 +170,7 @@ async def run_bash(event):
 
         with BytesIO(OUT.encode()) as out_file:
             out_file.name = "bash.txt"
-            caption = "<b>• BASH:</b>\n" + u._html(
+            caption = "<b>• BASH:</b> (<i>{timeform}</i>)\n" + u._html(
                 cmd if len(cmd) < 610 else cmd[:600] + " ...", "bash"
             )
             await event.client.send_file(
@@ -180,7 +186,7 @@ async def run_bash(event):
         return
 
     _cmd = u._html(cmd, "bash")
-    OUT = f"""<b>☞ BASH\n\n• COMMAND:</b>\n{_cmd}\n\n"""
+    OUT = f"""<b>☞ BASH</b> (<i>{timeform}</i>)\n\n<b>• COMMAND:</b>\n{_cmd}\n\n"""
     if stderr:
         OUT += f"<b>• ERROR:</b>\n"
         OUT += u._html(stderr, "") + "\n\n"
@@ -329,7 +335,7 @@ async def run_eval(event):
         value = None
         exc = traceback.format_exc()
     finally:
-        tima = time.perf_counter() - tima
+        tima = (time.perf_counter() - tima) * 1000
     stdout = redirected_output.getvalue()
     stderr = redirected_error.getvalue()
     sys.stdout = old_stdout
@@ -379,9 +385,10 @@ async def run_eval(event):
                     )
         return
 
-    _url, tmt = None, tima * 1000
-    timef = time_formatter(tmt)
-    timeform = timef if not timef == "0s" else f"{tmt:.3f}ms"
+    _url = None
+    timeform = time_formatter(tima)
+    if timeform == "0s":
+        timeform = f"{tima:.3f}ms"
     if mode in {"carb", "rayso"} and stdout:
         color = await _get_colors(pick=True)
         lin = await Carbon(
