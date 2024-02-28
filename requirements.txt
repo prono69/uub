@@ -55,7 +55,7 @@ textblob  # spellcheck
 wikipedia
 
 # custom
-https://github.com/null-nick/Pyrogram-Mod/archive/refs/heads/main.zip
+https://github.com/PyrogramMod/PyrogramMod/archive/refs/heads/main.zip
 pymediainfo
 aiofiles
 music_tag

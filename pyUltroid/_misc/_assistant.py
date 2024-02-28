@@ -142,7 +142,7 @@ def in_pattern(pattern=None, owner=False, **kwargs):
                 err = format_exc()
 
                 error_text = (
-                    lambda: f"**#ERROR #INLINE**\n\nQuery: `{asst.me.username} {pattern}`\n\n**Traceback:**\n`{format_exc()}`"
+                    lambda: f"**#ERROR #INLINE**\n\nQuery: `{asst.me.username} {event.text}`\n\n**Traceback:**\n`{format_exc()}`"
                 )
 
                 LOGS.exception(er)

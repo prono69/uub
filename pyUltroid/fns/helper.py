@@ -438,7 +438,7 @@ def mediainfo(media):
             else:
                 return "pic as doc"
         elif "audio" in mime:
-            return "audio"
+            return "voice" if getattr(media, "voice", None) else "audio"
         return "document"
     elif isinstance(media, types.MessageMediaPhoto):
         return "pic"

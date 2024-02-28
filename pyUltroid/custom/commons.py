@@ -321,10 +321,10 @@ async def progress(current, total, event, start, type_of_ps, file_name=None):
         LOGS.warning("err in progress: message_not_modified")
 
 
+from ._extras import __all__ as _extras
+
 __all__ = (
-    "run_async",
     "check_filename",
-    "cpu_bound",
     "osremove",
     "get_tg_filename",
     "get_filename_from_url",
@@ -332,7 +332,6 @@ __all__ = (
     "asyncread",
     "asyncwrite",
     "bash",
-    "async_searcher",
     "time_formatter",
     "humanbytes",
     "not_so_fast",
@@ -343,3 +342,5 @@ __all__ = (
     "progress",
     "async_lock",
 )
+
+__all__ += _extras

@@ -87,7 +87,7 @@ async def all_messages_catcher(e):
                 # media = await e.download_media()
                 # sent = await asst.send_message(NEEDTOLOG, e.message.text, file=media, buttons=buttons)
                 media = await not_so_fast(e.copy, NEEDTOLOG, sleep=5)
-                _get, _, _, _ = await asyncio.gather(
+                _get, *_ = await asyncio.gather(
                     asst.get_messages(NEEDTOLOG, ids=media.id),
                     cleargif(media),
                     asyncio.sleep(2),
@@ -194,8 +194,8 @@ if udB.get_key("TAG_LOG"):
         localTime = event.edit_date.replace(tzinfo=timezone.utc).astimezone(tz=None)
         strf = localTime.strftime("%H:%M:%S")
         TEXT += f"\n\n**• {strf}:**  {event.text}"
-        if d_["count"] == 8:
-            TEXT += "\n\n__Edited 8 times. Skipping further edits.__"
+        if d_["count"] == 10:
+            TEXT += "\n\n__Edited 10 times. Skipping further edits.__"
         try:
             msg = await not_so_fast(MSG.edit, TEXT, buttons=await parse_buttons(event))
             d_["msg"] = msg

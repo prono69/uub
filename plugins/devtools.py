@@ -84,7 +84,7 @@ class u:
             return
         await asyncio.sleep(2)
         msg = "<b><blockquote>CMD Executed!</blockquote></b> \n\n{0}\n\n–  {1}:  {2} \n–  <a href='{3}'>{4}</a>"
-        sndr = e.sender or await e.get_sender()
+        sndr = e.client.me if e.out else (e.sender or await e.get_sender())
         try:
             _msg = msg.format(
                 u._html(cmd, format_lang),
