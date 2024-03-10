@@ -26,6 +26,7 @@
     d- days
     Mute user in current chat with time.
 """
+
 from telethon import events
 from telethon.utils import get_display_name
 

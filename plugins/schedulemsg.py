@@ -12,6 +12,7 @@
     eg. `{i}schedule Hello 100` It deliver msg after 100 sec.
     eg. `{i}schedule Hello 1h` It deliver msg after an hour.
 """
+
 from datetime import timedelta
 
 from pyUltroid.fns.admins import ban_time

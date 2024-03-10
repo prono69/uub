@@ -59,7 +59,7 @@ except ImportError:
     LOGS.error("VCBOT: 'yt-dlp' not found!")
 
 try:
-    from youtubesearchpython import VideosSearch
+    from youtubesearchpython.__future__ import VideosSearch
 except ImportError:
     VideosSearch = None
 
@@ -344,7 +344,8 @@ async def download(query):
         thumb, duration = None, "Unknown"
         title = link = query
     else:
-        search = VideosSearch(query, limit=1).result()
+        obj = VideosSearch(query, limit=1)
+        search = await obj.next()
         data = search["result"][0]
         link = data["link"]
         title = data["title"]
@@ -370,7 +371,8 @@ async def get_stream_link(ytlink):
 
 
 async def vid_download(query):
-    search = VideosSearch(query, limit=1).result()
+    obj = VideosSearch(query, limit=1)
+    search = await obj.next()
     data = search["result"][0]
     link = data["link"]
     video = await get_stream_link(link)
@@ -402,7 +404,8 @@ async def dl_playlist(chat, from_user, link):
     """
     links = await get_videos_link(link)
     try:
-        search = VideosSearch(links[0], limit=1).result()
+        obj = VideosSearch(links[0], limit=1)
+        search = await obj.next()
         vid1 = search["result"][0]
         duration = vid1.get("duration") or "♾"
         title = vid1["title"]
@@ -412,7 +415,8 @@ async def dl_playlist(chat, from_user, link):
     finally:
         for z in links[1:]:
             try:
-                search = VideosSearch(z, limit=1).result()
+                obj = VideosSearch(z, limit=1)
+                search = await obj.next()
                 vid = search["result"][0]
                 duration = vid.get("duration") or "♾"
                 title = vid["title"]

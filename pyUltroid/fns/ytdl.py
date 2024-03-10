@@ -26,7 +26,7 @@ from pyUltroid.custom.commons import (
 from .helper import download_file
 
 try:
-    from youtubesearchpython import Playlist, VideosSearch
+    from youtubesearchpython.__future__ import Playlist, VideosSearch
 except ImportError:
     Playlist, VideosSearch = None, None
 
@@ -49,11 +49,12 @@ async def ytdl_progress(k, start_time, event):
                 LOGS.error(f"ytdl_progress: {ex}")
 
 
-def get_yt_link(query):
-    search = VideosSearch(query, limit=1).result()
+async def get_yt_link(query):
+    obj = VideosSearch(query, limit=1)
+    search = await obj.next()
     try:
         return search["result"][0]["link"]
-    except IndexError:
+    except (IndexError, KeyError):
         return
 
 
@@ -232,8 +233,7 @@ async def dler(event, url, opts: dict = {}, download=False, info=False):
     try:
         return await extract_info(url, opts)
     except Exception as e:
-        await event.edit(f"{type(e)}: {e}")
-        return
+        return await event.edit(f"{type(e)}: {e}")
 
 
 @run_async
@@ -249,17 +249,18 @@ def extract_info(url, opts):
     return YoutubeDL(opts).extract_info(url=url, download=False)
 
 
-@run_async
-def get_videos_link(url):
+async def get_videos_link(url):
     to_return = []
     regex = re.search(r"\?list=([(\w+)\-]*)", url)
     if not regex:
         return to_return
     playlist_id = regex.group(1)
     videos = Playlist(playlist_id)
-    for vid in videos.videos:
+    while video.hasMoreVideos:
+        vid = await videos.getNextVideos()
         link = re.search(r"\?v=([(\w+)\-]*)", vid["link"]).group(1)
         to_return.append(f"https://youtube.com/watch?v={link}")
+
     return to_return
 
 

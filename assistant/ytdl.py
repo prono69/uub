@@ -31,7 +31,7 @@ from pyUltroid.custom.commons import (
 from . import LOGS, asst, callback, in_pattern, udB
 
 try:
-    from youtubesearchpython import VideosSearch
+    from youtubesearchpython.__future__ import VideosSearch
 except ImportError:
     LOGS.info("'youtubesearchpython' is not installed. Some plugins will not work!")
     VideosSearch = None
@@ -43,7 +43,7 @@ BACK_BUTTON = {}
 
 
 @in_pattern("yt", owner=True)
-async def _(event):
+async def inline_yt(event):
     try:
         string = event.text.split(" ", maxsplit=1)[1]
     except IndexError:
@@ -57,11 +57,11 @@ async def _(event):
                 same_peer=True,
             ),
         )
-        await event.answer([fuk])
-        return
+        return await event.answer([fuk])
+
     results = []
-    func = lambda s: VideosSearch(s, limit=30).result()
-    nub = await asyncio.to_thread(func, string)
+    obj = VideosSearch(string, limit=30)
+    nub = await obj.next()
     for v in nub["result"]:
         ids = v["id"]
         link = _yt_base_url + ids
@@ -116,7 +116,7 @@ async def _(event):
                 buttons=buttons,
             ),
         )
-    await event.answer(results[:50])
+    await event.answer(results)
 
 
 @callback(
@@ -125,7 +125,7 @@ async def _(event):
     ),
     owner=True,
 )
-async def _(e):
+async def inline_ytdl_format(e):
     _e = e.pattern_match.group(1).strip().decode("UTF-8")
     _lets_split = _e.split(":")
     _ytdl_data = await dler(e, _yt_base_url + _lets_split[1])
@@ -145,7 +145,7 @@ async def _(e):
     ),
     owner=True,
 )
-async def _(event):
+async def inline_ytdownload(event):
     url = event.pattern_match.group(1).strip().decode("UTF-8")
     lets_split = url.split(":")
     vid_id = lets_split[2]
@@ -299,7 +299,7 @@ async def _(event):
 
 
 @callback(re.compile("ytdl_back:(.*)"), owner=True)
-async def ytdl_back(event):
+async def cb_ytdl_back(event):
     id_ = event.data_match.group(1).decode("utf-8")
     if not BACK_BUTTON.get(id_):
         return await event.answer("Query Expired! Search again 🔍")

@@ -19,6 +19,7 @@
 • `{i}ud <word>`
     Fetch word defenition from urbandictionary.
 """
+
 import io
 
 from pyUltroid.fns.misc import get_synonyms_or_antonyms

@@ -11,19 +11,19 @@ Exceptions which can be raised by py-Ultroid Itself.
 
 
 class pyUltroidError(Exception):
-    ...
+    pass
 
 
 class TelethonMissingError(ImportError):
-    ...
+    pass
 
 
 class DependencyMissingError(ImportError):
-    ...
+    pass
 
 
 class RunningAsFunctionLibError(pyUltroidError):
-    ...
+    pass
 
 
 class UploadError(Exception):

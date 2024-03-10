@@ -53,7 +53,7 @@ fn = functions
 )
 async def neo_fetch(e):
     xx = await e.eor(get_string("com_1"))
-    x, y = await bash("neofetch|sed 's/\x1B\\[[0-9;\\?]*[a-zA-Z]//g' >> neo.txt")
+    x, y = await bash("neofetch|sed 's/\x1b\\[[0-9;\\?]*[a-zA-Z]//g' >> neo.txt")
     if y and y.endswith("NOT_FOUND"):
         return await xx.edit(f"Error: `{y}`")
     np = await asyncread("neo.txt")

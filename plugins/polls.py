@@ -18,6 +18,7 @@
     Get the quiz poll where answerno is the number of option which is correct
 
 """
+
 from telethon.tl.types import InputMediaPoll, Poll, PollAnswer
 
 from . import get_string, ultroid_cmd

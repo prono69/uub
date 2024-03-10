@@ -30,6 +30,7 @@
 • `{i}thankmembers on/off`
     Send a thank you sticker on hitting a members count of 100*x in your groups.
 """
+
 import os
 
 from telegraph import upload_file as uf
