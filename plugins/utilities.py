@@ -556,13 +556,16 @@ async def _(event):
             await event.client.send_file(
                 event.chat_id,
                 out_file,
-                force_document=True,
-                allow_cache=False,
                 reply_to=reply_to_id,
             )
             await event.delete()
     else:
-        await event.eor(f"```{msg or None}```")
+        msg = (
+            f"""<pre><code class="language-json">{msg}</code></pre>"""
+            if msg
+            else "<code>empty</code>"
+        )
+        await event.eor(msg, parse_mode="html")
 
 
 @ultroid_cmd(pattern="suggest( (.*)|$)", manager=True)

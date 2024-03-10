@@ -189,5 +189,4 @@ async def rayso_on(ult):
     await asyncio.gather(
         ult.respond(caption, file=img, reply_to=reply_to, parse_mode="html"),
         msg.try_delete(),
-        return_exceptions=True,
     )

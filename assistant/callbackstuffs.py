@@ -29,6 +29,7 @@ from telethon.utils import get_peer_id
 from pyUltroid.fns.helper import fast_download
 from pyUltroid.fns.tools import Carbon, get_paste, telegraph_client
 from pyUltroid.custom.commons import async_searcher, progress
+from pyUltroid.custom._extras import FixedSizeDict
 from pyUltroid.startup.loader import Loader
 
 from . import *
@@ -1265,7 +1266,7 @@ async def media(event):
         )
 
 
-FD_MEDIA = {}
+FD_MEDIA = FixedSizeDict(maxsize=16)
 
 
 @callback(re.compile("fd(.*)"), owner=True)
