@@ -29,7 +29,7 @@ from . import get_string, string_is_url, ultroid_cmd
 @ultroid_cmd(
     pattern="yt(a|v|sa|sv) ?(.*)",
 )
-async def download_from_youtube_(event):
+async def download_from_youtube(event):
     ytd = {"nocheckcertificate": True}
     opt = event.pattern_match.group(2)
     xx = await event.eor(get_string("com_1"))

@@ -28,7 +28,7 @@ from telethon.utils import get_peer_id
 
 from pyUltroid.fns.helper import fast_download
 from pyUltroid.fns.tools import Carbon, get_paste, telegraph_client
-from pyUltroid.custom.commons import async_searcher, progress
+from pyUltroid.custom.commons import async_searcher, osremove, progress
 from pyUltroid.custom._extras import FixedSizeDict
 from pyUltroid.startup.loader import Loader
 
@@ -1274,8 +1274,7 @@ async def fdroid_dler(event):
     uri = event.data_match.group(1).decode("utf-8")
     if FD_MEDIA.get(uri):
         return await event.edit(file=FD_MEDIA[uri])
-    await event.answer("• Starting Download •", alert=True)
-    await event.edit("• Downloading.. •")
+    await asyncio.gather(event.answer("• Starting Download •", alert=True), event.edit("• Downloading.. •"))
     URL = f"https://f-droid.org/packages/{uri}"
     conte = await async_searcher(URL, re_content=True)
     BSC = bs(conte, "html.parser", from_encoding="utf-8")
@@ -1317,11 +1316,9 @@ async def fdroid_dler(event):
             buttons=buttons,
             parse_mode="html",
         )
-        FD_MEDIA.update({uri: snd_file.media})
+        FD_MEDIA[uri] = snd_file.media
     except Exception as er:
         LOGS.exception(er)
         return await event.edit(f"**ERROR**: `{er}`", buttons=buttons)
-    finally:
-        for i in (thumb, file):
-            if os.path.exists(i):
-                os.remove(i)
+    else:
+        osremove(thumb, file)

@@ -42,7 +42,7 @@ async def ytdl_progress(k, start_time, event):
             + f"Speed: {humanbytes(k['speed'])}/s\n"
             + f"ETA: {time_formatter(k['eta']*1000)}`"
         )
-        if round((time.time() - start_time) % 10.0) == 0:
+        if round((time.time() - start_time) % 10) == 0:
             try:
                 await event.edit(text)
             except Exception as ex:
@@ -58,6 +58,124 @@ async def get_yt_link(query):
         return
 
 
+@run_async
+def ytdownload(url, opts):
+    try:
+        return YoutubeDL(opts).download([url])
+    except Exception as ex:
+        LOGS.exception(ex)
+
+
+@run_async
+def extract_info(url, opts):
+    return YoutubeDL(opts).extract_info(url=url, download=False)
+
+
+# ---------------YouTube Downloader Inline---------------
+# @New-Dev0 @buddhhu @1danish-00
+
+
+def get_formats(type, id, data):
+    if type == "audio":
+        audio = []
+        for _quality in ("64", "128", "256", "320"):
+            _audio = {}
+            _audio.update(
+                {
+                    "ytid": id,
+                    "type": "audio",
+                    "id": _quality,
+                    "quality": _quality + "KBPS",
+                }
+            )
+            audio.append(_audio)
+        return audio
+    if type == "video":
+        video = []
+        size = 0
+        for vid in data["formats"]:
+            if vid["format_id"] == "251":
+                size += vid["filesize"] if vid.get("filesize") else 0
+            if vid["vcodec"] != "none":
+                _id = int(vid["format_id"])
+                _quality = str(vid["width"]) + "×" + str(vid["height"])
+                _size = size + (vid["filesize"] if vid.get("filesize") else 0)
+                _ext = "mkv" if vid["ext"] == "webm" else "mp4"
+                if _size < 2147483648:  # Telegram's Limit of 2GB
+                    _video = {}
+                    _video.update(
+                        {
+                            "ytid": id,
+                            "type": "video",
+                            "id": str(_id) + "+251",
+                            "quality": _quality,
+                            "size": _size,
+                            "ext": _ext,
+                        }
+                    )
+                    video.append(_video)
+        return video
+    return []
+
+
+def get_buttons(listt):
+    id = listt[0]["ytid"]
+    butts = [
+        Button.inline(
+            text=f"[{x['quality']}"
+            + (f" {humanbytes(x['size'])}]" if x.get("size") else "]"),
+            data=f"ytdownload:{x['type']}:{x['id']}:{x['ytid']}"
+            + (f":{x['ext']}" if x.get("ext") else ""),
+        )
+        for x in listt
+    ]
+    buttons = list(zip(butts[::2], butts[1::2]))
+    if len(butts) % 2 == 1:
+        buttons.append((butts[-1],))
+    buttons.append([Button.inline("« Back", f"ytdl_back:{id}")])
+    return buttons
+
+
+async def dler(event, url, download=False, info=False, **opts):
+    await event.edit("`Getting Data...`")
+    if "quiet" not in opts:
+        opts["quiet"] = True
+    opts["username"] = udB.get_key("YT_USERNAME")
+    opts["password"] = udB.get_key("YT_PASSWORD")
+    opts["logtostderr"] = False
+    opts["overwrites"] = True
+    opts["geo_bypass"] = True
+    opts["prefer_ffmpeg"] = True
+    opts["addmetadata"] = True
+    # if more_opts := udB.get_key("__YTDL_OPTS", force=True):
+    #    if type(more_opts) == dict:
+    #        opts |= more_opts
+
+    if download:
+        await ytdownload(url, opts)
+
+    try:
+        return await extract_info(url, opts)
+    except Exception as e:
+        await event.edit(f"{type(e)}: {e}")
+        return
+
+
+async def get_videos_link(url):
+    to_return = []
+    regex = re.search(r"\?list=([(\w+)\-]*)", url)
+    if not regex:
+        return to_return
+    playlist_id = regex.group(1)
+    videos = Playlist(playlist_id)
+    while video.hasMoreVideos:
+        vid = await videos.getNextVideos()
+        link = re.search(r"\?v=([(\w+)\-]*)", vid["link"]).group(1)
+        to_return.append(f"https://youtube.com/watch?v={link}")
+
+    return to_return
+
+
 async def download_yt(event, link, ytd):
     find_file = lambda v_id: [
         i
@@ -65,7 +183,7 @@ async def download_yt(event, link, ytd):
         if i.startswith(v_id) and not i.endswith((".jpg", ".jpeg", ".png"))
     ]
     reply_to = event.reply_to_msg_id or event
-    info = await dler(event, link, ytd, download=True)
+    info = await dler(event, link, download=True, **ytd)
     if not info:
         return
     if info.get("_type") == "playlist":
@@ -147,121 +265,6 @@ async def download_yt(event, link, ytd):
         caption=f"`{title}`",
     )
     await event.try_delete()
-
-
-# ---------------YouTube Downloader Inline---------------
-# @New-Dev0 @buddhhu @1danish-00
-
-
-def get_formats(type, id, data):
-    if type == "audio":
-        audio = []
-        for _quality in ("64", "128", "256", "320"):
-            _audio = {}
-            _audio.update(
-                {
-                    "ytid": id,
-                    "type": "audio",
-                    "id": _quality,
-                    "quality": _quality + "KBPS",
-                }
-            )
-            audio.append(_audio)
-        return audio
-    if type == "video":
-        video = []
-        size = 0
-        for vid in data["formats"]:
-            if vid["format_id"] == "251":
-                size += vid["filesize"] if vid.get("filesize") else 0
-            if vid["vcodec"] != "none":
-                _id = int(vid["format_id"])
-                _quality = str(vid["width"]) + "×" + str(vid["height"])
-                _size = size + (vid["filesize"] if vid.get("filesize") else 0)
-                _ext = "mkv" if vid["ext"] == "webm" else "mp4"
-                if _size < 2147483648:  # Telegram's Limit of 2GB
-                    _video = {}
-                    _video.update(
-                        {
-                            "ytid": id,
-                            "type": "video",
-                            "id": str(_id) + "+251",
-                            "quality": _quality,
-                            "size": _size,
-                            "ext": _ext,
-                        }
-                    )
-                    video.append(_video)
-        return video
-    return []
-
-
-def get_buttons(listt):
-    id = listt[0]["ytid"]
-    butts = [
-        Button.inline(
-            text=f"[{x['quality']}"
-            + (f" {humanbytes(x['size'])}]" if x.get("size") else "]"),
-            data=f"ytdownload:{x['type']}:{x['id']}:{x['ytid']}"
-            + (f":{x['ext']}" if x.get("ext") else ""),
-        )
-        for x in listt
-    ]
-    buttons = list(zip(butts[::2], butts[1::2]))
-    if len(butts) % 2 == 1:
-        buttons.append((butts[-1],))
-    buttons.append([Button.inline("« Back", f"ytdl_back:{id}")])
-    return buttons
-
-
-async def dler(event, url, opts: dict = {}, download=False, info=False):
-    await event.edit("`Getting Data...`")
-    if "quiet" not in opts:
-        opts["quiet"] = True
-    opts["username"] = udB.get_key("YT_USERNAME")
-    opts["password"] = udB.get_key("YT_PASSWORD")
-    opts["logtostderr"] = False
-    opts["overwrites"] = True
-    opts["geo_bypass"] = True
-    opts["prefer_ffmpeg"] = True
-    opts["addmetadata"] = True
-    if more_opts := udB.get_key("__YTDL_OPTS", force=True):
-        if type(more_opts) == dict:
-            opts |= more_opts
-    if download:
-        await ytdownload(url, opts)
-    try:
-        return await extract_info(url, opts)
-    except Exception as e:
-        return await event.edit(f"{type(e)}: {e}")
-
-
-@run_async
-def ytdownload(url, opts):
-    try:
-        return YoutubeDL(opts).download([url])
-    except Exception as ex:
-        LOGS.error(ex)
-
-
-@run_async
-def extract_info(url, opts):
-    return YoutubeDL(opts).extract_info(url=url, download=False)
-
-
-async def get_videos_link(url):
-    to_return = []
-    regex = re.search(r"\?list=([(\w+)\-]*)", url)
-    if not regex:
-        return to_return
-    playlist_id = regex.group(1)
-    videos = Playlist(playlist_id)
-    while video.hasMoreVideos:
-        vid = await videos.getNextVideos()
-        link = re.search(r"\?v=([(\w+)\-]*)", vid["link"]).group(1)
-        to_return.append(f"https://youtube.com/watch?v={link}")
-
-    return to_return
 
 
 __all__ = (

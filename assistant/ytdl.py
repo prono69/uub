@@ -78,7 +78,7 @@ async def inline_yt(event):
         )
         thumb = f"https://i.ytimg.com/vi/{ids}/hqdefault.jpg"
         text = f"**Title: [{title}]({link})**\n\n"
-        text += f"`Description: {description}\n\n"
+        text += f"`Description: {description}...\n\n"
         text += f"「 Duration: {duration} 」\n"
         text += f"「 Views: {views} 」\n"
         text += f"「 Publisher: {publisher} 」\n"
@@ -176,7 +176,7 @@ async def inline_ytdownload(event):
             ],
         }
 
-        ytdl_data = await dler(event, link, opts, True)
+        ytdl_data = await dler(event, link, True, **opts)
         filepath = find_file(vid_id)
         if not filepath:
             return LOGS.warning(f"YTDL ERROR: audio file not found: {vid_id}")
@@ -211,7 +211,7 @@ async def inline_ytdownload(event):
         )
         likes = numerize(ytdl_data.get("like_count")) or 0
         duration = ytdl_data.get("duration") or 0
-        description = (ytdl_data["description"] or "None")[:100]
+        description = (ytdl_data["description"] or "None")[:120] + "..."
 
         yt_audio = pyroUL(event=event, _path=filepath)
         yt_file = await yt_audio.upload(
@@ -231,7 +231,7 @@ async def inline_ytdownload(event):
             "postprocessors": [{"key": "FFmpegMetadata"}],
         }
 
-        ytdl_data = await dler(event, link, opts, True)
+        ytdl_data = await dler(event, link, True, **opts)
         filepath = find_file(vid_id)
         if not filepath:
             return LOGS.warning(f"YTDL ERROR: video file not found - {vid_id}")
