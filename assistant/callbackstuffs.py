@@ -1274,7 +1274,10 @@ async def fdroid_dler(event):
     uri = event.data_match.group(1).decode("utf-8")
     if FD_MEDIA.get(uri):
         return await event.edit(file=FD_MEDIA[uri])
-    await asyncio.gather(event.answer("• Starting Download •", alert=True), event.edit("• Downloading.. •"))
+    await asyncio.gather(
+        event.answer("• Starting Download •", alert=True),
+        event.edit("• Downloading.. •"),
+    )
     URL = f"https://f-droid.org/packages/{uri}"
     conte = await async_searcher(URL, re_content=True)
     BSC = bs(conte, "html.parser", from_encoding="utf-8")
