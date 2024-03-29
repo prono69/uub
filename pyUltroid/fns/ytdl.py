@@ -79,8 +79,7 @@ def get_formats(type, id, data):
     if type == "audio":
         audio = []
         for _quality in ("64", "128", "256", "320"):
-            _audio = {}
-            _audio.update(
+            audio.append(
                 {
                     "ytid": id,
                     "type": "audio",
@@ -88,7 +87,6 @@ def get_formats(type, id, data):
                     "quality": _quality + "KBPS",
                 }
             )
-            audio.append(_audio)
         return audio
     if type == "video":
         video = []
@@ -102,8 +100,7 @@ def get_formats(type, id, data):
                 _size = size + (vid["filesize"] if vid.get("filesize") else 0)
                 _ext = "mkv" if vid["ext"] == "webm" else "mp4"
                 if _size < 2147483648:  # Telegram's Limit of 2GB
-                    _video = {}
-                    _video.update(
+                    video.append(
                         {
                             "ytid": id,
                             "type": "video",
@@ -113,7 +110,6 @@ def get_formats(type, id, data):
                             "ext": _ext,
                         }
                     )
-                    video.append(_video)
         return video
     return []
 
