@@ -158,9 +158,9 @@ async def generate_rayso(
         page = await chrome.new_page()
         await page.goto(url)
         await page.wait_for_load_state("networkidle")
-        elem = await page.query_selector("textarea[class='Editor_textarea__sAyL_']")
+        elem = await page.query_selector("textarea[class='Editor_textarea__OxM_Z']")
         await elem.type(text)
-        button = await page.query_selector("button[class='ExportButton_button__d___t']")
+        button = await page.query_selector("button[class='ExportButton_button__MA4PI']")
         await button.click()
         async with page.expect_download() as dl:
             dled = await dl.value

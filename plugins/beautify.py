@@ -190,7 +190,7 @@ async def rayso_on(ult):
         text=text,
         title=title,
         theme=theme,
-        darkMode=dark_mode,
+        dark_mode=dark_mode,
     )
     if isinstance(img, str):
         mention = inline_mention(ult.sender or await ult.get_sender(), html=True)
