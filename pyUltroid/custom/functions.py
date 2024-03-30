@@ -8,6 +8,7 @@ from random import choice, randrange
 from shlex import split as shsplit
 import string
 from time import perf_counter
+from urllib.parse import urlencode
 
 from telethon.tl import types
 from telethon.tl.functions.messages import SaveGifRequest
@@ -120,6 +121,54 @@ async def get_imgbb_link(path, url=None, **kwargs):
     return flink
 
 
+_rayso_themes = (
+    "meadow",
+    "breeze",
+    "raindrop",
+    "candy",
+    "crimson",
+    "falcon",
+    "sunset",
+    "midnight",
+)
+
+
+async def generate_rayso(
+    text,
+    title="Ultroid",
+    dark_mode=True,
+    theme=None,
+    filename=None,
+):
+    from playwright.async_api import async_playwright
+
+    if not filename:
+        filename = random_string(12) + ".png"
+    if not theme or theme not in _rayso_themes:
+        theme = choice(_rayso_themes)
+
+    data = {
+        "darkMode": dark_mode,
+        "theme": theme,
+        "title": title,
+    }
+    url = f"https://ray.so/#{urlencode(data)}"
+    async with async_playwright() as play:
+        chrome = await play.chromium.launch()
+        page = await chrome.new_page()
+        await page.goto(url)
+        await page.wait_for_load_state("networkidle")
+        elem = await page.query_selector("textarea[class='Editor_textarea__sAyL_']")
+        await elem.type(text)
+        button = await page.query_selector("button[class='ExportButton_button__d___t']")
+        await button.click()
+        async with page.expect_download() as dl:
+            dled = await dl.value
+            await dled.save_as(filename)
+
+    return filename
+
+
 class RandomPhotoHandler:
     __slots__ = ("ok", "running", "photos_to_store", "sources")
 
@@ -208,6 +257,7 @@ __all__ = (
     "cleargif",
     "osremove",
     "get_imgbb_link",
+    "generate_rayso",
     "loop",
     "random_pic",
     "run_async_task",

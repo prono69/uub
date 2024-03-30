@@ -21,6 +21,7 @@ from . import (
     _get_colors,
     asyncread,
     get_string,
+    generate_rayso,
     inline_mention,
     mediainfo,
     osremove,
@@ -68,7 +69,6 @@ async def crbn(event):
     await asyncio.gather(
         msg.try_delete(),
         event.respond(caption, file=xx, reply_to=reply_to),
-        return_exceptions=True,
     )
 
 
@@ -122,7 +122,6 @@ async def custom_crbn(event):
     await asyncio.gather(
         event.respond(caption, file=xx, reply_to=reply_to),
         msg.try_delete(),
-        return_exceptions=True,
     )
 
 
@@ -142,6 +141,14 @@ RaySoThemes = (
     pattern=r"rayso( ([\s\S]*)|$)",
 )
 async def rayso_on(ult):
+    try:
+        from playwright.async_api import async_playwright
+    except ImportError:
+        await ult.eor(
+            "`playwright` is not installed!\nPlease install it to use this command.."
+        )
+        return
+
     msg = await ult.eor(get_string("com_1"))
     args = unix_parser(ult.pattern_match.group(2) or "")
     text, title = args.args, get_display_name(ult.chat)
@@ -171,22 +178,25 @@ async def rayso_on(ult):
         )
 
     dark_mode = bool(args.kwargs.get("d", 1))
-    theme = args.kwargs.get("t", random.choice(RaySoThemes))
+    theme = args.kwargs.get("th", random.choice(RaySoThemes))
+    title = args.kwargs.get("ti", title)
     if text == "list":
         text = "**List of Rayso Themes:**\n" + "\n".join(
             [f"- `{th_}`" for th_ in RaySoThemes]
         )
         return await ult.edit(text)
 
-    img = await Carbon(
-        code=text, rayso=True, title=title, theme=theme, darkMode=dark_mode
+    img = await generate_rayso(
+        text=text,
+        title=title,
+        theme=theme,
+        darkMode=dark_mode,
     )
-    if isinstance(img, dict):
-        return await msg.edit(f"`{img}`")
-
-    mention = inline_mention(ult.sender or await ult.get_sender(), html=True)
-    caption = f"Rayso by {mention}\n\n<blockquote>Theme Used - {theme}\nDark Mode - {dark_mode}</blockquote>"
-    await asyncio.gather(
-        ult.respond(caption, file=img, reply_to=reply_to, parse_mode="html"),
-        msg.try_delete(),
-    )
+    if isinstance(img, str):
+        mention = inline_mention(ult.sender or await ult.get_sender(), html=True)
+        caption = f"Rayso by {mention}\n\n<blockquote>Theme Used - {theme}\nDark Mode - {dark_mode}</blockquote>"
+        await asyncio.gather(
+            ult.respond(caption, file=img, reply_to=reply_to, parse_mode="html"),
+            msg.try_delete(),
+        )
+        osremove(img)

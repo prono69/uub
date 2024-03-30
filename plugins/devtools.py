@@ -138,17 +138,26 @@ async def run_bash(event):
     d_time = (time.perf_counter() - d_time) * 1000
 
     if stdout and (carb or rayso):
-        color = await _get_colors(pick=True)
-        li = await Carbon(
-            code=stdout,
-            file_name="_bash",
-            download=True,
-            backgroundColor=color,
-            rayso=rayso,
-        )
-        if not isinstance(li, dict):
+        fnn = None
+        if carbon:
+            color = await _get_colors(pick=True)
+            li = await Carbon(
+                code=stdout,
+                file_name="_bash",
+                download=True,
+                backgroundColor=color,
+                rayso=rayso,
+            )
+            if not isinstance(li, dict):
+                fnn = "_bash.jpg"
+        else:
+            li = await generate_rayso(stdout)
+            if isinstance(li, str):
+                fnn = li
+
+        if fnn:
             _url = await get_imgbb_link(
-                "_bash.jpg",
+                fnn,
                 hq=True,
                 expire=7200,
                 delete=True,
@@ -170,7 +179,7 @@ async def run_bash(event):
 
         with BytesIO(OUT.encode()) as out_file:
             out_file.name = "bash.txt"
-            caption = "<b>• BASH:</b> (<i>{timeform}</i>)\n" + u._html(
+            caption = f"<b>• BASH:</b> (<i>{timeform}</i>)\n" + u._html(
                 cmd if len(cmd) < 610 else cmd[:600] + " ...", "bash"
             )
             await event.client.send_file(
@@ -390,17 +399,26 @@ async def run_eval(event):
     if timeform == "0s":
         timeform = f"{tima:.3f}ms"
     if mode in {"carb", "rayso"} and stdout:
-        color = await _get_colors(pick=True)
-        lin = await Carbon(
-            code=stdout,
-            file_name="_eval",
-            download=True,
-            rayso=mode == "rayso",
-            backgroundColor=color,
-        )
-        if not isinstance(lin, dict):
+        fnn = None
+        if carbon:
+            color = await _get_colors(pick=True)
+            li = await Carbon(
+                code=stdout,
+                file_name="_eval",
+                download=True,
+                backgroundColor=color,
+                rayso=rayso,
+            )
+            if not isinstance(li, dict):
+                fnn = "_eval.jpg"
+        else:
+            li = await generate_rayso(stdout)
+            if isinstance(li, str):
+                fnn = li
+
+        if fnn:
             _url = await get_imgbb_link(
-                "_eval.jpg",
+                fnn,
                 hq=True,
                 expire=7200,
                 delete=True,
