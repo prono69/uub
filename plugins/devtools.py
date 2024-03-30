@@ -139,14 +139,13 @@ async def run_bash(event):
 
     if stdout and (carb or rayso):
         fnn = None
-        if carbon:
+        if carb:
             color = await _get_colors(pick=True)
             li = await Carbon(
                 code=stdout,
                 file_name="_bash",
                 download=True,
                 backgroundColor=color,
-                rayso=rayso,
             )
             if not isinstance(li, dict):
                 fnn = "_bash.jpg"
@@ -400,14 +399,13 @@ async def run_eval(event):
         timeform = f"{tima:.3f}ms"
     if mode in {"carb", "rayso"} and stdout:
         fnn = None
-        if carbon:
+        if mode == "carbon":
             color = await _get_colors(pick=True)
             li = await Carbon(
                 code=stdout,
                 file_name="_eval",
                 download=True,
                 backgroundColor=color,
-                rayso=rayso,
             )
             if not isinstance(li, dict):
                 fnn = "_eval.jpg"
