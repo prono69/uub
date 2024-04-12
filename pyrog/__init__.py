@@ -24,6 +24,7 @@ except ImportError:
     Client = None
 
 
+_error = ""  # to check if there are errors
 PYROG_CLIENTS = {}
 _workers = 2 if os.cpu_count() < 3 else min(6, os.cpu_count())
 
@@ -31,11 +32,11 @@ _default_client_values = {
     "api_id": Var.API_ID,
     "api_hash": Var.API_HASH,
     "workdir": "resources/temp/",
-    "sleep_threshold": 150,
+    "sleep_threshold": 180,
     "workers": _workers,
     "no_updates": True,
     "max_concurrent_transmissions": 1,
-    "message_cache": 512,
+    "message_cache": 256,
 }
 
 
@@ -47,13 +48,13 @@ def app(n=None):
 def setup_clients():
     # plugins = {"root": "pyrog/plugins"}
     if not Client:
-        LOGS.warning("'pyrogram' is not installed; Skipping pyrogram setup..")
+        _error = "'pyrogram' is not installed; Skipping pyrogram setup.."
         return True
 
     var = "PYROGRAM_CLIENTS"
     stuff = os.environ.get(var)
     if not stuff:
-        LOGS.warning("Var 'PYROGRAM_CLIENTS' not found; Skipping pyrogram setup..")
+        _error = "Var 'PYROGRAM_CLIENTS' not found; Skipping pyrogram setup.."
         return True
 
     data = literal_eval(stuff)
@@ -68,7 +69,7 @@ def setup_clients():
 
 async def pyro_startup():
     if setup_clients():
-        return
+        return LOGS.warning(_error)
 
     LOGS.info("Starting Pyrogram...")
     for count, client in PYROG_CLIENTS.copy().items():
@@ -90,4 +91,5 @@ async def pyro_startup():
 
 async def _init_pyrog():
     run_async_task(pyro_startup, id="pyrogram_startup")
-    await asyncio.sleep(9)
+    if not _error:
+        await asyncio.sleep(9)

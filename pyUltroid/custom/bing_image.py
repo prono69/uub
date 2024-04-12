@@ -4,7 +4,6 @@
 __all__ = ("BingScrapper",)
 
 import asyncio
-import imghdr
 from functools import partial
 from pathlib import Path
 from random import choice, shuffle
@@ -12,9 +11,8 @@ from re import match, search, findall
 from urllib.parse import quote_plus, unquote
 
 from pyUltroid import LOGS
-from pyUltroid.fns import some_random_headers
+
 from .commons import (
-    aiohttp_client as aiohttp,
     async_searcher,
     asyncwrite,
     check_filename,
@@ -22,8 +20,15 @@ from .commons import (
     split_list,
 )
 
+try:
+    import imghdr  # todo: remove this
+except ImportError:
+    imghdr = None
 
-_IMG_EXTS = (".jpg", ".jpeg", ".exif", ".gif", ".bmp", ".png", ".webp", ".jpe", ".tiff")
+try:
+    from aiohttp import ClientTimeout
+except ImportError:
+    LOGS.warning("Bing Scrapper needs aiohttp to work..")
 
 
 class BingScrapper:
@@ -42,17 +47,18 @@ class BingScrapper:
         assert type(limit) == int and limit > 0, "limit must be of type Integer"
         self.query = query
         self.limit = limit
-        self.page_counter = 0
+        self.page_counter = 1
         self.hide_nsfw = "on" if bool(hide_nsfw) else "off"
         self.url_args = self._filter_to_args(filter)
         self.headers = {
-            "User-Agent": choice(some_random_headers),
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Charset": "ISO-8859-1,utf-8;q=0.7,*;q=0.3",
-            "Accept-Encoding": "none",
+            "Accept-Encoding": "gzip, deflate, sdch",
             "Accept-Language": "en-US,en;q=0.8",
             "Connection": "keep-alive",
         }
+        self._img_exts = (".jpg", ".jpeg", ".gif", ".bmp", ".png", ".webp", ".jpe")
 
     def _filter_to_args(self, shorthand):
         if not shorthand:
@@ -74,7 +80,7 @@ class BingScrapper:
     async def _handle_download(self, filename, response):
         if response.status < 207:
             image_data = await response.read()
-            if imghdr.what(None, image_data):
+            if imghdr and imghdr.what(None, image_data):
                 await asyncwrite(filename, image_data, "wb+")
 
     async def save_image(self, link):
@@ -83,7 +89,7 @@ class BingScrapper:
                 link = unquote(re_search.group(1))
         filename = Path(self.output_path).joinpath(get_filename_from_url(link))
         ext = filename.suffix
-        if not (ext and ext in _IMG_EXTS):
+        if not (ext and ext in self._img_exts):
             filename = filename.with_suffix(".jpg")
         if filename.is_file():
             return
@@ -92,10 +98,10 @@ class BingScrapper:
                 link,
                 ssl=False,
                 raise_for_status=True,
-                timeout=aiohttp.ClientTimeout(total=10),
+                timeout=ClientTimeout(total=10),
                 evaluate=partial(self._handle_download, filename),
             )
-        except Exception:
+        except Exception as exc:
             pass  # LOGS.debug(f"Error: {exc}")
 
     async def get_links(self):
@@ -119,7 +125,7 @@ class BingScrapper:
                 )
                 return self._evaluate_links(cached_urls)
 
-            img_links = findall("murl&quot;:&quot;(.*?)&quot;", response)
+            img_links = findall(r"murl&quot;:&quot;(.*?)&quot;", response)
             for url in img_links:
                 cached_urls.add(url)
             self.page_counter += 1
@@ -138,9 +144,6 @@ class BingScrapper:
         url_list = await self.get_links()
         dl_list = [url_list] if len(url_list) <= 6 else split_list(url_list, 6)
         for collection in dl_list:
-            await asyncio.gather(
-                *[self.save_image(url) for url in collection],
-                return_exceptions=True,
-            )
+            await asyncio.gather(*[self.save_image(url) for url in collection])
 
         return self.output_path
