@@ -40,6 +40,7 @@ class BingScrapper:
         "url_args",
         "headers",
         "output_path",
+        "_img_exts",
     )
 
     def __init__(self, query, limit, hide_nsfw=True, filter=None):
