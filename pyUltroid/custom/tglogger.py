@@ -228,14 +228,14 @@ class PyroTGLogHandler(StreamHandler):
             print("Install 'pyrogram' to use PyroTGLogger :)")
             quit(0)
 
-        __import__("os").makedirs("resources/temp", exist_ok=True)
+        __import__("os").makedirs("resources/auth", exist_ok=True)
         _PAYLOAD["parse_mode"] = ParseMode.HTML
         self.app = Client(
             name="pyro_tglogger",
             api_id=6,
             api_hash="eb06d4abfb49dc3eeb1aeb98ae0f581e",
             bot_token=bot_token,
-            workdir="resources/temp/",
+            workdir="resources/auth/",
             sleep_threshold=300,
             workers=1,
             no_updates=True,
