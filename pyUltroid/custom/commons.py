@@ -29,7 +29,7 @@ except ImportError:
 # ---------------------------------------------------------------- #
 
 
-if not aiohttp_client:
+if not aiohttp:
     LOGS.warning("'aiohttp' is missing, some plugins will not work.")
 
 async_lock = asyncio.Lock()

@@ -1,7 +1,7 @@
 # additional functions that must be seperate from commons..
 
 __all__ = (
-    "aiohttp_client",
+    "aiohttp",
     "cpu_bound",
     "run_async",
     "async_searcher",
@@ -22,9 +22,9 @@ except ImportError:
     requests = None
 
 try:
-    from aiohttp import ClientSession as aiohttp_client
+    import aiohttp
 except ImportError:
-    aiohttp_client = None
+    aiohttp = None
 
 
 _workers = __import__("multiprocessing").cpu_count()
@@ -83,16 +83,21 @@ async def async_searcher(
     object: bool = False,
     re_json: bool = False,
     re_content: bool = False,
+    timeout: int | bool = 60,
     *args,
     **kwargs,
 ):
-    method = "POST" if post else method.upper()
-    if aiohttp_client:
-        async with aiohttp_client(headers=headers) as client:
-            data = await client.request(method, url, *args, **kwargs)
-            if evaluate:
-                from telethon.helpers import _maybe_await
+    if evaluate:
+        from telethon.helpers import _maybe_await
 
+    method = "POST" if post else method.upper()
+
+    if aiohttp:
+        if timeout:
+            timeout = aiohttp.ClientTimeout(time=int(timeout))
+        async with aiohttp.ClientSession(headers=headers) as client:
+            data = await client.request(method, url, *args, timeout=timeout, **kwargs)
+            if evaluate:
                 return await _maybe_await(evaluate(data))
             elif re_json:
                 return await data.json()
@@ -104,6 +109,8 @@ async def async_searcher(
                 return await data.text()
 
     elif requests:
+        if "ssl" in kwargs:
+            kwargs["verify"] = kwargs.pop("ssl", None)
 
         @run_async
         def sync_request():
@@ -112,24 +119,22 @@ async def async_searcher(
                 url,
                 *args,
                 headers=headers,
+                timeout=timeout,
                 **kwargs,
             )
-            if object:
-                return data
-            elif re_json:
+            if re_json:
                 return data.json()
             elif re_content:
                 return data.content
+            elif evaluate or object:
+                return data
             else:
                 return data.text
 
-        if evaluate:
-            object = True
         data = await sync_request()
         if evaluate:
-            from telethon.helpers import _maybe_await
-
             return await _maybe_await(evaluate(data))
         return data
+
     else:
-        raise DependencyMissingError("Install 'aiohttp' to use this.")
+        raise DependencyMissingError("Install 'aiohttp' or 'requests' to use this.")

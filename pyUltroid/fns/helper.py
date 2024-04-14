@@ -22,7 +22,7 @@ from pyUltroid import *
 from pyUltroid._misc import CMD_HELP
 from pyUltroid._misc._wrappers import eod, eor
 from pyUltroid.custom.commons import *
-from pyUltroid.custom.commons import aiohttp_client
+from pyUltroid.custom.commons import aiohttp
 from pyUltroid.dB._core import ADDONS, HELP, LIST, LOADED
 from pyUltroid.version import ultroid_version
 from pyUltroid.exceptions import DownloadError, UploadError
@@ -360,7 +360,7 @@ async def download_file(link, name, validate=False):
     """for files, without progress callback with aiohttp"""
     name = check_filename(name)
 
-    if aiohttp_client:
+    if aiohttp:
 
         async def _download(response):
             if validate and "application/json" in response.headers.get("Content-Type"):
@@ -389,23 +389,27 @@ async def fast_download(download_url, filename=None, progress_callback=None):
         filename = check_filename(Path("resources/downloads") / filename)
 
     start_time = time.time()
-    if not aiohttp_client:
-        # without progress callback..
+    if not aiohttp:
+        # without callback
         dl = await download_file(download_url, filename)
         return dl[0], time.time() - start_time
 
-    async with aiohttp_client() as session:
-        async with session.get(download_url, ssl=False, timeout=None) as response:
-            total_size = int(response.headers.get("content-length", 0)) or None
-            downloaded_size = 0
-            start_time = time.time()
-            async for chunk in response.content.iter_chunked(256 * 1024):
-                if chunk:
-                    await asyncwrite(filename, chunk, mode="ab+")
-                    downloaded_size += len(chunk)
-                if progress_callback and total_size:
-                    await _maybe_await(progress_callback(downloaded_size, total_size))
-            return filename, time.time() - start_time
+    # without callback
+    async def _download(response):
+        total_size = int(response.headers.get("content-length", 0)) or None
+        downloaded_size = 0
+        start_time = time.time()
+        async for chunk in response.content.iter_chunked(256 * 1024):
+            if chunk:
+                await asyncwrite(filename, chunk, mode="ab+")
+                downloaded_size += len(chunk)
+            if progress_callback and total_size:
+                await _maybe_await(progress_callback(downloaded_size, total_size))
+        return filename, time.time() - start_time
+
+    return await async_searcher(
+        download_url, ssl=False, timeout=None, evaluate=_download
+    )
 
 
 # ----------------- Media Funcs ------------------------- #

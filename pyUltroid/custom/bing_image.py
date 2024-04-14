@@ -11,6 +11,7 @@ from re import match, search, findall
 from urllib.parse import quote_plus, unquote
 
 from pyUltroid import LOGS
+from pyUltroid.fns.helper import download_file
 
 from .commons import (
     async_searcher,
@@ -19,16 +20,6 @@ from .commons import (
     get_filename_from_url,
     split_list,
 )
-
-try:
-    import imghdr  # todo: remove this
-except ImportError:
-    imghdr = None
-
-try:
-    from aiohttp import ClientTimeout
-except ImportError:
-    LOGS.warning("Bing Scrapper needs aiohttp to work..")
 
 
 class BingScrapper:
@@ -78,12 +69,6 @@ class BingScrapper:
         else:
             return ""
 
-    async def _handle_download(self, filename, response):
-        if response.status < 207:
-            image_data = await response.read()
-            if imghdr and imghdr.what(None, image_data):
-                await asyncwrite(filename, image_data, "wb+")
-
     async def save_image(self, link):
         if match(r"^https?://(www.)?bing.com/th/id/OGC", link):
             if re_search := search(r"&amp;rurl=(.+)&amp;ehk=", link):
@@ -95,13 +80,7 @@ class BingScrapper:
         if filename.is_file():
             return
         try:
-            await async_searcher(
-                link,
-                ssl=False,
-                raise_for_status=True,
-                timeout=ClientTimeout(total=10),
-                evaluate=partial(self._handle_download, filename),
-            )
+            await download_file(link, filename)
         except Exception as exc:
             pass  # LOGS.debug(f"Error: {exc}")
 

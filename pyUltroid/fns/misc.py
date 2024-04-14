@@ -26,7 +26,7 @@ from pyUltroid.dB import DEVLIST
 from pyUltroid.dB._core import LIST
 from pyUltroid.exceptions import DependencyMissingError
 from pyUltroid.custom.commons import (
-    aiohttp_client as aiohttp,
+    aiohttp,
     async_searcher,
     asyncread,
     asyncwrite,
