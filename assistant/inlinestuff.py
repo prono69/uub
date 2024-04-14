@@ -632,6 +632,10 @@ async def inline_tl(ult):
                 description=item[1],
                 url="https://t.me/TeamUltroid",
                 text=item[2],
+                buttons=Button.url(
+                    "TL Source!",
+                    f"https://tl.telethon.dev/?q={item[0]}",
+                )
             )
             for item in items[offset : offset + 50]
         ]
@@ -640,7 +644,7 @@ async def inline_tl(ult):
         items,
         switch_pm=mo,
         switch_pm_param="start",
-        cache_time=15,
+        cache_time=10,
         next_offset=str(offset + 50),
     )
 
