@@ -635,7 +635,7 @@ async def inline_tl(ult):
                 buttons=Button.url(
                     "TL Source!",
                     f"https://tl.telethon.dev/?q={item[0]}",
-                )
+                ),
             )
             for item in items[offset : offset + 50]
         ]

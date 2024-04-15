@@ -21,6 +21,8 @@
    Search and download video from youtube.
 """
 
+import time
+
 from pyUltroid.fns.ytdl import download_yt, get_yt_link
 
 from . import get_string, string_is_url, ultroid_cmd
@@ -30,13 +32,28 @@ from . import get_string, string_is_url, ultroid_cmd
     pattern="yt(a|v|sa|sv) ?(.*)",
 )
 async def download_from_youtube(event):
-    ytd = {"nocheckcertificate": True}
-    opt = event.pattern_match.group(2)
+    ytd = {"folder": f"resources/temp/{time.time()}"}
+    video_opts = {
+        "format": "bestvideo",
+        "postprocessors": [{"key": "FFmpegMetadata"}],
+        "merge_output_format": "mp4/mkv/flv",
+    }
+    audio_opts = {
+        "format": "bestaudio",
+        "postprocessors": [
+            {
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "mp3/m4a/ogg",
+                "preferredquality": "256",
+            },
+            {"key": "FFmpegMetadata"},
+        ],
+    }
+    opt = event.pattern_match.group(1)
     xx = await event.eor(get_string("com_1"))
 
     if opt == "a":
-        ytd["format"] = "bestaudio"
-        ytd["outtmpl"] = "%(id)s"
+        ytd |= audio_opts
         url = event.pattern_match.group(2)
         if not url:
             return await xx.eor(get_string("youtube_1"))
@@ -44,9 +61,7 @@ async def download_from_youtube(event):
             return await xx.eor(get_string("youtube_2"))
 
     elif opt == "v":
-        ytd["format"] = "best"
-        ytd["outtmpl"] = "%(id)s"
-        ytd["postprocessors"] = [{"key": "FFmpegMetadata"}]
+        ytd |= video_opts
         url = event.pattern_match.group(2)
         if not url:
             return await xx.eor(get_string("youtube_3"))
@@ -54,11 +69,9 @@ async def download_from_youtube(event):
             return await xx.eor(get_string("youtube_4"))
 
     elif opt == "sa":
-        ytd["format"] = "bestaudio"
-        ytd["outtmpl"] = "%(id)s"
-        try:
-            query = event.text.split(" ", 1)[1]
-        except IndexError:
+        ytd |= audio_opts
+        query = event.pattern_match.group(2)
+        if not query:
             return await xx.eor(get_string("youtube_5"))
         url = await get_yt_link(query)
         if not url:
@@ -66,17 +79,15 @@ async def download_from_youtube(event):
         await xx.eor(get_string("youtube_6"))
 
     elif opt == "sv":
-        ytd["format"] = "best"
-        ytd["outtmpl"] = "%(id)s"
-        ytd["postprocessors"] = [{"key": "FFmpegMetadata"}]
-        try:
-            query = event.text.split(" ", 1)[1]
-        except IndexError:
+        ytd |= video_opts
+        query = event.pattern_match.group(2)
+        if not query:
             return await xx.eor(get_string("youtube_7"))
         url = await get_yt_link(query)
         if not url:
             return await xx.edit(get_string("unspl_1"))
         await xx.eor(get_string("youtube_8"))
+
     else:
         return
 

@@ -94,7 +94,7 @@ async def async_searcher(
 
     if aiohttp:
         if timeout:
-            timeout = aiohttp.ClientTimeout(time=int(timeout))
+            timeout = aiohttp.ClientTimeout(total=int(timeout))
         async with aiohttp.ClientSession(headers=headers) as client:
             data = await client.request(method, url, *args, timeout=timeout, **kwargs)
             if evaluate:

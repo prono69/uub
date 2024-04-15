@@ -6,16 +6,19 @@
 # <https://github.com/TeamUltroid/pyUltroid/blob/main/LICENSE>.
 
 import asyncio
-import glob
 import os
 import re
 import time
+from functools import partial
+from pathlib import Path
 
 from telethon import Button
 from yt_dlp import YoutubeDL
 
 from pyUltroid import LOGS, udB
+from pyUltroid.startup._logger import logging
 from pyUltroid.custom._transfer import pyroUL
+from pyUltroid.custom._loop import tasks_db, run_async_task
 from pyUltroid.custom.commons import (
     check_filename,
     humanbytes,
@@ -31,22 +34,48 @@ except ImportError:
     Playlist, VideosSearch = None, None
 
 
-async def ytdl_progress(k, start_time, event):
-    if k["status"] == "error":
-        return await event.edit("error")
-    while k["status"] == "downloading":
+ytdl_logger = logging.getLogger("yt-dlp")
+
+
+def _ytdl_options():
+    opts = {}
+    opts["quiet"] = True
+    opts["nocheckcertificate"] = True
+    opts["username"] = udB.get_key("YT_USERNAME")
+    opts["password"] = udB.get_key("YT_PASSWORD")
+    opts["noprogress"] = True
+    opts["overwrites"] = True
+    opts["geo_bypass"] = True
+    opts["addmetadata"] = True
+    opts["prefer_ffmpeg"] = True
+    opts["logger"] = ytdl_logger
+    return opts
+
+
+_YT_PROGRESS = {}
+
+
+def ytdl_progress(event, k):
+    idx = f"{event.chat_id}_{event.id}"
+    prev = _YT_PROGRESS.get(idx)
+    now = time.time()
+    if k["status"] != "downloading" or prev and now - prev < 7:
+        return
+
+    total = k.get("total_bytes")
+    downloaded = k.get("downloaded_bytes")
+    eta = k.get("eta", 0)
+    speed = k.get("speed", 0)
+    if total and downloaded and "yt_progress_bar" not in tasks_db:
         text = (
-            f"`Downloading: {k['filename']}\n"
-            + f"Total Size: {humanbytes(k['total_bytes'])}\n"
-            + f"Downloaded: {humanbytes(k['downloaded_bytes'])}\n"
-            + f"Speed: {humanbytes(k['speed'])}/s\n"
-            + f"ETA: {time_formatter(k['eta']*1000)}`"
+            f"**YT Downloader:** `{Path(k['filename']).name}`\n\n"
+            + f"Status: `{humanbytes(downloaded)}/{humanbytes(total)}` "
+            + f"`({int(downloaded) * 100/int(total):.2f}%)`\n"
+            + f"Speed: `{humanbytes(speed)}/s`\n"
+            + f"ETA: `{time_formatter(eta*1000)}`"
         )
-        if round((time.time() - start_time) % 10) == 0:
-            try:
-                await event.edit(text)
-            except Exception as ex:
-                LOGS.error(f"ytdl_progress: {ex}")
+        run_async_task(event.edit, text, id="yt_progress_bar")
+        _YT_PROGRESS[idx] = now
 
 
 async def get_yt_link(query):
@@ -59,16 +88,18 @@ async def get_yt_link(query):
 
 
 @run_async
-def ytdownload(url, opts):
+def ytdownload(url, opts, event):
     try:
-        return YoutubeDL(opts).download([url])
+        yt = YoutubeDL(opts)
+        yt.add_progress_hook(partial(ytdl_progress, event))
+        return yt.download(url)
     except Exception as ex:
         LOGS.exception(ex)
 
 
 @run_async
-def extract_info(url, opts):
-    return YoutubeDL(opts).extract_info(url=url, download=False)
+def extract_info(url):
+    return YoutubeDL(_ytdl_options()).extract_info(url=url, download=False)
 
 
 # ---------------YouTube Downloader Inline---------------
@@ -132,29 +163,14 @@ def get_buttons(listt):
     return buttons
 
 
-async def dler(event, url, download=False, info=False, **opts):
+async def dler(event, url, **opts):
     await event.edit("`Getting Data...`")
-    if "quiet" not in opts:
-        opts["quiet"] = True
-    opts["username"] = udB.get_key("YT_USERNAME")
-    opts["password"] = udB.get_key("YT_PASSWORD")
-    opts["logtostderr"] = False
-    opts["overwrites"] = True
-    opts["geo_bypass"] = True
-    opts["prefer_ffmpeg"] = True
-    opts["addmetadata"] = True
-    # if more_opts := udB.get_key("__YTDL_OPTS", force=True):
-    #    if type(more_opts) == dict:
-    #        opts |= more_opts
-
-    if download:
-        await ytdownload(url, opts)
-
-    try:
-        return await extract_info(url, opts)
-    except Exception as e:
-        await event.edit(f"{type(e)}: {e}")
-        return
+    folder = opts.pop("folder", f"resources/temp/{time.time()}")
+    opts = _ytdl_options() | opts
+    opts["outtmpl"] = f"{folder}/%(title)s-%(format)s.%(ext)s"
+    re_code = await ytdownload(url, opts, event)
+    _YT_PROGRESS.pop(f"{event.chat_id}_{event.id}", None)
+    return (re_code, folder)
 
 
 async def get_videos_link(url):
@@ -173,47 +189,61 @@ async def get_videos_link(url):
 
 
 async def download_yt(event, link, ytd):
-    find_file = lambda v_id: [
-        i
-        for i in os.listdir(".")
-        if i.startswith(v_id) and not i.endswith((".jpg", ".jpeg", ".png"))
-    ]
     reply_to = event.reply_to_msg_id or event
-    info = await dler(event, link, download=True, **ytd)
-    if not info:
+    code, folder = await dler(event, link, **ytd)
+    if code != 0:
+        return LOGS.error(
+            f"Something went Wrong in YT downloader! return code: {code} - Check folder: {folder}"
+        )
+
+    try:
+        info = await extract_info(link)
+        if not info:
+            LOGS.error(
+                f"Something went Wrong while extracting info from YT! {link} - return code: {code}"
+            )
+    except Exception as exc:
+        await event.edit(f"{type(exc)}: {exc}")
         return
+
     if info.get("_type") == "playlist":
         total = info["playlist_count"]
-        for num, file in enumerate(info["entries"]):
-            num += 1
+        for num, file in enumerate(info["entries"], start=1):
             vid_id = file["id"]
             title = file["title"]
-            filepath = find_file(vid_id)
-            if not filepath:
-                return LOGS.warning(f"YTDL ERROR: file not found - {vid_id}")
+            filepath = None
+            for pth in Path(folder).iterdir():
+                if pth.stem.startswith(title):
+                    filepath = str(pth)
 
-            if filepath[0].lower().endswith((".part", ".temp")):
-                osremove(filepath[0])
+            if not filepath:
                 LOGS.warning(
-                    f"YTDL Error: {vid_id} - found file ending in .part or .temp"
-                )
-                await event.respond(
-                    f"`[{num}/{total}]` \n`Error: Invalid Video format.\nIgnoring that...`"
+                    f"YTDL ERROR: file not found - {folder}/{title} - return code: {code}"
                 )
                 continue
 
-            default_ext = ".mkv" if file.get("height") else ".mp3"
-            newpath = check_filename(
-                title + (os.path.splitext(filepath[0])[1] or default_ext).lower()
-            )
-            os.rename(filepath[0], newpath)
-            filepath = newpath
+            if filepath.lower().endswith((".part", ".temp", ".tmp")):
+                # osremove(filepath)
+                LOGS.warning(
+                    f"YTDL Corrupted or Incomplete Download: {folder}/{title} - return code: {code} - file name ending in .part or .temp"
+                )
+                await asyncio.sleep(3)
+                continue
+
+            if not (thumbnail := file.get("thumbnail")):
+                for th in reversed(file.get("thumbnails", [])):
+                    if th.get("url", "").endswith(".jpg"):
+                        thumbnail = th["url"]
+                        break
+
+            if not thumbnail:
+                thumbnail = f"https://i.ytimg.com/vi/{vid_id}/hqdefault.jpg"
             thumb, _ = await download_file(
-                file.get("thumbnail", file["thumbnails"][-1]["url"]),
-                f"{vid_id}.jpg",
+                thumbnail,
+                f"resources/temp/{title}.jpg",
             )
             from_ = info["extractor"].split(":")[0]
-            caption = f"`[{num}/{total}]` `{title}`\n\n`from {from_}`"
+            caption = f"`[{num}/{total}] {title}`\n\n`from {from_}`"
             ulx = pyroUL(event=event, _path=filepath)
             await ulx.upload(
                 thumb=thumb,
@@ -224,32 +254,41 @@ async def download_yt(event, link, ytd):
                 reply_to=reply_to,
             )
             await event.edit(f"`Uploaded {title}!`")
-            await asyncio.sleep(3)
+            await asyncio.sleep(5)
 
+        osremove(folder, folders=True)
         return await event.try_delete()
 
     # single file
     title = info["title"]
     vid_id = info["id"]
-    filepath = find_file(vid_id)
+    filepath = None
+    for pth in Path(folder).iterdir():
+        if pth.stem.startswith(title):
+            filepath = str(pth)
+
     if not filepath:
-        return LOGS.warning(f"YTDL ERROR: file not found - {vid_id}")
+        return LOGS.warning(
+            f"YTDL ERROR: file not found - {folder}/{title} - return code: {code}"
+        )
 
-    if filepath[0].lower().endswith((".part", ".temp")):
-        osremove(filepath[0])
-        LOGS.warning(f"YTDL Error: {vid_id} - found file ending in .part or .temp")
-        return await event.edit(f"`Error: Invalid format detected...`")
+    if filepath.lower().endswith((".part", ".temp", ".tmp")):
+        # osremove(filepath)
+        return LOGS.warning(
+            f"YTDL Corrupted or Incomplete Download: {folder}/{title} - return code: {code} - file name ending in .part or .temp"
+        )
 
-    default_ext = ".mkv" if info.get("height") else ".mp3"
-    newpath = check_filename(
-        title + (os.path.splitext(filepath[0])[1] or default_ext).lower()
-    )
-    os.rename(filepath[0], newpath)
-    filepath = newpath
+    if not (thumbnail := info.get("thumbnail")):
+        for th in reversed(info.get("thumbnails", [])):
+            if th.get("url", "").endswith(".jpg"):
+                thumbnail = th["url"]
+                break
 
+    if not thumbnail:
+        thumbnail = f"https://i.ytimg.com/vi/{vid_id}/hqdefault.jpg"
     thumb, _ = await download_file(
-        info.get("thumbnail", f"https://i.ytimg.com/vi/{vid_id}/hqdefault.jpg"),
-        f"{vid_id}.jpg",
+        thumbnail,
+        f"resources/temp/{title}.jpg",
     )
     ulx = pyroUL(event=event, _path=filepath)
     await ulx.upload(
@@ -260,6 +299,8 @@ async def download_yt(event, link, ytd):
         delete_file=True,
         caption=f"`{title}`",
     )
+    # osremove(folder, folders=True)
+    _YT_PROGRESS.pop(f"{event.chat_id}_{event.id}", None)
     await event.try_delete()
 
 

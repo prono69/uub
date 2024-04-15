@@ -8,18 +8,15 @@
 import asyncio
 import os
 import re
-
-try:
-    from PIL import Image
-except ImportError:
-    Image = None
+import time
+from pathlib import Path
 
 from telethon import Button
 from telethon.tl.types import InputWebDocument
 
 from pyUltroid.fns.helper import download_file, numerize
 from pyUltroid.custom._transfer import pyroUL
-from pyUltroid.fns.ytdl import dler, get_buttons, get_formats
+from pyUltroid.fns.ytdl import extract_info, dler, get_buttons, get_formats
 from pyUltroid.custom.commons import (
     bash,
     check_filename,
@@ -29,6 +26,11 @@ from pyUltroid.custom.commons import (
 )
 
 from . import LOGS, asst, callback, in_pattern, udB
+
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
 
 try:
     from youtubesearchpython.__future__ import VideosSearch
@@ -128,13 +130,13 @@ async def inline_yt(event):
 async def inline_ytdl_format(e):
     _e = e.pattern_match.group(1).strip().decode("UTF-8")
     _lets_split = _e.split(":")
-    _ytdl_data = await dler(e, _yt_base_url + _lets_split[1])
+    _ytdl_data = await extract_info(_yt_base_url + _lets_split[1])
     _data = get_formats(_lets_split[0], _lets_split[1], _ytdl_data)
     _buttons = get_buttons(_data)
     _text = (
         "`Select Your Format.`"
         if _buttons
-        else "`Error downloading from YouTube.\nTry Restarting your bot.`"
+        else "`Error fetching data from YouTube.\nTry Restarting your bot.`"
     )
     await e.edit(_text, buttons=_buttons)
 
@@ -156,16 +158,13 @@ async def inline_ytdownload(event):
     except IndexError:
         ext = "mp3"
 
-    find_file = lambda v_id: [
-        i
-        for i in os.listdir(".")
-        if i.startswith(v_id) and not i.endswith((".jpg", ".jpeg", ".png", ".webp"))
-    ]
+    folder = f"resources/temp/{time.time()}"
+    ytdl_data = await extract_info(link)
     if lets_split[0] == "audio":
         opts = {
             "format": "bestaudio",
-            "key": "FFmpegMetadata",
-            "outtmpl": f"%(id)s",
+            "folder": folder,
+            "noplaylist": True,
             "postprocessors": [
                 {
                     "key": "FFmpegExtractAudio",
@@ -176,24 +175,35 @@ async def inline_ytdownload(event):
             ],
         }
 
-        ytdl_data = await dler(event, link, True, **opts)
-        filepath = find_file(vid_id)
-        if not filepath:
-            return LOGS.warning(f"YTDL ERROR: audio file not found: {vid_id}")
-
-        if filepath[0].lower().endswith((".part", ".temp")):
-            osremove(filepath[0])
-            LOGS.warning(
-                f"Ytdl error for {vid_id}: found file ending in .part or .temp"
+        resp, folder = await dler(event, link, **opts)
+        if resp != 0:
+            LOGS.error(
+                f"YTDL ERROR: Something went Wrong in downloading! - return code: {resp} - Check folder: {folder}"
             )
-            return await event.edit("`Error: Invalid Audio format...`")
+            return await event.edit(
+                f"`Something went wrong while downloading this audio...`"
+            )
 
-        title = ytdl_data["title"]
-        newpath = check_filename(
-            title + (os.path.splitext(filepath[0])[1] or ".mp3").lower()
-        )
-        os.rename(filepath[0], newpath)
-        filepath = newpath
+        title = ytdl_data.get("title")
+        filepath = None
+        for pth in Path(folder).iterdir():
+            if pth.stem.startswith(title):
+                filepath = str(pth)
+
+        if not filepath:
+            LOGS.error(
+                f"YTDL ERROR: could not found audio file - {folder}/{title} - return code: {resp} - (possibly wrong format or server error)"
+            )
+            return await event.edit(
+                "`Error: File could not be Downloaded! Try choosing different format..`"
+            )
+
+        if filepath.lower().endswith((".part", ".temp", ".tmp")):
+            osremove(filepath)
+            LOGS.warning(
+                f"YTDL ERROR: Corrupted file or Incomplete download: {folder}/{title} - response code: {resp} - audio file ending in .part or .temp..."
+            )
+            return await event.edit("`Error: Invalid audio format was Choosen...`")
 
         if ytdl_data.get("artist"):
             artist = ytdl_data["artist"]
@@ -203,11 +213,17 @@ async def inline_ytdownload(event):
             artist = ytdl_data["channel"]
 
         views = numerize(ytdl_data.get("view_count")) or 0
+        if not (thumbnail := ytdl_data.get("thumbnail")):
+            for th in reversed(ytdl_data.get("thumbnails", [])):
+                if th.get("url", "").endswith(".jpg"):
+                    thumbnail = th["url"]
+                    break
+
+        if not thumbnail:
+            thumbnail = f"https://i.ytimg.com/vi/{vid_id}/hqdefault.jpg"
         thumb, _ = await download_file(
-            ytdl_data.get(
-                "thumbnail", f"https://i.ytimg.com/vi/{vid_id}/hqdefault.jpg"
-            ),
-            f"{vid_id}.jpg",
+            thumbnail,
+            f"resources/temp/{title}.jpg",
         )
         likes = numerize(ytdl_data.get("like_count")) or 0
         duration = ytdl_data.get("duration") or 0
@@ -227,26 +243,41 @@ async def inline_ytdownload(event):
         opts = {
             "format": str(format),
             "key": "FFmpegMetadata",
-            "outtmpl": f"%(id)s",
+            "folder": folder,
+            "noplaylist": True,
+            "merge_output_format": "mp4/mkv/flv",
             "postprocessors": [{"key": "FFmpegMetadata"}],
         }
 
-        ytdl_data = await dler(event, link, True, **opts)
-        filepath = find_file(vid_id)
+        resp, folder = await dler(event, link, **opts)
+        if resp != 0:
+            LOGS.error(
+                f"YTDL ERROR: Something went Wrong in downloading! - return code: {resp} - Check folder: {folder}"
+            )
+            return await event.edit(
+                f"`Something went wrong while downloading this video...`"
+            )
+
+        title = ytdl_data.get("title")
+        filepath = None
+        for pth in Path(folder).iterdir():
+            if pth.stem.startswith(title):
+                filepath = str(pth)
+
         if not filepath:
-            return LOGS.warning(f"YTDL ERROR: video file not found - {vid_id}")
+            LOGS.warning(
+                f"YTDL ERROR: could not found video file - {folder}/{title} - return code: {resp} - (possibly wrong format or server error)"
+            )
+            return await event.edit(
+                "`Error: File could not be Downloaded! Try choosing different format..`"
+            )
 
-        if filepath[0].lower().endswith((".part", ".temp")):
-            osremove(filepath[0])
-            LOGS.warning(f"YTDL Error: {vid_id} - found file ending in .part or .temp")
-            return await event.edit("`Error: Invalid Video format...`")
-
-        title = ytdl_data["title"]
-        newpath = check_filename(
-            title + (os.path.splitext(filepath[0])[1] or ".mkv").lower()
-        )
-        os.rename(filepath[0], newpath)
-        filepath = newpath
+        if filepath.lower().endswith((".part", ".temp", ".tmp")):
+            osremove(filepath)
+            LOGS.warning(
+                f"YTDL ERROR: Corrupted file or Incomplete download: {folder}/{title} - return code: {resp} - file ending in .part or .temp..."
+            )
+            return await event.edit("`Error: Invalid video format was Choosen...`")
 
         if ytdl_data.get("artist"):
             artist = ytdl_data["artist"]
@@ -254,12 +285,19 @@ async def inline_ytdownload(event):
             artist = ytdl_data["creator"]
         elif ytdl_data.get("channel"):
             artist = ytdl_data["channel"]
+
         views = numerize(ytdl_data.get("view_count")) or 0
+        if not (thumbnail := ytdl_data.get("thumbnail")):
+            for th in reversed(ytdl_data.get("thumbnails", [])):
+                if th.get("url", "").endswith(".jpg"):
+                    thumbnail = th["url"]
+                    break
+
+        if not thumbnail:
+            thumbnail = f"https://i.ytimg.com/vi/{vid_id}/hqdefault.jpg"
         thumb, _ = await download_file(
-            ytdl_data.get(
-                "thumbnail", f"https://i.ytimg.com/vi/{vid_id}/hqdefault.jpg"
-            ),
-            f"{vid_id}.jpg",
+            thumbnail,
+            f"resources/temp/{title}.jpg",
         )
 
         try:
@@ -269,9 +307,9 @@ async def inline_ytdownload(event):
             LOGS.exception("YTDL Error in saving thumbnail..")
             thumb = None
 
-        description = (ytdl_data["description"] or "None")[:100]
         likes = numerize(ytdl_data.get("like_count")) or 0
         duration = ytdl_data.get("duration") or 0
+        description = (ytdl_data["description"] or "None")[:100] + "..."
         # hi, wi = ytdl_data.get("height") or 720, ytdl_data.get("width") or 1280
         # size = os.path.getsize(filepath)
 
@@ -292,10 +330,12 @@ async def inline_ytdownload(event):
     text += f"「 Views: {views} 」\n"
     text += f"「 Likes: {likes} 」`"
     # text += f"「 Size: {humanbytes(size)} 」`"
+
     button = Button.switch_inline("Search More", query="yt ", same_peer=True)
     msg_to_edit = await asst.get_messages(yt_file.chat.id, ids=yt_file.id)
-    await asyncio.sleep(1)
+    await asyncio.sleep(0.6)
     await event.edit(text, file=msg_to_edit.media, buttons=button)
+    osremove(folder, folders=True)
 
 
 @callback(re.compile("ytdl_back:(.*)"), owner=True)

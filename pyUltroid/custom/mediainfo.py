@@ -9,7 +9,7 @@ from shlex import quote
 from shutil import which
 
 from pyUltroid.fns.helper import humanbytes
-from pyUltroid.startup import LOGS
+from pyUltroid.startup import HOSTED_ON, LOGS
 
 try:
     from pymediainfo import MediaInfo
@@ -23,7 +23,12 @@ class TGMediaInfo:
 
     def __init__(self, path):
         self.path = path
-        self.obj = MediaInfo.parse(self.path)
+        self.obj = MediaInfo.parse(
+            self.path,
+            library_file="/data/data/com.termux/files/usr/bin/mediainfo"
+            if HOSTED_ON == "termux"
+            else None,
+        )
         self.general_track = self.obj.general_tracks[0]
 
     async def run(self):
