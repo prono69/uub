@@ -62,20 +62,23 @@ def ytdl_progress(event, k):
     if k["status"] != "downloading" or prev and now - prev < 7:
         return
 
-    total = k.get("total_bytes")
-    downloaded = k.get("downloaded_bytes")
-    eta = k.get("eta", 0)
-    speed = k.get("speed", 0)
-    if total and downloaded and "yt_progress_bar" not in tasks_db:
-        text = (
-            f"**YT Downloader:** `{Path(k['filename']).name}`\n\n"
-            + f"Status: `{humanbytes(downloaded)}/{humanbytes(total)}` "
-            + f"`({int(downloaded) * 100/int(total):.2f}%)`\n"
-            + f"Speed: `{humanbytes(speed)}/s`\n"
-            + f"ETA: `{time_formatter(eta*1000)}`"
-        )
-        run_async_task(event.edit, text, id="yt_progress_bar")
-        _YT_PROGRESS[idx] = now
+    try:
+        total = k.get("total_bytes")
+        downloaded = k.get("downloaded_bytes")
+        eta = k.get("eta") or 0
+        speed = k.get("speed") or 0
+        if total and downloaded and "yt_progress_bar" not in tasks_db:
+            text = (
+                f"**YT Downloader:** `{Path(k['filename']).name}`\n\n"
+                + f"Status: `{humanbytes(downloaded)}/{humanbytes(total)}` "
+                + f"`({int(downloaded) * 100/int(total):.2f}%)`\n"
+                + f"Speed: `{humanbytes(speed)}/s`\n"
+                + f"ETA: `{time_formatter(eta*1000)}`"
+            )
+            run_async_task(event.edit, text, id="yt_progress_bar")
+            _YT_PROGRESS[idx] = now
+    except Exception as exc:
+        LOGS.exception(exc)
 
 
 async def get_yt_link(query):
