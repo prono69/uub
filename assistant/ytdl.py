@@ -187,8 +187,11 @@ async def inline_ytdownload(event):
         title = ytdl_data.get("title")
         filepath = None
         for pth in Path(folder).iterdir():
-            if pth.stem.startswith(title):
-                filepath = str(pth)
+            if pth.stem.startswith(vid_id) and not pth.suffix.endswith(
+                (".jpg", ".png", ".webp")
+            ):
+                new_stem = pth.stem.replace(f"{vid_id}-", f"{title}-")
+                filepath = str(pth.rename(pth.parent / (new_stem + pth.suffix)))
 
         if not filepath:
             LOGS.error(
@@ -198,7 +201,7 @@ async def inline_ytdownload(event):
                 "`Error: File could not be Downloaded! Try choosing different format..`"
             )
 
-        if filepath.lower().endswith((".part", ".temp", ".tmp")):
+        if filepath.lower().endswith((".part", ".temp", ".tmp", ".ytdl")):
             osremove(filepath)
             LOGS.warning(
                 f"YTDL ERROR: Corrupted file or Incomplete download: {folder}/{title} - response code: {resp} - audio file ending in .part or .temp..."
@@ -236,7 +239,7 @@ async def inline_ytdownload(event):
             return_obj=True,
             caption=filepath,
             delete_file=True,
-            progress_text=f"`Uploading {filepath} ...`",
+            progress_text=f"`Uploading {Path(filepath).name} ...`",
         )
 
     elif lets_split[0] == "video":
@@ -261,8 +264,11 @@ async def inline_ytdownload(event):
         title = ytdl_data.get("title")
         filepath = None
         for pth in Path(folder).iterdir():
-            if pth.stem.startswith(title):
-                filepath = str(pth)
+            if pth.stem.startswith(vid_id) and not pth.suffix.endswith(
+                (".jpg", ".png", ".webp")
+            ):
+                new_stem = pth.stem.replace(f"{vid_id}-", f"{title}-")
+                filepath = str(pth.rename(pth.parent / (new_stem + pth.suffix)))
 
         if not filepath:
             LOGS.warning(
@@ -272,7 +278,7 @@ async def inline_ytdownload(event):
                 "`Error: File could not be Downloaded! Try choosing different format..`"
             )
 
-        if filepath.lower().endswith((".part", ".temp", ".tmp")):
+        if filepath.lower().endswith((".part", ".temp", ".tmp", ".ytdl")):
             osremove(filepath)
             LOGS.warning(
                 f"YTDL ERROR: Corrupted file or Incomplete download: {folder}/{title} - return code: {resp} - file ending in .part or .temp..."
@@ -320,7 +326,7 @@ async def inline_ytdownload(event):
             return_obj=True,
             caption=filepath,
             delete_file=True,
-            progress_text=f"`Uploading {filepath} ...`",
+            progress_text=f"`Uploading {Path(filepath).name} ...`",
         )
 
     text = f"**Title: [{title}]({_yt_base_url}{vid_id})**\n\n"

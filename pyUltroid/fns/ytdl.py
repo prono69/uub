@@ -59,7 +59,7 @@ def ytdl_progress(event, k):
     idx = f"{event.chat_id}_{event.id}"
     prev = _YT_PROGRESS.get(idx)
     now = time.time()
-    if k["status"] != "downloading" or prev and now - prev < 7:
+    if k["status"] != "downloading" or (prev and now - prev < 7):
         return
 
     try:
@@ -69,9 +69,9 @@ def ytdl_progress(event, k):
         speed = k.get("speed") or 0
         if total and downloaded and "yt_progress_bar" not in tasks_db:
             text = (
-                f"**YT Downloader:** `{Path(k['filename']).name}`\n\n"
+                f"**YT Downloader**\n\n"
                 + f"Status: `{humanbytes(downloaded)}/{humanbytes(total)}` "
-                + f"`({int(downloaded) * 100/int(total):.2f}%)`\n"
+                + f"`[{int(downloaded) * 100/int(total):.2f}%]`\n"
                 + f"Speed: `{humanbytes(speed)}/s`\n"
                 + f"ETA: `{time_formatter(eta*1000)}`"
             )
@@ -170,7 +170,7 @@ async def dler(event, url, **opts):
     await event.edit("`Getting Data...`")
     folder = opts.pop("folder", f"resources/temp/{time.time()}")
     opts = _ytdl_options() | opts
-    opts["outtmpl"] = f"{folder}/%(title)s-%(format)s.%(ext)s"
+    opts["outtmpl"] = folder + "/" + "%(id)s-%(format)s.%(ext)s"
     re_code = await ytdownload(url, opts, event)
     _YT_PROGRESS.pop(f"{event.chat_id}_{event.id}", None)
     return (re_code, folder)
@@ -216,8 +216,11 @@ async def download_yt(event, link, ytd):
             title = file["title"]
             filepath = None
             for pth in Path(folder).iterdir():
-                if pth.stem.startswith(title):
-                    filepath = str(pth)
+                if pth.stem.startswith(vid_id) and not pth.suffix.endswith(
+                    (".jpg", ".png", ".webp")
+                ):
+                    new_stem = pth.stem.replace(f"{vid_id}-", f"{title}-")
+                    filepath = str(pth.rename(pth.parent / (new_stem + pth.suffix)))
 
             if not filepath:
                 LOGS.warning(
@@ -225,7 +228,7 @@ async def download_yt(event, link, ytd):
                 )
                 continue
 
-            if filepath.lower().endswith((".part", ".temp", ".tmp")):
+            if filepath.lower().endswith((".part", ".temp", ".tmp", ".ytdl")):
                 # osremove(filepath)
                 LOGS.warning(
                     f"YTDL Corrupted or Incomplete Download: {folder}/{title} - return code: {code} - file name ending in .part or .temp"
@@ -267,15 +270,18 @@ async def download_yt(event, link, ytd):
     vid_id = info["id"]
     filepath = None
     for pth in Path(folder).iterdir():
-        if pth.stem.startswith(title):
-            filepath = str(pth)
+        if pth.stem.startswith(vid_id) and not pth.suffix.endswith(
+            (".jpg", ".png", ".webp")
+        ):
+            new_stem = pth.stem.replace(f"{vid_id}-", f"{title}-")
+            filepath = str(pth.rename(pth.parent / (new_stem + pth.suffix)))
 
     if not filepath:
         return LOGS.warning(
             f"YTDL ERROR: file not found - {folder}/{title} - return code: {code}"
         )
 
-    if filepath.lower().endswith((".part", ".temp", ".tmp")):
+    if filepath.lower().endswith((".part", ".temp", ".tmp", ".ytdl")):
         # osremove(filepath)
         return LOGS.warning(
             f"YTDL Corrupted or Incomplete Download: {folder}/{title} - return code: {code} - file name ending in .part or .temp"
@@ -303,7 +309,6 @@ async def download_yt(event, link, ytd):
         caption=f"`{title}`",
     )
     # osremove(folder, folders=True)
-    _YT_PROGRESS.pop(f"{event.chat_id}_{event.id}", None)
     await event.try_delete()
 
 

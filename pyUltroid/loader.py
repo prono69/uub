@@ -35,7 +35,7 @@ class Loader:
         _single = os.path.isfile(self.path)
         if include:
             if log:
-                self._logger.info("Including: {}".format("• ".join(include)))
+                self._logger.info("Including: {}".format(" • ".join(include)))
             files = glob.glob(f"{self.path}/_*.py")
             for file in include:
                 path = f"{self.path}/{file}.py"
