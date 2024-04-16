@@ -21,6 +21,7 @@
    Search and download video from youtube.
 """
 
+import asyncio
 import time
 
 from pyUltroid.fns.ytdl import download_yt, get_yt_link
@@ -34,7 +35,7 @@ from . import get_string, string_is_url, ultroid_cmd
 async def download_from_youtube(event):
     ytd = {"folder": f"resources/temp/{time.time()}"}
     video_opts = {
-        "format": "bestvideo",
+        "format": "bestvideo+bestaudio",
         "postprocessors": [{"key": "FFmpegMetadata"}],
         "merge_output_format": "mp4/mkv/flv",
     }
@@ -91,4 +92,5 @@ async def download_from_youtube(event):
     else:
         return
 
+    await asyncio.sleep(2)
     await download_yt(xx, url, ytd)

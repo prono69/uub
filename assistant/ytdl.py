@@ -208,14 +208,6 @@ async def inline_ytdownload(event):
             )
             return await event.edit("`Error: Invalid audio format was Choosen...`")
 
-        if ytdl_data.get("artist"):
-            artist = ytdl_data["artist"]
-        elif ytdl_data.get("creator"):
-            artist = ytdl_data["creator"]
-        elif ytdl_data.get("channel"):
-            artist = ytdl_data["channel"]
-
-        views = numerize(ytdl_data.get("view_count")) or 0
         if not (thumbnail := ytdl_data.get("thumbnail")):
             for th in reversed(ytdl_data.get("thumbnails", [])):
                 if th.get("url", "").endswith(".jpg"):
@@ -228,6 +220,14 @@ async def inline_ytdownload(event):
             thumbnail,
             f"resources/temp/{title}.jpg",
         )
+
+        if ytdl_data.get("artist"):
+            artist = ytdl_data["artist"]
+        elif ytdl_data.get("creator"):
+            artist = ytdl_data["creator"]
+        elif ytdl_data.get("channel"):
+            artist = ytdl_data["channel"]
+        views = numerize(ytdl_data.get("view_count")) or 0
         likes = numerize(ytdl_data.get("like_count")) or 0
         duration = ytdl_data.get("duration") or 0
         description = (ytdl_data["description"] or "None")[:120] + "..."
@@ -248,7 +248,7 @@ async def inline_ytdownload(event):
             "key": "FFmpegMetadata",
             "folder": folder,
             "noplaylist": True,
-            "merge_output_format": "mp4/mkv/flv",
+            "merge_output_format": "mkv/mp4/flv",
             "postprocessors": [{"key": "FFmpegMetadata"}],
         }
 
@@ -285,14 +285,6 @@ async def inline_ytdownload(event):
             )
             return await event.edit("`Error: Invalid video format was Choosen...`")
 
-        if ytdl_data.get("artist"):
-            artist = ytdl_data["artist"]
-        elif ytdl_data.get("creator"):
-            artist = ytdl_data["creator"]
-        elif ytdl_data.get("channel"):
-            artist = ytdl_data["channel"]
-
-        views = numerize(ytdl_data.get("view_count")) or 0
         if not (thumbnail := ytdl_data.get("thumbnail")):
             for th in reversed(ytdl_data.get("thumbnails", [])):
                 if th.get("url", "").endswith(".jpg"):
@@ -306,13 +298,23 @@ async def inline_ytdownload(event):
             f"resources/temp/{title}.jpg",
         )
 
+        """
         try:
             if Image:
                 Image.open(thumb).save(thumb, "JPEG")
         except Exception as er:
             LOGS.exception("YTDL Error in saving thumbnail..")
             thumb = None
+        """
 
+        if ytdl_data.get("artist"):
+            artist = ytdl_data["artist"]
+        elif ytdl_data.get("creator"):
+            artist = ytdl_data["creator"]
+        elif ytdl_data.get("channel"):
+            artist = ytdl_data["channel"]
+
+        views = numerize(ytdl_data.get("view_count")) or 0
         likes = numerize(ytdl_data.get("like_count")) or 0
         duration = ytdl_data.get("duration") or 0
         description = (ytdl_data["description"] or "None")[:100] + "..."
