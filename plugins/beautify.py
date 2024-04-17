@@ -134,6 +134,8 @@ RaySoThemes = (
     "falcon",
     "sunset",
     "midnight",
+    "mono",
+    "raindrop",
 )
 
 
