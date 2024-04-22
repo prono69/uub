@@ -149,7 +149,7 @@ async def setting(event):
             len(HELP.get("Addons", [])),
             len(z),
         ),
-        file=await random_pic(clear=False) if random_pic.ok else inline_pic(),
+        file=await random_pic.get(clear=False) if random_pic.ok else inline_pic(),
         link_preview=False,
         buttons=[
             [

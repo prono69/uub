@@ -19,6 +19,7 @@ from pathlib import Path
 
 from telethon.utils import get_display_name
 from telethon.tl import functions
+from telethon.tl import functions as fn
 
 from pyUltroid import _ignore_eval
 from pyUltroid.custom.multi_db import *
@@ -45,7 +46,7 @@ else:
     from rich.console import Console
 
 
-fn = functions
+_EVAL_TASKS = {}
 
 
 @ultroid_cmd(
@@ -336,14 +337,31 @@ async def run_eval(event):
     stdout, stderr, exc, timeg = None, None, None, None
     redirected_output = sys.stdout = StringIO()
     redirected_error = sys.stderr = StringIO()
+
     try:
+        # value = await aexec(cmd, event)
+        process_id = f"{event.chat_id}_" + f"{xx.id}" if xx else random_string(12)
         tima = time.perf_counter()
-        value = await aexec(cmd, event)
+        task = asyncio.create_task(aexec(cmd, event))
+        # we must keep a refrence of the asyncio Task
+        _EVAL_TASKS[process_id] = task
+        task.add_done_callback(lambda _: _EVAL_TASKS.pop(process_id, None))
+        value = await task
+    except asyncio.CancelledError:
+        # check if it raised an exception on its own..
+        if task.cancelling():
+            if xx:
+                await xx.edit(f"__Cancelled!__")
+            return
+        value = None
+        exc = traceback.format_exc()
     except Exception:
         value = None
         exc = traceback.format_exc()
     finally:
         tima = (time.perf_counter() - tima) * 1000
+        # _EVAL_TASKS.pop(process_id, None)
+
     stdout = redirected_output.getvalue()
     stderr = redirected_error.getvalue()
     sys.stdout = old_stdout
@@ -469,6 +487,35 @@ async def run_eval(event):
     await xx.edit(final_output, parse_mode="html", link_preview=bool(_url))
     if mode != "nolog":
         await u._evalogger(cmd, event, "python")
+
+
+@ultroid_cmd(
+    pattern="cancel( (.*)|$)",
+    fullsudo=True,
+    only_devs=True,
+)
+async def cancel_eval_task(event):
+    task_id = event.pattern_match.group(2)
+    if not task_id:
+        if not event.reply_to:
+            return await event.eor(
+                f"`You must reply to the 'Processing..' message of Eval Command..`",
+                time=10,
+            )
+
+        reply = await event.get_reply_message()
+        task_id = f"{event.chat_id}_{reply.id}"
+    else:
+        task_id = f"{event.chat_id}_{task_id}"
+
+    task = _EVAL_TASKS.get(task_id)
+    if not task:
+        return await event.eor(f"`No Running Task found for this Message.`", time=10)
+
+    task.cancel()
+    await event.eor(f"• `Sucessfully Cancelled this task..`")
+    # await asyncio.sleep(3)
+    # _EVAL_TASKS.pop(task_id, None)
 
 
 def _stringify(text=None, *args, **kwargs):

@@ -534,7 +534,7 @@ async def twitter_search(event):
 
 
 @in_pattern("saavn", owner=True)
-async def saavn_search(event):
+async def saavn_inline_searcher(event):
     try:
         query = event.text.split(maxsplit=1)[1].lower()
     except IndexError:
