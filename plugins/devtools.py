@@ -80,10 +80,27 @@ class u:
         return f"""<pre><code class="language-{language}">{text}</code></pre>"""
 
     @staticmethod
+    def _emoji_tags(cmd):
+        html = lambda emoji, doc_id: f"<emoji document_id={doc_id}>{emoji}️</emoji>"
+        if cmd == "bash":
+            out = [html("☞", 5300999883996536855)]
+        elif cmd == "python":
+            out = [html("☞", 5300928913956938544)]
+        elif cmd == "cpp":
+            out = [html("☞", 5301090211453739345)]
+        elif cmd == "gcc":
+            out = [html("☞", 5301241853864059003)]
+        else:
+            return ("☞", "•", "•")
+        out.append(html("•", 5981118108620820471))  # output
+        out.append(html("•", 5017122105011995219))  # error
+        return tuple(out)
+
+    @staticmethod
     async def _evalogger(cmd, e, format_lang):
         if not TAG_LOG:
             return
-        await asyncio.sleep(2)
+        await asyncio.sleep(3)
         msg = "<b><blockquote>CMD Executed!</blockquote></b> \n\n{0}\n\n–  {1}:  {2} \n–  <a href='{3}'>{4}</a>"
         sndr = e.client.me if e.out else (e.sender or await e.get_sender())
         try:
@@ -166,7 +183,9 @@ async def run_bash(event):
             await asyncio.sleep(2)
 
     timeform = time_formatter(d_time)
+    emojis = u._emoji_tags("bash")
     if timeform == "0s":
+        await asyncio.sleep(1)  # why so fast :))
         timeform = f"{d_time:.3f}ms"
     if not (carb or rayso) and len(cmd + str(stderr) + str(stdout)) > 4000:
         OUT = f"☞ BASH ({timeform})\n\n\n• COMMAND:\n{cmd} \n\n\n"
@@ -179,7 +198,7 @@ async def run_bash(event):
 
         with BytesIO(OUT.encode()) as out_file:
             out_file.name = "bash.txt"
-            caption = f"<b>• BASH:</b> (<i>{timeform}</i>)\n" + u._html(
+            caption = f"{emojis[0]} <b>BASH:</b> (<i>{timeform}</i>)\n" + u._html(
                 cmd if len(cmd) < 610 else cmd[:600] + " ...", "bash"
             )
             await event.client.send_file(
@@ -195,15 +214,15 @@ async def run_bash(event):
         return
 
     _cmd = u._html(cmd, "bash")
-    OUT = f"""<b>☞ BASH</b> (<i>{timeform}</i>)\n\n<b>• COMMAND:</b>\n{_cmd}\n\n"""
+    OUT = f"""{emojis[0]} <b>BASH</b> (<i>{timeform}</i>)\n\n<b>• COMMAND:</b>\n{_cmd}\n\n"""
     if stderr:
-        OUT += f"<b>• ERROR:</b>\n"
+        OUT += f"{emojis[2]} <b>ERROR:</b>\n"
         OUT += u._html(stderr, "") + "\n\n"
     if stdout or _url:
-        OUT += "<b>• OUTPUT:</b>\n"
+        OUT += "{emojis[1]} <b>OUTPUT:</b>\n"
         OUT += f"<a href='{_url}'>\xad</a>" if _url else u._html(stdout, "")
     elif not stderr:
-        OUT += f"<b>• OUTPUT:</b>\n"
+        OUT += f"{emojis[1]} <b>OUTPUT:</b>\n"
         OUT += u._html(get_string("instu_4"), "")
     await xx.edit(OUT, parse_mode="html", link_preview=bool(_url))
     if not nolog:
@@ -343,7 +362,7 @@ async def run_eval(event):
         process_id = f"{event.chat_id}_" + f"{xx.id}" if xx else random_string(12)
         tima = time.perf_counter()
         task = asyncio.create_task(aexec(cmd, event))
-        # we must keep a refrence of the asyncio Task
+        # we must keep a reference of the asyncio Task
         _EVAL_TASKS[process_id] = task
         task.add_done_callback(lambda _: _EVAL_TASKS.pop(process_id, None))
         value = await task
@@ -385,20 +404,23 @@ async def run_eval(event):
 
     stderr = exc or stderr
     stdout = stdout or _parse_eval(value)
+    emojis = u._emoji_tags("python")
     if mode == "silent":
         if exc:
             log_chat = udB.get_key("LOG_CHANNEL")
             if len(exc + cmd) < 4000:
                 _cmd = u._html(cmd, "python")
-                msg = f"• <b>EVAL ERROR\n\n• CHAT:</b> <code>{get_display_name(event.chat)}</code> [<code>{event.chat_id}</code>] \n\n"
-                msg += f"∆ <b>CODE:</b>\n{_cmd}\n\n∆ <b>ERROR:</b>\n"
+                msg = f"{emojis[0]} <b>EVAL ERROR\n\n• CHAT:</b> <code>{get_display_name(event.chat)}</code> [<code>{event.chat_id}</code>] \n\n"
+                msg += (
+                    f"{emojis[0]} <b>CODE:</b>\n{_cmd}\n\n{emojis[2]} <b>ERROR:</b>\n"
+                )
                 msg += u._html(exc, "")
                 await event.client.send_message(log_chat, msg, parse_mode="html")
             else:
                 msg = f"• EVAL ERROR\n\n• CHAT: {get_display_name(event.chat)} [{event.chat_id}]\n\n∆ CODE:\n{cmd}\n\n∆ ERROR:\n{exc}"
                 with BytesIO(msg.encode()) as out_file:
                     out_file.name = "Eval-Error.txt"
-                    caption = "<b>• EVAL:</b>\n" + u._html(
+                    caption = "{emojis[0]} <b>EVAL:</b>\n" + u._html(
                         cmd if len(cmd) < 610 else cmd[:600] + " ...", "python"
                     )
                     await event.client.send_file(
@@ -414,6 +436,7 @@ async def run_eval(event):
     _url = None
     timeform = time_formatter(tima)
     if timeform == "0s":
+        await asyncio.sleep(1)  # why so fast :))
         timeform = f"{tima:.3f}ms"
     if mode in {"carb", "rayso"} and stdout:
         fnn = None
@@ -453,7 +476,7 @@ async def run_eval(event):
 
         with BytesIO(final_output.encode()) as out_file:
             out_file.name = "eval.txt"
-            caption = f"<i>►</i> <b>EVAL</b> (<i>{timeform}</i>)\n" + u._html(
+            caption = f"{emojis[0]} <b>EVAL</b> (<i>{timeform}</i>)\n" + u._html(
                 cmd if len(cmd) < 610 else cmd[:600] + " ...", "python"
             )
             await event.client.send_file(
@@ -469,18 +492,18 @@ async def run_eval(event):
         return
 
     _cmd = u._html(cmd, "python")
-    final_output = f"<i>►</i> <b>EVAL</b> (<i>{timeform}</i>)\n"
+    final_output = f"{emojis[0]} <b>EVAL</b> (<i>{timeform}</i>)\n"
     final_output += u._html(cmd, "python") + "\n\n"
     if stderr:
-        final_output += f"<i>►</i> <b>ERROR:</b>\n"
+        final_output += f"{emojis[2]} <b>ERROR:</b>\n"
         final_output += u._html(stderr, "python") + "\n\n"
     if stdout or _url:
-        final_output += f"<i>►</i> <b>OUTPUT:</b>\n"
+        final_output += f"{emojis[1]} <b>OUTPUT:</b>\n"
         final_output += (
             f"<a href='{_url}'>⁮⁮⁮\xad</a>" if _url else u._html(stdout, "python") + "\n\n"
         )
     elif not stderr:
-        final_output += "<i>►</i> <b>OUTPUT:</b>\n" + u._html(
+        final_output += "{emojis[1]} <b>OUTPUT:</b>\n" + u._html(
             get_string("instu_4"), "python"
         )
 
@@ -510,12 +533,11 @@ async def cancel_eval_task(event):
 
     task = _EVAL_TASKS.get(task_id)
     if not task:
-        return await event.eor(f"`No Running Task found for this Message.`", time=10)
+        return await event.eor(f"`No Running Task found for this message..`", time=10)
 
     task.cancel()
+    await asyncio.sleep(3)
     await event.eor(f"• `Sucessfully Cancelled this task..`")
-    # await asyncio.sleep(3)
-    # _EVAL_TASKS.pop(task_id, None)
 
 
 def _stringify(text=None, *args, **kwargs):
@@ -568,17 +590,18 @@ async def cpp_compiler(e):
     await asyncwrite("cpp-ultroid.cpp", match, mode="w+")
     osremove("CppUltroid")
     m = await bash("g++ -o CppUltroid cpp-ultroid.cpp")
+    emojis = u._emoji_tags("cpp")
     if m[1]:
         if len(match + m[1]) < 3000:
             _match = u._html(match, "cpp")
-            o_cpp = f"""• <b>Eval-Cpp</b>\n{_match}\n\n• <b>ERROR:</b>\n"""
+            o_cpp = f"""{emojis[0]} <b>Eval-Cpp</b>\n{_match}\n\n{emojis[2]} <b>ERROR:</b>\n"""
             o_cpp += u._html(m[1], "")
             await msg.edit(o_cpp, parse_mode="html")
         else:
             o_cpp = f"• Eval-Cpp:\n{match} \n\n\n• ERROR:\n{m[1]}"
             with BytesIO(o_cpp.encode()) as out_file:
                 out_file.name = "compile-error-cpp.txt"
-                caption = "<b>• Eval-Cpp:</b>\n" + u._html(
+                caption = "{emojis[0]} <b>Eval-Cpp:</b>\n" + u._html(
                     match if len(match) < 610 else match[:600] + " ...", "cpp"
                 )
                 await e.client.send_file(
@@ -607,7 +630,7 @@ async def cpp_compiler(e):
             o_cpp += f"• ERROR:\n{err}"
         with BytesIO(o_cpp.encode()) as out_file:
             out_file.name = "cpp_output.txt"
-            caption = "<b>• Eval-Cpp:</b>\n" + u._html(
+            caption = "{emojis[0]} <b>Eval-Cpp:</b>\n" + u._html(
                 match if len(match) < 610 else match[:600] + " ...", "cpp"
             )
             await e.client.send_file(
@@ -622,14 +645,15 @@ async def cpp_compiler(e):
         await msg.delete()
     else:
         _match = u._html(match, "cpp")
-        o_cpp = f"""• <b>Eval-Cpp</b> (<i>{time_t}</i>)\n{_match}\n\n"""
+        o_cpp = f"""{emojis[0]} <b>Eval-Cpp</b> (<i>{time_t}</i>)\n{_match}\n\n"""
         if out != "":
-            o_cpp += f"• <b>OUTPUT:</b>\n"
+            o_cpp += f"{emojis[1]} <b>OUTPUT:</b>\n"
             o_cpp += u._html(out, "") + "\n\n"
         if err:
-            o_cpp += f"• <b>ERROR:</b>\n"
+            o_cpp += f"{emojis[2]} <b>ERROR:</b>\n"
             o_cpp += u._html(err, "")
         await msg.edit(o_cpp, parse_mode="html")
+
     osremove("CppUltroid", "cpp-ultroid.cpp")
     await u._evalogger(match, e, "cpp")
 
@@ -649,18 +673,19 @@ async def _gcc_compiler(e):
     await asyncwrite("ultroid.c", match, mode="w+")
     osremove("ultroid.out")
     m = await bash("gcc ultroid.c -o ultroid.out")
+    emojis = u._emoji_tags("gcc")
 
     if m[1]:
         if len(match + m[1]) < 3000:
             _match = u._html(match, "c")
-            out = f"""• <b>Eval-GCC</b>\n{_match}\n\n• <b>ERROR:</b>\n"""
+            out = f"""{emojis[0]} <b>Eval-GCC</b>\n{_match}\n\n{emojis[2]} <b>ERROR:</b>\n"""
             out += u._html(m[1], "")
             await msg.edit(out, parse_mode="html")
         else:
             out = f"• Eval-GCC:\n{match} \n\n\n• ERROR:\n{m[1]}"
             with BytesIO(out.encode()) as out_file:
                 out_file.name = "compile-error-gcc.txt"
-                caption = "<b>• Eval-GCC:</b>\n" + u._html(
+                caption = "{emojis[0]} <b>Eval-GCC:</b>\n" + u._html(
                     match if len(match) < 610 else match[:600] + " ...", "c"
                 )
                 await e.client.send_file(
@@ -689,7 +714,7 @@ async def _gcc_compiler(e):
             out += f"• ERROR:\n{err}"
         with BytesIO(out.encode()) as out_file:
             out_file.name = "gcc_output.txt"
-            caption = "<b>• Eval-GCC:</b>\n" + u._html(
+            caption = "{emojis[0]} <b>Eval-GCC:</b>\n" + u._html(
                 match if len(match) < 610 else match[:600] + " ...", "c"
             )
             await e.client.send_file(
@@ -704,13 +729,14 @@ async def _gcc_compiler(e):
         await msg.delete()
     else:
         _match = u._html(match, "c")
-        out = f"""• <b>Eval-GCC</b> (<i>{time_t}</i>)\n{_match}\n\n"""
+        out = f"""{emojis[0]} <b>Eval-GCC</b> (<i>{time_t}</i>)\n{_match}\n\n"""
         if stdout != "":
-            out += f"• <b>OUTPUT:</b>\n"
+            out += f"{emojis[1]} <b>OUTPUT:</b>\n"
             out += u._html(stdout, "") + "\n\n"
         if err:
-            out += f"• <b>ERROR:</b>\n"
+            out += f"{emojis[2]} <b>ERROR:</b>\n"
             out += u._html(err, "")
         await msg.edit(out, parse_mode="html")
+
     osremove("ultroid.c", "ultroid.out")
     await u._evalogger(match, e, "c")

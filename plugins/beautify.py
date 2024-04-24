@@ -15,6 +15,7 @@ import random
 
 from telethon.utils import get_display_name
 
+from pyUltroid.custom.functions import RaySoThemes
 from . import (
     LOGS,
     Carbon,
@@ -123,20 +124,6 @@ async def custom_crbn(event):
         event.respond(caption, file=xx, reply_to=reply_to),
         msg.try_delete(),
     )
-
-
-RaySoThemes = (
-    "meadow",
-    "breeze",
-    "raindrop",
-    "candy",
-    "crimson",
-    "falcon",
-    "sunset",
-    "midnight",
-    "mono",
-    "raindrop",
-)
 
 
 @ultroid_cmd(

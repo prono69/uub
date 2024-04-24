@@ -121,7 +121,7 @@ async def get_imgbb_link(path, url=None, **kwargs):
     return flink
 
 
-_rayso_themes = (
+RaySoThemes = (
     "meadow",
     "breeze",
     "raindrop",
@@ -130,6 +130,8 @@ _rayso_themes = (
     "falcon",
     "sunset",
     "midnight",
+    "mono",
+    "raindrop",
 )
 
 
@@ -144,8 +146,8 @@ async def generate_rayso(
 
     if not filename:
         filename = random_string(12) + ".png"
-    if not theme or theme not in _rayso_themes:
-        theme = choice(_rayso_themes)
+    if not theme or theme not in RaySoThemes:
+        theme = choice(RaySoThemes)
 
     data = {
         "darkMode": dark_mode,
@@ -156,15 +158,20 @@ async def generate_rayso(
     async with async_playwright() as play:
         chrome = await play.chromium.launch()
         page = await chrome.new_page()
-        await page.goto(url)
-        await page.wait_for_load_state("networkidle")
-        elem = await page.query_selector("textarea[class='Editor_textarea__OxM_Z']")
-        await elem.type(text)
-        button = await page.query_selector("button[class='ExportButton_button__MA4PI']")
-        await button.click()
-        async with page.expect_download() as dl:
-            dled = await dl.value
-            await dled.save_as(filename)
+        try:
+            await page.goto(url)
+            await page.wait_for_load_state("networkidle")
+            elem = await page.query_selector("textarea[class='Editor_textarea__OxM_Z']")
+            await elem.fill(text)
+            button = await page.query_selector(
+                "button[class='ExportButton_button__MA4PI']"
+            )
+            await button.click()
+            async with page.expect_download() as dl:
+                dled = await dl.value
+                await dled.save_as(filename)
+        except Exception as exc:
+            return LOGS.exception(f"Error while generating Rayso: {exc}")
 
     return filename
 
