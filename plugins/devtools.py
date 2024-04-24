@@ -188,7 +188,7 @@ async def run_bash(event):
         await asyncio.sleep(1)  # why so fast :))
         timeform = f"{d_time:.3f}ms"
     if not (carb or rayso) and len(cmd + str(stderr) + str(stdout)) > 4000:
-        OUT = f"☞ BASH ({timeform})\n\n\n• COMMAND:\n{cmd} \n\n\n"
+        OUT = f"☞ BASH ({timeform})\n\n\n{cmd} \n\n\n"
         if stderr:
             OUT += f"• ERROR:\n{stderr} \n\n\n"
         if stdout:
@@ -214,7 +214,7 @@ async def run_bash(event):
         return
 
     _cmd = u._html(cmd, "bash")
-    OUT = f"""{emojis[0]} <b>BASH</b> (<i>{timeform}</i>)\n\n<b>• COMMAND:</b>\n{_cmd}\n\n"""
+    OUT = f"""{emojis[0]} <b>BASH</b> (<i>{timeform}</i>)\n{_cmd}\n\n"""
     if stderr:
         OUT += f"{emojis[2]} <b>ERROR:</b>\n"
         OUT += u._html(stderr, "") + "\n\n"
