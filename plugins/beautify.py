@@ -183,7 +183,7 @@ async def rayso_on(ult):
     )
     if isinstance(img, str):
         mention = inline_mention(ult.sender or await ult.get_sender(), html=True)
-        caption = f"Rayso by {mention}\n\n<blockquote>Theme Used - {theme}\nDark Mode - {dark_mode}</blockquote>"
+        caption = f"<blockquote>Theme Used - {theme}\nDark Mode - {dark_mode}</blockquote>\n\n<b>Rayso by {mention}</b>"
         await asyncio.gather(
             ult.respond(caption, file=img, reply_to=reply_to, parse_mode="html"),
             msg.try_delete(),
