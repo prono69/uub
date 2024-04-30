@@ -111,9 +111,10 @@ async def safeinstall(event):
     ):
         return await eod(ok, "`Please reply to any python plugin`")
     plug = reply.file.name.replace(".py", "")
-    if plug in list(LOADED):
-        return await eod(ok, f"Plugin `{plug}` is already installed.")
     sm = reply.file.name.replace("_", "-").replace("|", "-")
+    for pp in (plug, sm.replace(".py", "")):
+        if any(pp in j for j in (list(LOADED), HELP.get("Addons", {}))):
+            return await eod(ok, f"Plugin `{plug}` is already installed.")
     dl = await reply.download_media(f"addons/{sm}")
     if event.text[9:] != "f" and KEEP_SAFE:
         read = await asyncread(dl)

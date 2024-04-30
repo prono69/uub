@@ -94,5 +94,3 @@ def load_addons(plugin_name):
         HELP["Addons"][base_name] = doc
     except KeyError:
         HELP["Addons"] = {base_name: doc}
-    except Exception:
-        pass
