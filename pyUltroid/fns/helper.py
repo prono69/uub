@@ -10,6 +10,7 @@ import os
 import re
 import sys
 import time
+from contextlib import suppress
 from pathlib import Path
 from traceback import format_exc
 # from urllib.request import urlretrieve
@@ -72,26 +73,20 @@ def un_plug(shortname):
         name = f"addons.{shortname}"
         all_func = LOADED[shortname]
         for client in (ultroid_bot, asst):
-            for x, _ in client.list_event_handlers()[::-1]:
+            for x, _ in reversed(client.list_event_handlers()):
                 if x in all_func:
                     client.remove_event_handler(x)
-        LOADED.pop(shortname, None)
-        LIST.pop(shortname, None)
-        ADDONS.remove(shortname)
     except (ValueError, KeyError):
         for client in (ultroid_bot, asst):
-            builders = client._event_builders
-            for i in range(len(builders) - 1, -1, -1):
-                ev, cb = builders[i]
+            for index, (ev, cb) in enumerate(reversed(client._event_builders), start=1):
                 if cb.__module__ == name:
-                    try:
-                        LOADED.pop(shortname, None)
-                        LIST.pop(shortname, None)
-                        del client._event_builders[i]
-                        ADDONS.remove(shortname)
-                    except (ValueError, IndexError, KeyError):
-                        pass
+                    del client._event_builders[-index]
     finally:
+        LOADED.pop(shortname, None)
+        LIST.pop(shortname, None)
+        with suppress(ValueError):
+            ADDONS.remove(shortname)
+        HELP.get("Addons", {}).pop(shortname, None)
         sys.modules.pop(name, None)
 
 
