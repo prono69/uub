@@ -255,14 +255,15 @@ def json_parser(data, indent=None, ascii=False):
             parsed = json.loads(str(data))
             if indent:
                 parsed = json.dumps(
-                    json.loads(str(data)),
+                    parsed,
                     indent=indent,
                     ensure_ascii=ascii,
                 )
         elif isinstance(data, dict):
-            parsed = data
             if indent:
                 parsed = json.dumps(data, indent=indent, ensure_ascii=ascii)
+            else:
+                parsed = data
     except json.decoder.JSONDecodeError:
         parsed = eval(data)
     return parsed
