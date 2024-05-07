@@ -11,7 +11,7 @@ from datetime import datetime
 from mimetypes import guess_extension
 from pathlib import Path
 from secrets import choice, token_hex
-from shutil import rmtree, which
+import shutil
 from urllib.parse import urlsplit, urlparse, unquote_plus
 
 from telethon.tl import types
@@ -33,6 +33,7 @@ if not aiohttp:
     LOGS.warning("'aiohttp' is missing, some plugins will not work.")
 
 async_lock = asyncio.Lock()
+_bash_location = shutil.which("bash")
 _PROGRESS_LOG = {}
 
 
@@ -69,7 +70,7 @@ def osremove(*files, folders=False):
             Path(path).unlink(missing_ok=True)
         except IsADirectoryError:
             if folders:
-                rmtree(path, ignore_errors=True)
+                shutil.rmtree(path, ignore_errors=True)
         except Exception:
             LOGS.exception(f"Error in deleting (osremove) : {path}")
 
@@ -178,7 +179,7 @@ else:
 
 
 # source: fns/helper.py
-async def bash(cmd, shell=which("bash")):
+async def bash(cmd, shell=_bash_location):
     """run any command in subprocess and get output or error"""
     process = await asyncio.create_subprocess_shell(
         cmd,
