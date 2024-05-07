@@ -149,7 +149,8 @@ async def run_bash(event):
 
     if not nolog:
         LOGS.debug(cmd)
-    xx = await event.eor(get_string("com_1"))
+    edit_text = get_string("com_1") + "" if not event.client.me.premium else " [😐](emoji/5386367538735104399)"
+    xx = await event.eor(edit_text)
 
     d_time = time.perf_counter()
     stdout, stderr = await bash(cmd)
@@ -299,13 +300,14 @@ async def run_eval(event):
             cm = None
         return cm
 
+    edit_text = get_string("com_1") + "" if not event.client.me.premium else " [😐](emoji/5386367538735104399)"
     if spli[0] == "-s":  # --silent
         if event.out:
             await event.delete()
         mode = "silent"
     elif spli[0] == "-n":  # --noedit
         mode = "no-edit"
-        xx = await event.reply(get_string("com_1"))
+        xx = await event.reply(edit_text)
     elif spli[0] == "-c":  # --carbon
         mode = "carb"
     elif spli[0] == "-r":  # --rayso
@@ -325,7 +327,7 @@ async def run_eval(event):
         return
 
     if mode != "silent" and not xx:
-        xx = await event.eor(get_string("com_1"))
+        xx = await event.eor(edit_text)
     if mode != "nolog":
         LOGS.debug(cmd)
     if mode == "black":
@@ -438,7 +440,7 @@ async def run_eval(event):
     if timeform == "0s":
         await asyncio.sleep(1)  # why so fast :))
         timeform = f"{tima:.3f}ms"
-    if mode in {"carb", "rayso"} and stdout:
+    if mode in ("carb", "rayso") and stdout:
         fnn = None
         if mode == "carbon":
             color = await _get_colors(pick=True)
@@ -465,7 +467,7 @@ async def run_eval(event):
             )
             await asyncio.sleep(2)
 
-    if mode not in {"carb", "rayso"} and len(cmd + str(stdout) + str(stderr)) > 4000:
+    if mode not in ("carb", "rayso") and len(cmd + str(stdout) + str(stderr)) > 4000:
         final_output = f"► EVAL  ({timeform})\n{cmd} \n\n\n"
         if stderr:
             final_output += f"► ERROR:\n{stderr}\n\n\n"
