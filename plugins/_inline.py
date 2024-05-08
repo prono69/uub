@@ -239,7 +239,7 @@ async def uptd_plugin(event):
 async def cb_updater(event):
     changelog, html_changelog = await custom_updater()
     if not changelog:
-        return await event.answer(get_string("inline_9"), cache_time=0, alert=True)
+        return await event.answer(get_string("inline_9"), alert=True)
     if not inline_pic():
         return await event.answer(f"Do '{HNDLR}update' to update..")
 

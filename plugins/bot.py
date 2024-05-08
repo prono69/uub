@@ -221,7 +221,9 @@ async def restartbt(ult):
     ok = await ult.eor(get_string("bot_5"))
     who = "bot" if ult.client._bot else "user"
     udB.set_key("_RESTART", f"{who}_{ult.chat_id}_{ok.id}")
-    await _updater(ok, to_edit=True, task=asyncio.sleep(6), to_update=ult.pattern_match.group(1))
+    await _updater(
+        ok, to_edit=True, task=asyncio.sleep(6), to_update=ult.pattern_match.group(1)
+    )
 
     """
     await bash("git pull && pip3 install -r requirements.txt")

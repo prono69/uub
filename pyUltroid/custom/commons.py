@@ -142,7 +142,6 @@ def string_is_url(url):
 
 
 if aiofiles:
-
     # asyncread
     async def asyncread(file, binary=False):
         read_type = "rb" if binary else "r+"
@@ -164,7 +163,6 @@ else:
         with open(file, read_type) as f:
             data = f.read()
         return data
-
 
     @run_async
     def asyncwrite(file, data, mode):

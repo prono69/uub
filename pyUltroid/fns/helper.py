@@ -172,7 +172,9 @@ async def custom_updater():
     """Check remotes and Generate Changelogs!"""
     remotes, err = await bash("git remote")
     if err or (remotes and "origin" not in remotes):
-        return LOGS.exception(f"git initialise error: {err} or origin remote is missing...")
+        return LOGS.exception(
+            f"git initialise error: {err} or origin remote is missing..."
+        )
 
     repo, _ = await bash("git config --get remote.origin.url")
     branch, _ = await bash("git rev-parse --abbrev-ref HEAD")

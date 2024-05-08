@@ -16,7 +16,7 @@ from . import _shutdown_tasks
 
 def main():
     from pyrog import _init_pyrog
-    from .fns.helper import bash, time_formatter, updater
+    from .fns.helper import bash, time_formatter
     from .startup.funcs import (
         autopilot,
         customize,
@@ -29,6 +29,7 @@ def main():
 
     # Option to Auto Update On Restart..
     """
+    # updater() -> not available anymore..
     if (
         udB.get_key("UPDATE_ON_RESTART")
         and os.path.exists(".git")
@@ -60,10 +61,10 @@ def main():
         vcbot = False
 
     if (HOSTED_ON == "termux" or udB.get_key("LITE_DEPLOY")) and udB.get_key(
-        "EXCLUDE_OFFICIAL"
-    ) is None:
+        "__EXCLUDE_OFFICIAL"
+    ) == None:
         _plugins = "autocorrect autopic audiotools compressor forcesubscribe fedutils gdrive glitch instagram nsfwfilter nightmode pdftools profanityfilter writer youtube"
-        udB.set_key("EXCLUDE_OFFICIAL", _plugins)
+        udB.set_key("__EXCLUDE_OFFICIAL", _plugins)
 
     load_other_plugins(addons=addons, pmbot=pmbot, manager=manager, vcbot=vcbot)
 

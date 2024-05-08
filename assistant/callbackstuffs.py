@@ -284,9 +284,15 @@ async def send(eve):
 async def inline_updater(eve):
     # return await eve.answer("Type '.update' to Update your Ultroid Userbot!", alert=True)
     from plugins.bot import _updater
-  
+
     await eve.answer("Fetching Updates! Hold your Horses !!")
-    await _updater(eve, to_edit=False, task=eve.edit("**Successfully Updated!!**\n`Restarting your Bot, Please wait..`"))
+    await _updater(
+        eve,
+        to_edit=False,
+        task=eve.edit(
+            "**Successfully Updated!!**\n`Restarting your Bot, Please wait..`"
+        ),
+    )
 
     """
     heroku_api, app_name = Var.HEROKU_API, Var.HEROKU_APP_NAME
