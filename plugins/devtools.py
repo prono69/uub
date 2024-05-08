@@ -190,7 +190,7 @@ async def run_bash(event):
     timeform = time_formatter(d_time)
     emojis = ("☞", "•", "•") if not event.client.me.premium else u._emoji_tags("bash")
     if timeform == "0s":
-        await asyncio.sleep(1)  # why so fast :))
+        await asyncio.sleep(0.6)
         timeform = f"{d_time:.3f}ms"
     if not (carb or rayso) and len(cmd + str(stderr) + str(stdout)) > 4000:
         OUT = f"☞ BASH ({timeform})\n\n\n{cmd} \n\n\n"
@@ -446,7 +446,7 @@ async def run_eval(event):
     _url = None
     timeform = time_formatter(tima)
     if timeform == "0s":
-        await asyncio.sleep(1)  # why so fast :))
+        await asyncio.sleep(0.6)
         timeform = f"{tima:.3f}ms"
     if mode in ("carb", "rayso") and stdout:
         fnn = None

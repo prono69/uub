@@ -190,7 +190,9 @@ async def custom_updater():
         return ("", "")
 
     out = f"Ultroid Updates • {branch}\n\n"
-    html_out = f"<b>Ultroid Updates • <a href={repo}/tree/{branch}>[{branch}]</a></b>\n\n"
+    html_out = (
+        f"<b>Ultroid Updates • <a href={repo}/tree/{branch}>[{branch}]</a></b>\n\n"
+    )
     for line in stdout.splitlines():
         commit_time, title, body, commit_hash, author = eval(line)
         count, _ = await bash(f"git rev-list --count {commit_hash}")
