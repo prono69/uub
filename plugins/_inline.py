@@ -235,7 +235,7 @@ async def uptd_plugin(event):
         await event.edit(help, buttons=buttons)
 
 
-@callback(data="^doupdate$", fullsudo=True)
+@callback(data=re.compile("^doupdate$"), fullsudo=True)
 async def cb_updater(event):
     changelog, html_changelog = await custom_updater()
     if not changelog:
@@ -314,7 +314,7 @@ async def opner(event):
     )
 
 
-@callback(data="^close$", owner=True)
+@callback(data="close", owner=True)
 async def on_plug_in_callback_query_handler(event):
     await event.edit(
         get_string("inline_5"),

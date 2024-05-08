@@ -25,7 +25,6 @@ from pyUltroid._misc._wrappers import eod, eor
 from pyUltroid.custom.commons import *
 from pyUltroid.custom.commons import aiohttp
 from pyUltroid.dB._core import ADDONS, HELP, LIST, LOADED
-from pyUltroid.version import __version__
 from pyUltroid.exceptions import DownloadError, UploadError
 from pyUltroid.custom.FastTelethon import download_file, upload_file
 
@@ -190,15 +189,15 @@ async def custom_updater():
     if not stdout:
         return ("", "")
 
-    out = f"Ultroid Updates for v{__version__} in {branch}!!\n\n"
-    html_out = f"<b>Ultroid Updates for v{__version__} in <a href={repo}/tree/{branch}>[{branch}]</a> !!</b>\n\n"
+    out = f"Ultroid Updates • {branch}\n\n"
+    html_out = f"<b>Ultroid Updates • <a href={repo}/tree/{branch}>[{branch}]</a></b>\n\n"
     for line in stdout.splitlines():
         commit_time, title, body, commit_hash, author = eval(line)
         count, _ = await bash(f"git rev-list --count {commit_hash}")
-        out += f"💬 #{count}: {commit_time} ⏰\n> {author} authored {title}\n"
-        out += f"> {body}" if body else "" + "\n\n"
-        html_out += f"💬 </b>#{count}:</b> {commit_time} ⏰\n<b>></b> <i>{author}</i> authored <b><a href={repo}/commit/{commit_hash}>{title}</a></b>\n"
-        html_out += f"<b>></b> <i>{body}</i>" if body else "" + "\n\n"
+        out += f"💬 #{count}: {author} authored {title} • {commit_time}"
+        out += f"\n{body}" if body else "" + "\n\n"
+        html_out += f"💬 #{count}: <b>{author}</b> authored <b><a href={repo}/commit/{commit_hash}>{title}</a></b> • <u>{commit_time}</u>"
+        html_out += f"\n<i>{body}</i>" if body else "" + "\n\n"
 
     return (out, html_out)
 

@@ -372,13 +372,13 @@ async def ult_updater(e):
 
 @callback("updtavail", fullsudo=True)
 async def update_available(event):
-    await event.answer("Fetching Updates! Please Wait...!!")
-    await asyncio.sleep(3)
-    pic = await random_pic.get() if random_pic.ok else ULTPIC
+    await event.answer("Processing Updates, Please Wait..")
+    await asyncio.sleep(2)
+    pic = await random_pic.get() if random_pic.ok else ULTPIC()
     await asst.send_file(
         udB.get_key("LOG_CHANNEL"),
         pic,
         caption="• **Update Available** •",
         force_document=False,
-        buttons=Button.inline("ChangLogs", data=""),
+        buttons=[Button.inline("Changelogs", data="doupdate")],
     )
