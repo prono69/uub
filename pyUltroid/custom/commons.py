@@ -141,14 +141,21 @@ def string_is_url(url):
     return bool(result.scheme and result.netloc)
 
 
-# asyncread
 if aiofiles:
 
+    # asyncread
     async def asyncread(file, binary=False):
         read_type = "rb" if binary else "r+"
         async with aiofiles.open(file, read_type) as f:
             data = await f.read()
         return data
+
+    # asyncwrite
+    async def asyncwrite(file, data, mode):
+        async with aiofiles.open(file, mode) as f:
+            await f.write(data)
+        return True
+
 else:
 
     @run_async
@@ -158,15 +165,6 @@ else:
             data = f.read()
         return data
 
-
-# asyncwrite
-if aiofiles:
-
-    async def asyncwrite(file, data, mode):
-        async with aiofiles.open(file, mode) as f:
-            await f.write(data)
-        return True
-else:
 
     @run_async
     def asyncwrite(file, data, mode):

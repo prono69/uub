@@ -18,25 +18,16 @@ from random import choice
 
 from telethon import __version__
 from telethon.tl.functions import PingRequest
+from telethon.utils import resolve_bot_file_id
 from telethon.errors.rpcerrorlist import (
     BotMethodInvalidError,
     ChatSendMediaForbiddenError,
 )
 
 from pyUltroid.version import __version__ as UltVer
-
-from . import HOSTED_ON, LOGS
-
-try:
-    from git import Repo
-except ImportError:
-    LOGS.error("bot: 'gitpython' module not found!")
-    Repo = None
-
-from telethon.utils import resolve_bot_file_id
-
 from . import (
     ATRA_COL,
+    HOSTED_ON,
     LOGS,
     LOG_CHANNEL,
     OWNER_NAME,
@@ -48,15 +39,17 @@ from . import (
     asyncread,
     allcmds,
     asst,
+    asyncwrite,
     bash,
     call_back,
     callback,
-    def_logs,
+    custom_updater,
     eor,
     get_string,
     heroku_logs,
     in_pattern,
     inline_pic,
+    osremove,
     random_pic,
     restart,
     shutdown,
@@ -66,7 +59,6 @@ from . import (
     ultroid_bot,
     ultroid_cmd,
     ultroid_version,
-    updater,
 )
 
 
@@ -90,14 +82,13 @@ The Ultroid Userbot
   ◍ Telethon - {}
 """
 
-in_alive = "{}\n\n🌀 <b>Ultroid Version -><b> <code>{}</code>\n🌀 <b>PyUltroid -></b> <code>{}</code>\n🌀 <b>Python -></b> <code>{}</code>\n🌀 <b>Uptime -></b> <code>{}</code>\n🌀 <b>Branch -></b>[ {} ]\n\n• <b>Join @TeamUltroid</b>"
 
-_BRANCH = os.getenv("BRANCH", "main")
-_REPO = (
-    Repo().remotes[0].config_reader.get("url")
-    if Repo
-    else "https://github.com/TeamUltroid/Ultroid.git"
-)
+async def get_repo():
+    repo, _ = await bash("git config --get remote.origin.url")
+    branch, _ = await bash("git rev-parse --abbrev-ref HEAD")
+    branch = branch.strip()
+    repo = repo.replace(".git", f"/tree/{branch}")
+    return repo, branch
 
 
 @callback("alive")
@@ -126,11 +117,12 @@ async def lol(ult):
         pic = choice(pic)
     uptime = time_formatter((time.time() - start_time) * 1000)
     header = udB.get_key("ALIVE_TEXT") or get_string("bot_1")
-    repo = _REPO.replace(".git", f"/tree/{_BRANCH}")
-    kk = f" `[{_BRANCH}]({repo})` "
+    repo, branch = await get_repo()
+    kk = f" `[{branch}]({repo})` "
     if inline:
-        kk = f"<a href={repo}>{_BRANCH}</a>"
+        kk = f"<a href={repo}>{branch}</a>"
         parse = "html"
+        in_alive = "{}\n\n🌀 <b>Ultroid Version -><b> <code>{}</code>\n🌀 <b>PyUltroid -></b> <code>{}</code>\n🌀 <b>Python -></b> <code>{}</code>\n🌀 <b>Uptime -></b> <code>{}</code>\n🌀 <b>Branch -></b>[ {} ]\n\n• <b>Join @TeamUltroid</b>"
         als = in_alive.format(
             header,
             f"{ultroid_version} [{HOSTED_ON}]",
@@ -169,7 +161,7 @@ async def lol(ult):
             return await ult.try_delete()
         except ChatSendMediaForbiddenError:
             pass
-        except BaseException as er:
+        except Exception as er:
             LOGS.exception(er)
             try:
                 await ult.reply(file=pic)
@@ -180,7 +172,7 @@ async def lol(ult):
                     link_preview=False,
                 )
                 return await ult.try_delete()
-            except BaseException as er:
+            except Exception as er:
                 LOGS.exception(er)
     await eor(
         ult,
@@ -208,26 +200,28 @@ async def cmds(event):
     await allcmds(event, Telegraph)
 
 
+async def _updater(event, to_edit, to_update=True, task=None):
+    await asyncio.sleep(3)
+    if call_back:
+        call_back()
+    if to_update:
+        out, err = await bash("git reset --hard ; git pull --rebase")
+        # await bash("cd addons && git reset --hard; git pull --rebase")
+        LOGS.info("Restarting: ", out, err)
+    if task:
+        await task
+    return await restart(ult=event, edit=to_edit)
+
+
 @ultroid_cmd(
     pattern="restart( update)?$",
     fullsudo=True,
 )
 async def restartbt(ult):
     ok = await ult.eor(get_string("bot_5"))
-    if call_back:
-        call_back()
     who = "bot" if ult.client._bot else "user"
     udB.set_key("_RESTART", f"{who}_{ult.chat_id}_{ok.id}")
-    if ult.pattern_match.group(1):
-        out = await asyncio.gather(
-            bash("git reset --hard; git pull --rebase"),
-            bash("(cd addons && git reset --hard; git pull --rebase)"),
-            return_exceptions=True,
-        )
-        for i in filter(lambda j: isinstance(j, Exception), out):
-            LOGS.exception(i)
-        await asyncio.sleep(5)
-    return await restart(ult=ok, edit=True)
+    await _updater(ok, to_edit=True, task=asyncio.sleep(6), to_update=ult.pattern_match.group(1))
 
     """
     await bash("git pull && pip3 install -r requirements.txt")
@@ -250,7 +244,7 @@ async def shutdownbot(ult):
     pattern="logs( (.*)|$)",
     chats=[],
 )
-async def _(event):
+async def send_logs(event):
     opt = event.pattern_match.group(1).strip()
     # file = f"ultroid{sys.argv[-1]}.log" if len(sys.argv) > 1 else "ultroid.log"
     file = "ultlogs.txt"
@@ -258,7 +252,7 @@ async def _(event):
         await heroku_logs(event)
     elif opt == "carbon" and Carbon:
         event = await event.eor(get_string("com_1"))
-        code = (await asyncread(file))[-2500:]
+        code = (await asyncread(file))[-2300:]
         file = await Carbon(
             file_name="ultroid-logs",
             code=code,
@@ -270,7 +264,11 @@ async def _(event):
         file = (await asyncread(file))[long:]
         return await event.eor(f"`{file}`")
     else:
-        await def_logs(event, file)
+        await event.respond(
+            "**Ultroid Logs!**",
+            file=file,
+            thumb=ULTConfig.thumb,
+        )
     await event.try_delete()
 
 
@@ -283,8 +281,9 @@ async def inline_alive(ult):
         pic = choice(pic)
     uptime = time_formatter((time.time() - start_time) * 1000)
     header = udB.get_key("ALIVE_TEXT") or get_string("bot_1")
-    repo = _REPO.replace(".git", f"/tree/{_BRANCH}")
-    kk = f"<a href={repo}>{_BRANCH}</a>"
+    repo, branch = await get_repo()
+    kk = f"<a href={repo}>{branch}</a>"
+    in_alive = "{}\n\n🌀 <b>Ultroid Version -><b> <code>{}</code>\n🌀 <b>PyUltroid -></b> <code>{}</code>\n🌀 <b>Python -></b> <code>{}</code>\n🌀 <b>Uptime -></b> <code>{}</code>\n🌀 <b>Branch -></b>[ {} ]\n\n• <b>Join @TeamUltroid</b>"
     als = in_alive.format(
         header,
         f"{ultroid_version} [{HOSTED_ON}]",
@@ -331,18 +330,15 @@ async def inline_alive(ult):
     await ult.answer(result)
 
 
-@ultroid_cmd(pattern="update( (.*)|$)")
-async def _(e):
+@ultroid_cmd(pattern="update( (.*)|$)", fullsudo=True)
+async def ult_updater(e):
     xx = await e.eor(get_string("upd_1"))
     args = e.pattern_match.group(2)
 
     if args and args in ("fast", "soft", "now"):
         await asyncio.sleep(3)
         await xx.edit(get_string("upd_7"))
-        if call_back:
-            call_back()
-        await bash("git reset --hard ; git pull --rebase")
-        return await restart(ult=xx, edit=False)
+        return await _updater(xx, to_edit=False, task=asyncio.sleep(6))
 
         """
         if HOSTED_ON != "heroku":
@@ -353,39 +349,34 @@ async def _(e):
             return await restart(xx, EDIT=False)
         """
 
-    m = await updater()
-    if m:
-        pic = await random_pic.get() if random_pic.ok else ULTPIC()
-        x = await asst.send_file(
-            udB.get_key("LOG_CHANNEL"),
-            pic,
-            caption="• **Update Available** •",
-            force_document=False,
-            buttons=Button.inline("Changelogs", data="changes"),
-        )
-        Link = x.message_link
-        await xx.edit(
-            f"<strong><a href='{Link}'>[ChangeLogs]</a></strong>",
-            parse_mode="html",
-            link_preview=False,
-        )
-    else:
-        repo = _REPO.replace(".git", f"/tree/{_BRANCH}")
-        await xx.edit(
-            f"<code>Your BOT is </code><strong>up-to-date</strong><code> with </code><strong><a href='{repo}'>[{_BRANCH}]</a></strong>",
+    out, html_out = await custom_updater()
+    if not out:
+        repo, branch = await get_repo()
+        return await xx.edit(
+            f"<code>Your BOT is </code><b>up-to-date</b><code> with </code><b><a href='{repo}'>[{branch}]</a></b>",
             parse_mode="html",
             link_preview=False,
         )
 
+    if len(out) > 3800:
+        file = "changelogs.txt"
+        await asyncwrite(file, out, mode="w+")
+        caption = "• **New Update Available!** •"
+        await e.client.respond(caption, file=file, reply_to=e.reply_to_msg_id)
+        osremove(file)
+        return await xx.delete()
+    await xx.edit(html_out, parse_mode="html")
 
-@callback("updtavail", owner=True)
-async def updava(event):
-    await event.delete()
+
+@callback("updtavail", fullsudo=True)
+async def update_available(event):
+    await event.answer("Fetching Updates! Please Wait...!!")
+    await asyncio.sleep(3)
     pic = await random_pic.get() if random_pic.ok else ULTPIC
     await asst.send_file(
         udB.get_key("LOG_CHANNEL"),
         pic,
         caption="• **Update Available** •",
         force_document=False,
-        buttons=Button.inline("Changelogs", data="changes"),
+        buttons=Button.inline("ChangLogs", data=""),
     )

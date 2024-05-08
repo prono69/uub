@@ -25,7 +25,7 @@ from pyUltroid._misc._wrappers import eod, eor
 from pyUltroid.custom.commons import *
 from pyUltroid.custom.commons import aiohttp
 from pyUltroid.dB._core import ADDONS, HELP, LIST, LOADED
-from pyUltroid.version import ultroid_version
+from pyUltroid.version import __version__
 from pyUltroid.exceptions import DownloadError, UploadError
 from pyUltroid.custom.FastTelethon import download_file, upload_file
 
@@ -33,12 +33,6 @@ try:
     import heroku3
 except ImportError:
     heroku3 = None
-
-try:
-    from git import Repo
-    from git.exc import GitCommandError  # InvalidGitRepositoryError, NoSuchPathError
-except ImportError:
-    Repo = None
 
 
 # ~~~~~~~~~~~~~~~~~~~~ small funcs ~~~~~~~~~~~~~~~~~~~~ #
@@ -142,7 +136,7 @@ async def safeinstall(event):
             for d in LIST[plug]:
                 x += HNDLR + d + "\n"
             await eod(ok, f"✓ `Ultroid - Installed`: `{plug}` ✓\n\n`{x}`")
-        except BaseException:
+        except Exception:
             await eod(ok, f"✓ `Ultroid - Installed`: `{plug}` ✓")
 
 
@@ -155,7 +149,7 @@ async def heroku_logs(event):
         return await xx.edit(err)
     try:
         ok = Heroku.get("app").get_log()
-    except BaseException as er:
+    except Exception as er:
         LOGS.exception("Error getting Heroku Logs: ")
         return await xx.edit("Something Wrong Occured!")
 
@@ -171,73 +165,40 @@ async def heroku_logs(event):
     await xx.delete()
 
 
-# --------------------------------------------------------------------- #
+# -------------------------- UPDATER ------------------------------- #
 
 
-async def def_logs(ult, file):
-    await ult.client.send_file(
-        ult.chat_id,
-        file=file,
-        thumb=ULTConfig.thumb,
-        caption="**Ultroid Logs!**",
+async def custom_updater():
+    """Check remotes and Generate Changelogs!"""
+    remotes, err = await bash("git remote")
+    if err or (remotes and "origin" not in remotes):
+        return LOGS.exception(f"git initialise error: {err} or origin remote is missing...")
+
+    repo, _ = await bash("git config --get remote.origin.url")
+    branch, _ = await bash("git rev-parse --abbrev-ref HEAD")
+    if "upstream" not in remotes:
+        await bash(f"git remote add upstream {repo}")
+
+    repo = repo.removesuffix(".git")
+    branch = branch.strip()
+    await bash(f"git fetch upstream {branch}")
+    stdout, _ = await bash(
+        r"""git log --pretty="format: [\"%ar\", \"%s\", \"%b\", \"%H\", \"%aN\"]" origin/main..upstream/main"""
     )
+    if not stdout:
+        return ("", "")
 
+    out = f"Ultroid Updates for v{__version__} in {branch}!!\n\n"
+    html_out = f"<b>Ultroid Updates for v{__version__} in <a href={repo}/tree/{branch}>[{branch}]</a> !!</b>\n\n"
+    for line in stdout.splitlines():
+        commit_time, title, body, commit_hash, author = eval(line)
+        count, _ = await bash(f"git rev-list --count {commit_hash}")
+        out += f"💬 #{count}: {commit_time} ⏰\n> {author} authored {title}\n"
+        out += f"> {body}" if body else "" + "\n\n"
+        html_out += f"💬 </b>#{count}:</b> {commit_time} ⏰\n<b>></b> <i>{author}</i> authored <b><a href={repo}/commit/{commit_hash}>{title}</a></b>\n"
+        html_out += f"<b>></b> <i>{body}</i>" if body else "" + "\n\n"
 
-@run_async
-def gen_chlog(repo, diff):
-    """Generate Changelogs..."""
-    UPSTREAM_REPO_URL = repo.remote("origin").config_reader.get("url")
-    ac_br = repo.active_branch.name
-    ch_log = tldr_log = ""
-    ch = f"<b>Ultroid {ultroid_version} updates for <a href={UPSTREAM_REPO_URL}/tree/{ac_br}>[{ac_br}]</a>:</b>"
-    ch_tl = f"Ultroid {ultroid_version} updates for {ac_br}:"
-    d_form = "%d/%m/%y || %H:%M"
-    for c in repo.iter_commits(diff):
-        ch_log += f"\n\n💬 <b>{c.count()}</b> 🗓 <b>[{c.committed_datetime.strftime(d_form)}]</b>\n<b><a href={UPSTREAM_REPO_URL.rstrip('/')}/commit/{c}>[{c.summary}]</a></b> 👨‍💻 <code>{c.author}</code>"
-        tldr_log += f"\n\n💬 {c.count()} 🗓 [{c.committed_datetime.strftime(d_form)}]\n[{c.summary}] 👨‍💻 {c.author}"
-    if ch_log:
-        return str(ch + ch_log), str(ch_tl + tldr_log)
-    return ch_log, tldr_log
-
-
-# ---------------------------UPDATER-------------------------------- #
-
-
-async def updater():
-    try:
-        repo = Repo()
-        origin_remote = repo.remote("origin")
-    except BaseException:
-        LOGS.exception("Git Initialise error.")
-        Repo().__del__()
-        return
-
-    # Git Hacks!
-    try:
-        upstream_remote = repo.remote("upstream")
-    except ValueError:
-        repo.create_remote("upstream", origin_remote.config_reader.get("url"))
-        upstream_remote = repo.remote("upstream")
-
-    # upstream_remote.fetch()
-    branch = repo.active_branch.name
-    upstream_remote.fetch(branch)
-    changelog, tl_chnglog = await gen_chlog(repo, f"HEAD..upstream/{branch}")
-    return bool(changelog)
-
-    """
-    try:
-        ups = repo.create_remote(
-            "upstream", Repo().remotes[0].config_reader.get("url").replace(".git", "")
-        )
-    except GitCommandError:
-        pass
-    else:
-        ups.fetch()
-        repo.create_head("main", ups.refs.main)
-        repo.heads.main.set_tracking_branch(ups.refs.main)
-        repo.heads.main.checkout(True)
-    """
+    return (out, html_out)
 
 
 # ---------------- Fast Upload/Download ----------------
@@ -517,10 +478,9 @@ async def shutdown(ult):
 
 
 __all__ = (
-    "def_logs",
+    "custom_updater",
     "download_file",
     "fast_download",
-    "gen_chlog",
     "heroku_logs",
     "inline_mention",
     "make_mention",
@@ -532,5 +492,4 @@ __all__ = (
     "shutdown",
     "tg_downloader",
     "un_plug",
-    "updater",
 )

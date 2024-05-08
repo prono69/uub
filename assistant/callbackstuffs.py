@@ -280,9 +280,13 @@ async def send(eve):
         await eve.answer(str(er), alert=True)
 
 
-@callback("updatenow", fullsudo=True)
-async def update(eve):
-    return await eve.answer("Use '.update now' to Update Ultroid.", alert=True)
+@callback("updatenow", owner=True)
+async def inline_updater(eve):
+    # return await eve.answer("Type '.update' to Update your Ultroid Userbot!", alert=True)
+    from plugins.bot import _updater
+  
+    await eve.answer("Fetching Updates! Hold your Horses !!")
+    await _updater(eve, to_edit=False, task=eve.edit("**Successfully Updated!!**\n`Restarting your Bot, Please wait..`"))
 
     """
     heroku_api, app_name = Var.HEROKU_API, Var.HEROKU_APP_NAME
@@ -332,53 +336,6 @@ async def update(eve):
         await bash("git pull && pip3 install -r requirements.txt")
         execl(sys.executable, sys.executable, "-m", "pyUltroid")
     """
-
-
-@callback(re.compile("changes(.*)"), owner=True)
-async def changes(okk):
-    match = okk.data_match.group(1).decode("utf-8")
-    await okk.answer(get_string("clst_3"))
-    repo = Repo.init()
-    button = [[Button.inline("Update Now", data="updatenow")]]
-    changelog, tl_chnglog = await gen_chlog(
-        repo, f"HEAD..upstream/{repo.active_branch}"
-    )
-    cli = "\n\nClick the below button to update!"
-    if not match:
-        try:
-            if len(tl_chnglog) > 700:
-                tl_chnglog = f"{tl_chnglog[:700]}..."
-                button.append([Button.inline("View Complete", "changesall")])
-            await okk.edit("• Writing Changelogs 📝 •")
-            img = await Carbon(
-                file_name="changelog",
-                code=tl_chnglog,
-                backgroundColor=choice(ATRA_COL),
-                language="md",
-            )
-            return await okk.edit(
-                f"**• Ultroid Userbot •**{cli}", file=img, buttons=button
-            )
-        except Exception as er:
-            LOGS.exception(er)
-    changelog_str = changelog + cli
-    if len(changelog_str) > 1024:
-        await okk.edit(get_string("upd_4"))
-        await asyncio.sleep(2)
-        with open("ultroid_updates.txt", "w+") as file:
-            file.write(tl_chnglog)
-        await okk.edit(
-            get_string("upd_5"),
-            file="ultroid_updates.txt",
-            buttons=button,
-        )
-        remove("ultroid_updates.txt")
-        return
-    await okk.edit(
-        changelog_str,
-        buttons=button,
-        parse_mode="html",
-    )
 
 
 @callback(

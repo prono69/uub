@@ -57,7 +57,7 @@ STUFF = {}
 
 def inline_pic():
     INLINE_PIC = udB.get_key("INLINE_PIC")
-    if INLINE_PIC is None:
+    if INLINE_PIC == None:
         INLINE_PIC = choice(ULTROID_IMAGES)
     elif INLINE_PIC == False:
         INLINE_PIC = None

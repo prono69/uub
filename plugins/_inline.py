@@ -17,7 +17,6 @@ from telethon.utils import resolve_bot_file_id
 
 from pyUltroid._misc._assistant import callback, in_pattern
 from pyUltroid.dB._core import HELP, LIST
-from pyUltroid.fns.helper import gen_chlog, updater
 
 from . import (
     HNDLR,
@@ -25,8 +24,11 @@ from . import (
     OWNER_NAME,
     InlinePlugin,
     asst,
+    asyncwrite,
+    custom_updater,
     get_string,
     inline_pic,
+    osremove,
     random_pic,
     split_list,
     start_time,
@@ -35,6 +37,7 @@ from . import (
 )
 
 from ._help import _main_help_menu
+
 
 # ================================================#
 
@@ -232,39 +235,33 @@ async def uptd_plugin(event):
         await event.edit(help, buttons=buttons)
 
 
-@callback(data="doupdate", fullsudo=True)
-async def _(event):
-    if not await updater():
+@callback(data="^doupdate$", fullsudo=True)
+async def cb_updater(event):
+    changelog, html_changelog = await custom_updater()
+    if not changelog:
         return await event.answer(get_string("inline_9"), cache_time=0, alert=True)
     if not inline_pic():
         return await event.answer(f"Do '{HNDLR}update' to update..")
-    repo = Repo.init()
-    changelog, tl_chnglog = await gen_chlog(
-        repo, f"HEAD..upstream/{repo.active_branch}"
-    )
-    changelog_str = changelog + "\n\n" + get_string("inline_8")
-    if len(changelog_str) > 1024:
-        await event.edit(get_string("upd_4"))
-        with open("ultroid_updates.txt", "w+") as file:
-            file.write(tl_chnglog)
-        await event.edit(
-            get_string("upd_5"),
-            file="ultroid_updates.txt",
-            buttons=[
-                [Button.inline("• Uᴘᴅᴀᴛᴇ Nᴏᴡ •", data="updatenow")],
-                [Button.inline("« Bᴀᴄᴋ", data="ownr")],
-            ],
-        )
-        remove("ultroid_updates.txt")
+
+    if len(changelog) > 950:
+        file = "changelogs.txt"
+        await asyncwrite(file, changelog, mode="w+")
+        caption = get_string("upd_4")
     else:
-        await event.edit(
-            changelog_str,
-            buttons=[
-                [Button.inline("Update Now", data="updatenow")],
-                [Button.inline("« Bᴀᴄᴋ", data="ownr")],
-            ],
-            parse_mode="html",
-        )
+        caption = html_changelog
+        file = None
+
+    await event.edit(
+        f"{caption}\n\n**{get_string('upd_5')}**",
+        file=file,
+        buttons=[
+            [Button.inline("Update Now", data="updatenow")],
+            [Button.inline("« Bᴀᴄᴋ", data="ownr")],
+        ],
+        parse_mode="html",
+    )
+    if file:
+        osremove(file)
 
 
 @callback(data="pkng", owner=True)
@@ -317,7 +314,7 @@ async def opner(event):
     )
 
 
-@callback(data="close", owner=True)
+@callback(data="^close$", owner=True)
 async def on_plug_in_callback_query_handler(event):
     await event.edit(
         get_string("inline_5"),

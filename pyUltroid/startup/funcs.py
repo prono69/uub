@@ -38,7 +38,7 @@ from telethon.utils import get_peer_id
 from decouple import config, RepositoryEnv
 
 from pyUltroid import LOGS, Var, ULTConfig
-from pyUltroid.fns.helper import download_file, inline_mention, updater
+from pyUltroid.fns.helper import download_file, inline_mention, custom_updater
 # from pyUltroid.custom.commons import bash
 
 
@@ -503,7 +503,7 @@ async def ready():
     from .. import asst, udB, ultroid_bot
 
     chat_id = udB.get_key("LOG_CHANNEL")
-    spam_sent = None
+    spam_sent, PHOTO, BTTS = None, None, None
     if not udB.get_key("INIT_DEPLOY"):
         # Detailed Message at Initial Deploy
         MSG = """🎇 **Thanks for Deploying Ultroid Userbot!**
@@ -513,7 +513,9 @@ async def ready():
         udB.set_key("INIT_DEPLOY", "Done")
     else:
         MSG = f"**Ultroid has been deployed!**\n➖➖➖➖➖➖➖➖➖➖\n**UserMode**: {inline_mention(ultroid_bot.me)}\n**Assistant**: @{asst.me.username}\n➖➖➖➖➖➖➖➖➖➖\n**Support**: @TeamUltroid\n➖➖➖➖➖➖➖➖➖➖"
-        BTTS, PHOTO = None, None
+        updt, _ = await custom_updater()
+        if updt:
+            BTTS = Button.inline("Update Available", "updtavail")
 
         """
         prev_spam = udB.get_key("LAST_UPDATE_LOG_SPAM")
@@ -522,9 +524,6 @@ async def ready():
                 await ultroid_bot.delete_messages(chat_id, int(prev_spam))
             except Exception as E:
                 LOGS.info("Error while Deleting Previous Update Message :" + str(E))
-
-        if await updater():
-            BTTS = Button.inline("Update Available", "updtavail")
         """
 
     try:
@@ -548,17 +547,11 @@ async def ready():
     # udB.set_key("LAST_UPDATE_LOG_SPAM", spam_sent.id)
 
     re_purge()
-    await WasItRestart(udB)
-
-    """
     try:
-        await asyncio.gather(
-            WasItRestart(udB),
-            fetch_ann(),
-        )
+        await WasItRestart(udB)
+        # await fetch_ann()
     except Exception as exc:
         LOGS.exception(exc)
-    """
 
 
 def _version_changes(udb):
@@ -598,7 +591,6 @@ __all__ = (
     "WasItRestart",
     "autopilot",
     "customize",
-    # "fetch_ann",
     "plug",
     "ready",
     "startup_stuff",
