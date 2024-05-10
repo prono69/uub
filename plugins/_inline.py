@@ -251,7 +251,7 @@ async def cb_updater(event):
         file = None
 
     await event.edit(
-        f"{caption}\n\n**{get_string('upd_5')}**",
+        f"{caption}\n<b>{get_string('upd_5')}</b>",
         file=file,
         buttons=[
             [Button.inline("Update Now", data="updatenow")],
