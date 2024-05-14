@@ -200,14 +200,19 @@ async def cmds(event):
     await allcmds(event, Telegraph)
 
 
-async def _updater(event, to_edit, to_update=True, task=None):
+async def _updater(
+    event,
+    to_edit,
+    to_update=True,
+    task=None,
+):
     await asyncio.sleep(3)
     if call_back:
         call_back()
     if to_update:
         out, err = await bash("git reset --hard ; git pull --rebase")
         # await bash("cd addons && git reset --hard; git pull --rebase")
-        LOGS.info("Restarting: ", out, err)
+        LOGS.info(f"Restarting:  {out}, {err}")
     if task:
         await task
     return await restart(ult=event, edit=to_edit)
