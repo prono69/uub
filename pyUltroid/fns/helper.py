@@ -168,7 +168,7 @@ async def heroku_logs(event):
 
 
 async def custom_updater():
-    """Check remotes and Generate Changelogs!"""
+    """Check remotes and Generate Changelog!"""
     remotes, err = await bash("git remote")
     if err or (remotes and "origin" not in remotes):
         return LOGS.exception(
@@ -189,17 +189,17 @@ async def custom_updater():
     if not stdout:
         return ("", "")
 
-    out = f"Ultroid Updates • {branch}\n\n"
+    out = f"Ultroid Updates • [{branch}]\n\n"
     html_out = (
-        f"<b>Ultroid Updates • <a href={repo}/tree/{branch}>[{branch}]</a></b>\n\n"
+        f"<b>Ultroid Updates • [<a href={repo}/tree/{branch}>{branch}</a>]</b>\n\n"
     )
     for line in stdout.splitlines():
         commit_time, title, body, commit_hash, author = eval(line)
         count, _ = await bash(f"git rev-list --count {commit_hash}")
-        out += f"💬 #{count}: {author} authored {title} • {commit_time}"
-        out += f"\n{body}" if body else "" + "\n\n"
-        html_out += f"💬 #{count}: <b>{author}</b> authored <b><a href={repo}/commit/{commit_hash}>{title}</a></b> • <u>{commit_time}</u>"
-        html_out += f"\n<i>{body}</i>" if body else "" + "\n\n"
+        out += f"💬 #{count} -  {commit_time} • {author} \n> {title}"
+        out += f" \n> {body}" if body else "" + "\n\n"
+        html_out += f"💬 #{count} - <i>{commit_time}</i> • <b>{author}</b> \n<b>> <a href={repo}/commit/{commit_hash}>{title}</a></b>"
+        html_out += f" \n<b>></b> <i>{body}</i>" if body else "" + "\n\n"
 
     return (out, html_out)
 
