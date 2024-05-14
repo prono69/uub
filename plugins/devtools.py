@@ -149,10 +149,8 @@ async def run_bash(event):
 
     if not nolog:
         LOGS.debug(cmd)
-    edit_text = (
-        get_string("com_1") + ""
-        if not event.client.me.premium
-        else " [😐](emoji/5386367538735104399)"
+    edit_text = get_string("com_1") + (
+        "" if not event.client.me.premium else " [😐](emoji/5386367538735104399)"
     )
     xx = await event.eor(edit_text)
 
@@ -304,10 +302,8 @@ async def run_eval(event):
             cm = None
         return cm
 
-    edit_text = (
-        get_string("com_1") + ""
-        if not event.client.me.premium
-        else " [😐](emoji/5386367538735104399)"
+    edit_text = get_string("com_1") + (
+        "" if not event.client.me.premium else " [😐](emoji/5386367538735104399)"
     )
     if spli[0] == "-s":  # --silent
         if event.out:
