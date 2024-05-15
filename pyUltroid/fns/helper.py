@@ -10,6 +10,7 @@ import os
 import re
 import sys
 import time
+from ast import literal_eval
 from contextlib import suppress
 from pathlib import Path
 from traceback import format_exc
@@ -194,7 +195,7 @@ async def custom_updater():
         f"<b>Ultroid Updates • [<a href={repo}/tree/{branch}>{branch}</a>]</b>\n\n"
     )
     for line in stdout.splitlines():
-        commit_time, title, body, commit_hash, author = eval(line)
+        commit_time, title, body, commit_hash, author = literal_eval(line)
         count, _ = await bash(f"git rev-list --count {commit_hash}")
         out += f"💬 #{count} -  {commit_time} • {author} \n> {title}"
         out += f" \n> {body}" if body else "" + "\n\n"

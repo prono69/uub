@@ -59,6 +59,7 @@ pymediainfo
 aiofiles
 music_tag
 uvloop
+g4f
 
 # Extras:
 # - spotdl, pygithub, imgur_python

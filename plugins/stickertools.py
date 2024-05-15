@@ -25,6 +25,7 @@
     To extract round sticker.
 """
 
+import asyncio
 import glob
 import io
 import os
@@ -47,11 +48,12 @@ except ImportError:
     pass
 
 from telethon.errors import PeerIdInvalidError, YouBlockedUserError
-from telethon.tl.functions.messages import UploadMediaRequest
+from telethon.tl.functions.messages import UploadMediaRequest, GetStickerSetRequest
 from telethon.tl.types import (
     DocumentAttributeFilename,
     DocumentAttributeSticker,
     InputPeerSelf,
+    InputStickerSetShortName,
 )
 from telethon.utils import get_input_document
 
@@ -76,6 +78,7 @@ from . import (
 )
 
 
+_mypacks = set()
 KANGING_STR = (
     "Using Witchery to kang this sticker...",
     "Plagiarising hehe...",
@@ -218,11 +221,13 @@ async def hehe(args):
         photo = await quotly.create_quotly(message)
     else:
         return await xx.edit(get_string("com_4"))
+
     if not udB.get_key("language") or udB.get_key("language") == "en":
         ra = random.choice(KANGING_STR)
     else:
         ra = get_string("sts_11")
     await xx.edit(f"`{ra}`")
+
     if photo:
         splat = args.text.split()
         pack = 1
@@ -255,13 +260,30 @@ async def hehe(args):
             file.name = "sticker.png"
             image.save(file, "PNG")
 
-        response = await async_searcher(f"http://t.me/addstickers/{packname}")
-        htmlstr = response.split("\n")
+        if packname in _mypacks:
+            _exists = True
+        else:
+            try:
+                response = await async_searcher(f"http://t.me/addstickers/{packname}")
+                _exists = (
+                    "  A <strong>Telegram</strong> user has created the <strong>Sticker&nbsp;Set</strong>."
+                    in response.spiltlines()
+                )
+            except Exception:
+                try:
+                    response = await asst(
+                        GetStickerSetRequest(
+                            stickerset=InputStickerSetSetName(short_name=packname),
+                            hash=0,
+                        )
+                    )
+                except:
+                    _exists = False
+                else:
+                    _exists = True
+                    _mypacks.add(packname)
 
-        if (
-            "  A <strong>Telegram</strong> user has created the <strong>Sticker&nbsp;Set</strong>."
-            not in htmlstr
-        ):
+        if _exists:
             async with ultroid_bot.conversation("@Stickers") as conv:
                 try:
                     await conv.send_message("/addsticker")
@@ -294,7 +316,7 @@ async def hehe(args):
                     if x.text.startswith("Alright! Now send me the video sticker."):
                         await conv.send_file(photo, force_document=True)
                         x = await conv.get_response()
-                    if x.text in ["Invalid pack selected.", "Invalid set selected."]:
+                    if x.text in ("Invalid pack selected.", "Invalid set selected."):
                         await conv.send_message(cmd)
                         await conv.get_response()
                         await conv.send_message(packnick)
@@ -320,11 +342,11 @@ async def hehe(args):
                         await conv.get_response()
                         await conv.send_message(packname)
                         await conv.get_response()
-                        await xx.edit(
+                        return await xx.edit(
                             get_string("sts_7").format(packname),
                             parse_mode="md",
                         )
-                        return
+
                 if is_anim:
                     await conv.send_file("AnimatedSticker.tgs")
                     osremove("AnimatedSticker.tgs")
@@ -336,10 +358,8 @@ async def hehe(args):
                     await conv.send_file(file, force_document=True)
                     rsp = await conv.get_response()
                     if "Sorry, the file type is invalid." in rsp.text:
-                        await xx.edit(
-                            get_string("sts_8"),
-                        )
-                        return
+                        return await xx.edit(get_string("sts_8"))
+
                 await conv.send_message(emoji)
                 await conv.get_response()
                 await conv.send_message("/done")
@@ -363,10 +383,8 @@ async def hehe(args):
                     await conv.send_file(file, force_document=True)
                 rsp = await conv.get_response()
                 if "Sorry, the file type is invalid." in rsp.text:
-                    await xx.edit(
-                        get_string("sts_8"),
-                    )
-                    return
+                    return await xx.edit(get_string("sts_8"))
+
                 await conv.send_message(emoji)
                 await conv.get_response()
                 await conv.send_message("/publish")
@@ -379,6 +397,7 @@ async def hehe(args):
                 await conv.get_response()
                 await conv.send_message(packname)
                 await conv.get_response()
+                _mypacks.add(packname)
                 await ultroid_bot.send_read_acknowledge(conv.chat_id)
         try:
             osremove(photo)

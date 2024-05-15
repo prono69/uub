@@ -22,10 +22,6 @@ class DependencyMissingError(ImportError):
     pass
 
 
-class RunningAsFunctionLibError(pyUltroidError):
-    pass
-
-
 class UploadError(Exception):
     pass
 
