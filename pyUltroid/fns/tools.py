@@ -686,6 +686,7 @@ def cmd_regex_replace(cmd):
         out = out.removesuffix(i)
     return out.strip()
 
+
 # ------------------------#
 
 

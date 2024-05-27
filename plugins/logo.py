@@ -24,11 +24,20 @@ try:
     from PIL import Image
 except ImportError:
     Image = None
-    
+
 from pyUltroid.fns.misc import unsplashsearch
 from pyUltroid.fns.tools import LogoHelper
 
-from . import check_filename, download_file, get_string, inline_mention, mediainfo, osremove, ultroid_bot, ultroid_cmd
+from . import (
+    check_filename,
+    download_file,
+    get_string,
+    inline_mention,
+    mediainfo,
+    osremove,
+    ultroid_bot,
+    ultroid_cmd,
+)
 
 
 @ultroid_cmd(pattern="logo( (.*)|$)")
@@ -37,7 +46,7 @@ async def logo_gen(event):
     name = event.pattern_match.group(2)
     if not name:
         return await xx.eor("`Give a name to Generate Logo!`", time=8)
-        
+
     bg_, font_ = None, None
     if event.reply_to_msg_id:
         temp = await event.get_reply_message()
@@ -49,29 +58,31 @@ async def logo_gen(event):
                 font_ = await temp.download_media("resources/fonts/")
             elif "pic" in mediainfo(temp.media):
                 bg_ = await temp.download_media()
-                
+
     if not font_:
         fpath_ = glob.glob("resources/fonts/*")
         font_ = random.choice(fpath_)
     if not bg_:
         SRCH = (
-                "background",
-                "neon",
-                "anime",
-                "art",
-                "bridges",
-                "streets",
-                "computer",
-                "cyberpunk",
-                "nature",
-                "abstract",
-                "exoplanet",
-                "magic",
-                "3d render",
+            "background",
+            "neon",
+            "anime",
+            "art",
+            "bridges",
+            "streets",
+            "computer",
+            "cyberpunk",
+            "nature",
+            "abstract",
+            "exoplanet",
+            "magic",
+            "3d render",
         )
         res = await unsplashsearch(random.choice(SRCH), limit=1)
-        bg_, _ = await download_file(res[0], check_filename("resources/downloads/unsplash_temp.png"))
-        newimg =  check_filename("resources/downloads/unsplash_temp_jpg.jpg")
+        bg_, _ = await download_file(
+            res[0], check_filename("resources/downloads/unsplash_temp.png")
+        )
+        newimg = check_filename("resources/downloads/unsplash_temp_jpg.jpg")
         img_ = Image.open(bg_)
         img_.save(newimg, optimize=True, quality=85)
         osremove(bg_)
