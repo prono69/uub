@@ -310,13 +310,20 @@ class LogoHelper:
 
         img = Image.open(imgpath)
         width, height = img.size
+        fct = min(height, width)
+        if height != width:
+            img = img.crop((0, 0, fct, fct))
+        if img.height < 1000:
+            img = img.resize((1020, 1020))
+        width, height = img.size
         draw = ImageDraw.Draw(img)
         font_size = LogoHelper.find_font_size(text, funt, img, width_ratio)
         font = ImageFont.truetype(funt, font_size)
         dim = draw.textbbox((0, 0), text, font=font)
-        w, h = dim[2] - dim[0], dim[3] - dim[1]
+        l, t, r, b = font.getbbox(text)
+        w, h = r - l, (b - t) * 1.5
         draw.text(
-            ((width - w) / 2, (height - h) / 2),
+            ((width - w) / 2, ((height - h) / 2)),
             text,
             font=font,
             fill=fill,
@@ -324,7 +331,7 @@ class LogoHelper:
             stroke_fill=stroke_fill,
         )
         file_name = check_filename("logo.png")
-        img.save(file_name, "PNG")
+        img.save(file_name, "PNG", optimize=True)
         return file_name
 
 
@@ -659,25 +666,31 @@ def translate(*args, **kwargs):
 
 
 def cmd_regex_replace(cmd):
-    return (
+    out = (
         cmd.replace("$", "")
         .replace("?(.*)", "")
+        .replace("( (.*)|)", "")
         .replace("(.*)", "")
         .replace("(?: |)", "")
-        .replace("| ", "")
+        .replace(r"\d*|", "")
+        .replace(r"[\s\S]*", "")
         .replace("( |)", "")
         .replace("?((.|//)*)", "")
         .replace("?P<shortname>\\w+", "")
         .replace("(", "")
         .replace(")", "")
         .replace("?(\\d+)", "")
+        .replace(r"\d*", "")
     )
-
+    for i in "|$?":
+        out = out.removesuffix(i)
+    return out.strip()
 
 # ------------------------#
 
 
-class LottieException(Exception): ...
+class LottieException(Exception):
+    pass
 
 
 class TgConverter:

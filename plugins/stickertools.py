@@ -264,7 +264,7 @@ async def hehe(args):
             _exists = True
         else:
             try:
-                response = await async_searcher(f"http://t.me/addstickers/{packname}")
+                response = await async_searcher(f"https://t.me/addstickers/{packname}")
                 _exists = (
                     "  A <strong>Telegram</strong> user has created the <strong>Sticker&nbsp;Set</strong>."
                     in response.spiltlines()
@@ -281,9 +281,9 @@ async def hehe(args):
                     _exists = False
                 else:
                     _exists = True
-                    _mypacks.add(packname)
 
         if _exists:
+            _mypacks.add(packname)
             async with ultroid_bot.conversation("@Stickers") as conv:
                 try:
                     await conv.send_message("/addsticker")

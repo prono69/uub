@@ -60,9 +60,7 @@ class UltroidClient(TelegramClient):
         self.dc_id = self.session.dc_id
 
     def __repr__(self):
-        return "<Ultroid.Client :\n self: {}\n bot: {}\n>".format(
-            self.full_name, self._bot
-        )
+        return f"<Ultroid.Client :\n self: {self.full_name}\n bot: {self.me.bot}\n>"
 
     @property
     def __dict__(self):
@@ -73,6 +71,7 @@ class UltroidClient(TelegramClient):
         """function to start client"""
         if self._log_at:
             self.logger.info("Trying to login.")
+
         try:
             await self.start(**kwargs)
         except ApiIdInvalidError:
@@ -92,6 +91,7 @@ class UltroidClient(TelegramClient):
                 "Bot token is expired or invalid. Create new from @Botfather and add in BOT_TOKEN env variable!"
             )
             sys.exit()
+
         # Save some stuff for later use...
         self.me = await self.get_me()
         if self.me.bot:
