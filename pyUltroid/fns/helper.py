@@ -197,9 +197,9 @@ async def custom_updater():
     for line in stdout.splitlines():
         commit_time, title, body, commit_hash, author = literal_eval(line)
         count, _ = await bash(f"git rev-list --count {commit_hash}")
-        out += f"💬 #{count} -  {commit_time} • {author} \n> {title}"
+        out += f"💬 #{count} • {author} • ({commit_time}) \n> {title}"
         out += f" \n> {body}" if body else "" + "\n\n"
-        html_out += f"💬 #{count} - <i>{commit_time}</i> • <b>{author}</b> \n<b>> <a href={repo}/commit/{commit_hash}>{title}</a></b>"
+        html_out += f"💬 #{count} • <b>{author}</b> • <i>({commit_time})</i> \n<b>> <a href={repo}/commit/{commit_hash}>{title}</a></b>"
         html_out += f" \n<b>></b> <i>{body}</i>" if body else "" + "\n\n"
 
     return (out, html_out)
