@@ -285,7 +285,7 @@ async def inline_updater(eve):
     # return await eve.answer("Type '.update' to Update your Ultroid Userbot!", alert=True)
     from plugins.bot import _updater
 
-    await eve.answer("Fetching Updates! Hold your Horses !!")
+    await eve.answer("Fetching Updates! Hold your Horses..")
     await _updater(
         eve,
         to_edit=False,

@@ -32,6 +32,7 @@ from . import (
     LOG_CHANNEL,
     OWNER_NAME,
     ULTROID_IMAGES,
+    ULTConfig,
     Button,
     Carbon,
     Telegraph,
