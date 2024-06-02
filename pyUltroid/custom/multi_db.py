@@ -72,10 +72,10 @@ def _init_multi_dbs(var):
             multi_db[count] = f"{name} -> self"
             globals()[redis_instance] = udB
             continue
-        if "redislabs" in data:
-            db_type = "redis"
-        elif "mongodb" in data:
+        if "mongodb" in data:
             db_type = "mongo"
+        elif "redis" in data:
+            db_type = "redis"
         else:
             db_type = "sql"
 
