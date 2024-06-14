@@ -14,6 +14,17 @@ except ModuleNotFoundError:
     load_dotenv = None
 
 
+# ~~~~~~~~~~~~~~~~~~~~~~ startup part 0 ~~~~~~~~~~~~~~~~~~~~~~~
+
+
+if Path("pyUltroid/custom/_switchdns.py").is_file():
+
+    from ._switchdns import *
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~ startup part 1 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
 def startup_logo():
     # skipping `bash startup`
     print(
@@ -85,10 +96,11 @@ def extra_tasks():
 
 
 startup_tasks()
-# extra_tasks()
+extra_tasks()
 
 
-# startup part 2
+# ~~~~~~~~~~~~~~~~~~~~~~ startup part 2 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 from pyUltroid.configs import Var
 from pyUltroid.startup import LOGS
