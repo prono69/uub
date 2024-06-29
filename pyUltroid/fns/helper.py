@@ -209,8 +209,8 @@ async def custom_updater():
 
 # @1danish_00 @new-dev0 @buddhhu
 
-"""
-# alternative -> client.fast_download/upload
+# bloat features 
+# use tg_downloader for downloading and fast_upload for uploading purposes.
 
 async def uploader(file, name, taime, event, msg):
     edit_missed = 0
@@ -270,7 +270,6 @@ async def downloader(filename, file, event, taime, msg):
             ) from None
 
     return result
-"""
 
 
 async def tg_downloader(
