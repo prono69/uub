@@ -21,13 +21,12 @@ try:
 except ImportError:
     GDriveManager = None
 
-from telegraph import upload_file as upl
 from telethon import Button, events
 from telethon.tl.types import MessageMediaWebPage
 from telethon.utils import get_peer_id
 
 from pyUltroid.fns.helper import fast_download
-from pyUltroid.fns.tools import Carbon, get_paste, telegraph_client
+from pyUltroid.fns.tools import Carbon, TelegraphClient, get_paste
 from pyUltroid.custom.commons import async_searcher, osremove, progress
 from pyUltroid.custom._extras import FixedSizeDict
 from pyUltroid.startup.loader import Loader
@@ -37,8 +36,9 @@ from . import *
 
 # --------------------------------------------------------------------#
 
-telegraph = telegraph_client()
+
 GDrive = GDriveManager() if GDriveManager else None
+
 
 # --------------------------------------------------------------------#
 
@@ -804,7 +804,7 @@ async def media(event):
         else:
             media = await event.client.download_media(response, "alvpc")
             try:
-                x = upl(media)
+                x = await TelegraphClient.upload_file(media)
                 url = f"https://graph.org/{x[0]}"
                 remove(media)
             except BaseException as er:
@@ -943,7 +943,7 @@ async def media(event):
             url = response.file.id
         else:
             try:
-                x = upl(media)
+                x = await TelegraphClient.upload_file(media, anon=True)
                 url = f"https://graph.org/{x[0]}"
                 remove(media)
             except BaseException as er:
@@ -1213,7 +1213,7 @@ async def media(event):
             url = text_to_url(response)
         else:
             try:
-                x = upl(media)
+                x = await TelegraphClient.upload_file(media)
                 url = f"https://graph.org/{x[0]}"
                 remove(media)
             except BaseException as er:

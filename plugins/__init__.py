@@ -36,7 +36,7 @@ from pyUltroid.custom.mediainfo import gen_mediainfo
 
 
 quotly = Quotly()
-Telegraph = telegraph_client()
+# Telegraph = telegraph_client()
 
 Redis = udB.get_key
 con = TgConverter

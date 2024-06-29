@@ -89,7 +89,7 @@ from pyUltroid.fns.misc import ReTrieveFile
 from . import (
     HNDLR,
     LOGS,
-    Telegraph,
+    TelegraphClient,
     asst,
     asyncread,
     async_searcher,
@@ -113,13 +113,9 @@ try:
 except ImportError:
     Image = None
 
-try:
-    from telegraph import upload_file as uf
-except ImportError:
-    uf = None
-
 
 # =================================================================#
+
 
 TMP_DOWNLOAD_DIRECTORY = "resources/downloads/"
 
@@ -504,7 +500,8 @@ async def telegraphcmd(event):
             getit = file
         if "document" not in dar:
             try:
-                nn = f"https://graph.org{uf(getit)[0]}"
+                urll = await TelegraphClient.upload_file(getit, anon=True)
+                nn = f"https://graph.org{urll[0]}"
                 amsg = f"Uploaded to [Telegraph]({nn}) !"
             except Exception as e:
                 amsg = f"Error : {e}"
@@ -512,7 +509,7 @@ async def telegraphcmd(event):
             return await xx.eor(amsg)
         content = pathlib.Path(getit).read_text()
         osremove(getit)
-    makeit = Telegraph.create_page(title=match, content=[content])
+    makeit = TelegraphClient.client.create_page(title=match, content=[content])
     await xx.eor(
         f"Pasted to Telegraph : [Telegraph]({makeit['url']})", link_preview=False
     )

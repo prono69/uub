@@ -28,10 +28,9 @@ except ImportError:
     LOGS.info(f"{__file__}: PIL  not Installed.")
     Image = None
 
-from telegraph import upload_file as uf
-
 from pyUltroid.custom._transfer import pyroDL, pyroUL
 from . import (
+    TelegraphClient,
     ULTConfig,
     asyncwrite,
     bash,
@@ -60,11 +59,11 @@ async def set_thumbnail(e):
         dl = await r.download_media(thumb=-1)
     else:
         return await e.eor("`Reply to Photo or media with thumb...`")
-    variable = uf(dl)
+    variable = await TelegraphClient.upload_file(dl)
     os.remove(dl)
     nn = f"https://graph.org{variable[0]}"
-    udB.set_key("CUSTOM_THUMBNAIL", str(nn))
-    await bash(f"wget {nn} -O resources/extras/ultroid.jpg")
+    udB.set_key("CUSTOM_THUMBNAIL", nn)
+    await bash(f"wget '{nn}' -O resources/extras/ultroid.jpg")
     await e.eor(get_string("cvt_6").format(nn), link_preview=False)
 
 

@@ -12,7 +12,6 @@ __doc__ = get_help("help_afk")
 
 import asyncio
 
-from telegraph import upload_file as uf
 from telethon import events
 
 from pyUltroid.dB.afk_db import add_afk, del_afk, is_afk
@@ -22,6 +21,7 @@ from . import (
     LOG_CHANNEL,
     NOSPAM_CHAT,
     Redis,
+    TelegraphClient,
     asst,
     get_string,
     mediainfo,
@@ -52,7 +52,7 @@ async def set_afk(event):
             media_type = mediainfo(reply.media)
             if media_type.startswith(("pic", "gif")):
                 file = await event.client.download_media(reply.media)
-                iurl = uf(file)
+                iurl = await TelegraphClient.upload_file(file, anon=True)
                 media = f"https://graph.org{iurl[0]}"
             else:
                 media = reply.file.id

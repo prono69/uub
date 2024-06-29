@@ -12,7 +12,6 @@ __doc__ = get_help("help_filter")
 import os
 import re
 
-from telegraph import upload_file as uf
 from telethon.tl.types import User
 from telethon.utils import pack_bot_file_id
 
@@ -35,13 +34,13 @@ async def af(e):
         wut = mediainfo(wt.media)
         if wut.startswith(("pic", "gif")):
             dl = await wt.download_media()
-            variable = uf(dl)
+            variable = await TelegraphClient.upload_file(dl, anon=True)
             m = f"https://graph.org{variable[0]}"
         elif wut == "video":
             if wt.media.document.size > 6 * 1000 * 1000:
                 return await e.eor(get_string("com_4"), time=5)
             dl = await wt.download_media()
-            variable = uf(dl)
+            variable = await TelegraphClient.upload_file(dl, anon=True)
             os.remove(dl)
             m = f"https://graph.org{variable[0]}"
         else:

@@ -23,13 +23,21 @@
 
 import os
 
-from telegraph import upload_file as uf
 from telethon.utils import pack_bot_file_id
 
 from pyUltroid.dB.notes_db import add_note, get_notes, list_note, rem_note
 from pyUltroid.fns.tools import create_tl_btn, format_btn, get_msg_button
 
-from . import events, get_string, mediainfo, not_so_fast, udB, ultroid_bot, ultroid_cmd
+from . import (
+    TelegraphClient,
+    events,
+    get_string,
+    mediainfo,
+    not_so_fast,
+    udB,
+    ultroid_bot,
+    ultroid_cmd,
+)
 from ._inline import something
 
 
@@ -47,14 +55,14 @@ async def an(e):
         wut = mediainfo(wt.media)
         if wut.startswith(("pic", "gif")):
             dl = await wt.download_media()
-            variable = uf(dl)
+            variable = await TelegraphClient.upload_file(dl)
             os.remove(dl)
             m = f"https://graph.org{variable[0]}"
         elif wut == "video":
             if wt.media.document.size > 8 * 1000 * 1000:
                 return await e.eor(get_string("com_4"), time=5)
             dl = await wt.download_media()
-            variable = uf(dl)
+            variable = await TelegraphClient.upload_file(dl)
             os.remove(dl)
             m = f"https://graph.org{variable[0]}"
         else:

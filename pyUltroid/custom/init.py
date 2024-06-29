@@ -20,7 +20,7 @@ except ModuleNotFoundError:
 # todo: try in localhost 🫠
 # if Path("pyUltroid/custom/_switchdns.py").is_file():
 
-    # from ._switchdns import *
+# from ._switchdns import *
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~ startup part 1 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

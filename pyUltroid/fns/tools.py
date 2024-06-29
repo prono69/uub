@@ -520,50 +520,69 @@ def four_point_transform(image, pts):
 # ------------------------------------- Telegraph ---------------------------------- #
 
 
-def telegraph_client():
-    if not Telegraph:
-        LOGS.info("'Telegraph' is not Installed!")
-        return
+class _TelegraphClient:
+    __slots__ = ("client",)
 
-    from pyUltroid import udB, ultroid_bot
+    def __init__(self):
+        self.client = None
 
-    token = udB.get_key("_TELEGRAPH_TOKEN")
-    TELEGRAPH_DOMAIN = udB.get_key("GRAPH_DOMAIN")
-    TelegraphClient = Telegraph(token, domain=TELEGRAPH_DOMAIN or "graph.org")
-    if token:
-        return TelegraphClient
+    def get_client(self):
+        if not Telegraph:
+            return LOGS.error("'Telegraph' is not Installed!")
 
-    gd_name = ultroid_bot.full_name
-    short_name = gd_name[:30]
-    profile_url = (
-        f"https://t.me/{ultroid_bot.me.username}"
-        if ultroid_bot.me.username
-        else "https://t.me/TeamUltroid"
-    )
-    try:
-        TelegraphClient.create_account(
-            short_name=short_name, author_name=gd_name, author_url=profile_url
+        if self.client:
+            return self.client
+
+        from pyUltroid import udB, ultroid_bot
+
+        token = udB.get_key("_TELEGRAPH_TOKEN")
+        domain = udB.get_key("GRAPH_DOMAIN") or "graph.org"
+        client = Telegraph(token, domain=domain)
+        self.client = client
+        if token:
+            return
+
+        gd_name = ultroid_bot.full_name
+        short_name = gd_name[:30]
+        profile_url = (
+            f"https://t.me/{ultroid_bot.me.username}"
+            if ultroid_bot.me.username
+            else "https://t.me/TeamUltroid"
         )
-    except Exception as er:
-        if "SHORT_NAME_TOO_LONG" in str(er):
-            TelegraphClient.create_account(
-                short_name="ultroiduser", author_name=gd_name, author_url=profile_url
+        try:
+            client.create_account(
+                short_name=short_name, author_name=gd_name, author_url=profile_url
             )
+        except Exception as er:
+            if "SHORT_NAME_TOO_LONG" in str(er):
+                client.create_account(
+                    short_name="ultroiduser",
+                    author_name=gd_name,
+                    author_url=profile_url,
+                )
+            else:
+                return LOGS.exception(er)
+        finally:
+            udB.set_key("_TELEGRAPH_TOKEN", client.get_access_token())
+
+    @run_async
+    def make_html_telegraph(self, title, html=""):
+        self.get_client()
+        page = self.client.create_page(title=title, html_content=html)
+        return page["url"]
+
+    @run_async
+    def upload_file(self, file, anon=False):
+        if anon == True:
+            client = Telegraph(domain="graph.org")
         else:
-            return LOGS.exception(er)
+            self.get_client()
+            client = self.client
+        page = client.upload_file(file)
+        return [i["src"] for i in page]
 
-    udB.set_key("_TELEGRAPH_TOKEN", TelegraphClient.get_access_token())
-    return TelegraphClient
 
-
-@run_async
-def make_html_telegraph(title, html=""):
-    telegraph = telegraph_client()
-    page = telegraph.create_page(
-        title=title,
-        html_content=html,
-    )
-    return page["url"]
+TelegraphClient = _TelegraphClient()
 
 
 async def Carbon(
@@ -930,6 +949,7 @@ __all__ = (
     "Carbon",
     "LogoHelper",
     "TgConverter",
+    "TelegraphClient",
     "cmd_regex_replace",
     "create_tl_btn",
     "format_btn",
@@ -942,12 +962,12 @@ __all__ = (
     "get_paste",
     "get_stored_file",
     "is_url_ok",
-    "make_html_telegraph",
+    # "make_html_telegraph",
     "metadata",
     "saavn_search",
     "safe_load",
     "set_attributes",
-    "telegraph_client",
+    # "telegraph_client",
     "text_set",
     "translate",
     "webuploader",

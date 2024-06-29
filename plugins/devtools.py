@@ -34,11 +34,6 @@ except ImportError:
     from pyUltroid.fns.tools import safe_load
 
 try:
-    from telegraph import upload_file as uf
-except ImportError:
-    uf = None
-
-try:
     from rich.pretty import Pretty
 except ImportError:
     Pretty = None

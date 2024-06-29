@@ -13,7 +13,7 @@
 
 • `{i}rotate <degree/angle> <reply to media>`
    Rotate any video/photo/media..
-   Note: for video it should be angle of 90's
+   Note: for video it should be in angle of 90s.
 """
 
 import os
@@ -26,7 +26,7 @@ from pyUltroid.fns.tools import make_html_telegraph
 
 from . import (
     LOGS,
-    Telegraph,
+    TelegraphClient,
     bash,
     get_string,
     is_url_ok,
@@ -53,7 +53,9 @@ async def mi(e):
     if r and r.media:
         xx = mediainfo(r.media)
         murl = r.media.stringify()
-        url = await make_html_telegraph("Mediainfo", f"<pre>{murl}</pre>")
+        url = await TelegraphClient.make_html_telegraph(
+            "Mediainfo", f"<pre>{murl}</pre>"
+        )
         extra = f"[{xx}]({url})"
         naam, _ = await tg_downloader(
             media=r,
@@ -79,7 +81,8 @@ async def mi(e):
     makehtml = ""
     if naam.endswith((".jpg", ".png")):
         if os.path.exists(naam):
-            med = "https://graph.org" + Telegraph.upload_file(naam)[0]["src"]
+            urll = await TelegraphClient.upload_file(naam)
+            med = "https://graph.org" + urll[0]
         else:
             med = match
         makehtml += f"<img src='{med}'><br>"
@@ -92,7 +95,7 @@ async def mi(e):
         else:
             makehtml += f"<p>{line}</p>"
     try:
-        urll = await make_html_telegraph("Mediainfo", makehtml)
+        urll = await TelegraphClient.make_html_telegraph("Mediainfo", makehtml)
     except Exception as er:
         LOGS.exception(er)
         return await msg.edit(f"**Error:** `{er}`")

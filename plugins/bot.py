@@ -35,7 +35,7 @@ from . import (
     ULTConfig,
     Button,
     Carbon,
-    Telegraph,
+    TelegraphClient,
     Var,
     asyncread,
     allcmds,
@@ -198,7 +198,7 @@ async def _(event):
     pattern="cmds$",
 )
 async def cmds(event):
-    await allcmds(event, Telegraph)
+    await allcmds(event, TelegraphClient)
 
 
 async def _updater(

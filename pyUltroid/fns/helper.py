@@ -172,7 +172,7 @@ async def custom_updater():
     """Check remotes and Generate Changelog!"""
     remotes, err = await bash("git remote")
     if err or (remotes and "origin" not in remotes):
-        return LOGS.exception(
+        return LOGS.warning(
             f"git initialise error: {err} or origin remote is missing..."
         )
 
@@ -185,7 +185,7 @@ async def custom_updater():
     branch = branch.strip()
     await bash(f"git fetch upstream {branch}")
     stdout, _ = await bash(
-        r"""git log --pretty="format: [\"%ar\", \"%s\", \"%b\", \"%H\", \"%aN\"]" origin/main..upstream/main"""
+        r"""git log --pretty="format: [\"%ar\", \"%s\", \"%H\", \"%aN\"]" origin/main..upstream/main"""
     )
     if not stdout:
         return ("", "")
@@ -195,12 +195,10 @@ async def custom_updater():
         f"<b>Ultroid Updates • [<a href={repo}/tree/{branch}>{branch}</a>]</b>\n\n"
     )
     for line in stdout.splitlines():
-        commit_time, title, body, commit_hash, author = literal_eval(line)
+        commit_time, title, commit_hash, author = literal_eval(line)
         count, _ = await bash(f"git rev-list --count {commit_hash}")
-        out += f"💬 #{count} • {author} • ({commit_time}) \n> {title}"
-        out += f" \n> {body}" if body else "" + "\n\n"
-        html_out += f"💬 #{count} • <b>{author}</b> • <i>({commit_time})</i> \n<b>> <a href={repo}/commit/{commit_hash}>{title}</a></b>"
-        html_out += f" \n<b>></b> <i>{body}</i>" if body else "" + "\n\n"
+        out += f"💬 #{count} • {author} • ({commit_time}) \n> {title}\n\n"
+        html_out += f"💬 #{count} • <b>{author}</b> • <i>({commit_time})</i> \n<b>> <a href={repo}/commit/{commit_hash}>{title}</a></b>\n\n"
 
     return (out, html_out)
 
@@ -209,8 +207,9 @@ async def custom_updater():
 
 # @1danish_00 @new-dev0 @buddhhu
 
-# bloat features 
+# bloat features
 # use tg_downloader for downloading and fast_upload for uploading purposes.
+
 
 async def uploader(file, name, taime, event, msg):
     edit_missed = 0
