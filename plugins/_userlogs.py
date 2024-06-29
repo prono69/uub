@@ -74,7 +74,8 @@ async def all_messages_catcher(e):
         return
     except MediaEmptyError:
         try:
-            msg = await asst.get_messages(e.chat_id, ids=e.id)
+            if not (msg := await asst.get_messages(e.chat_id, ids=e.id)):
+                raise PeerIdInvalidError
             sent = await not_so_fast(asst.send_message, NEEDTOLOG, msg, buttons=buttons)
             if TAG_EDITS.get(e.chat_id):
                 TAG_EDITS[e.chat_id][e.id] = {"id": sent.id, "msg": e}
@@ -82,7 +83,7 @@ async def all_messages_catcher(e):
                 TAG_EDITS[e.chat_id] = {e.id: {"id": sent.id, "msg": e}}
         except Exception as me:
             if not isinstance(me, (PeerIdInvalidError, ValueError)):
-                LOGS.exception("UnHandled Error:")
+                LOGS.exception(f"UnHandled Error: {me}")
             try:
                 # media = await e.download_media()
                 # sent = await asst.send_message(NEEDTOLOG, e.message.text, file=media, buttons=buttons)
