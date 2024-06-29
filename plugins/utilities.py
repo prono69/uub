@@ -235,7 +235,7 @@ async def _(event):
     except IndexError:
         input_str = None
     xx = await event.eor("` 《 Pasting... 》 `")
-    downloaded_file_name = None
+    downloaded_file_name, ext = None, ".txt"
     if input_str:
         message = input_str
     elif event.reply_to_msg_id:
@@ -243,8 +243,9 @@ async def _(event):
         if previous_message.media:
             downloaded_file_name = await event.client.download_media(
                 previous_message,
-                "./resources/downloads",
+                "resources/downloads",
             )
+            ext = getattr(previous_message.file, "ext", ".txt")
             message = await asyncread(downloaded_file_name)
             osremove(downloaded_file_name)
         else:
@@ -255,7 +256,8 @@ async def _(event):
         return await xx.eor(
             "`Reply to a Message/Document or Give me Some Text !`", time=5
         )
-    done, key = await get_paste(message)
+
+    done, key = await get_paste(message, extension=ext[1:])
     if not done:
         return await xx.eor(key)
     link = f"https://spaceb.in/{key}"

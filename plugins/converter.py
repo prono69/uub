@@ -33,6 +33,7 @@ from . import (
     TelegraphClient,
     ULTConfig,
     asyncwrite,
+    asyncread,
     bash,
     check_filename,
     cleargif,
@@ -170,7 +171,7 @@ async def d_doc(event):
 @ultroid_cmd(
     pattern="open( (.*)|$)",
 )
-async def _(event):
+async def open_file_on_tg(event):
     a = await event.get_reply_message()
     b = event.pattern_match.group(2)
     if not ((a and a.media) or (b and os.path.exists(b))):
@@ -182,14 +183,14 @@ async def _(event):
         b, _ = await tg_downloader(media=a, event=xx, show_progress=False)
         rem = True
     try:
-        with open(b) as c:
-            d = c.read()
+        d = await asyncread(b)
     except UnicodeDecodeError:
         return await xx.eor(get_string("cvt_8"), time=5)
     try:
         await xx.edit(f"<code>{d}</code>", parse_mode="html")
     except BaseException:
-        what, key = await get_paste(d)
+        ext = (a.file.ext or ".txt")[1:]
+        what, key = await get_paste(d, extension=ext)
         await xx.edit(
             f"**MESSAGE EXCEEDS TELEGRAM LIMITS**\n\nSo Pasted It On [SPACEBIN](https://spaceb.in/{key})"
         )

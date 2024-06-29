@@ -355,8 +355,8 @@ async def _(e):
     index = None
     if "|" in ok:
         ok, index = ok.split("|")
-    with open(ok, "r") as hmm:
-        _, key = await get_paste(hmm.read())
+    hmm = await asyncread(ok)
+    _, key = await get_paste(hmm, extension="py")
     link = f"https://spaceb.in/{key}"
     raw = link + "/raw"
     if not _:
