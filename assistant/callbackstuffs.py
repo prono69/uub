@@ -358,7 +358,7 @@ async def _(e):
     with open(ok, "r") as hmm:
         _, key = await get_paste(hmm.read())
     link = f"https://spaceb.in/{key}"
-    raw = f"https://spaceb.in/api/v1/documents/{key}/raw"
+    raw = link + "/raw"
     if not _:
         return await e.answer(key[:30], alert=True)
     if ok.startswith("addons"):
