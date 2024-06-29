@@ -38,7 +38,6 @@ from . import (
     TelegraphClient,
     Var,
     asyncread,
-    allcmds,
     asst,
     asyncwrite,
     bash,
@@ -198,7 +197,14 @@ async def _(event):
     pattern="cmds$",
 )
 async def cmds(event):
-    await allcmds(event, TelegraphClient)
+    txt = ""
+    for z in LIST.keys():
+        txt += f"PLUGIN NAME: {z}\n"
+        for zz in LIST[z]:
+            txt += HNDLR + zz + "\n"
+        txt += "\n\n"
+    url = await TelegraphClient.create_page(title="Ultroid All Cmds", content=[txt])
+    await event.eor(f"All Ultroid Cmds : [Click Here]({url})", link_preview=False)
 
 
 async def _updater(

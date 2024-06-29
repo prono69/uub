@@ -22,7 +22,6 @@ from datetime import datetime as dt
 from shlex import quote as shquote
 
 from pyUltroid.fns.misc import rotate_image
-from pyUltroid.fns.tools import make_html_telegraph
 
 from . import (
     LOGS,
@@ -53,8 +52,9 @@ async def mi(e):
     if r and r.media:
         xx = mediainfo(r.media)
         murl = r.media.stringify()
-        url = await TelegraphClient.make_html_telegraph(
-            "Mediainfo", f"<pre>{murl}</pre>"
+        url = await TelegraphClient.create_page(
+            title="Mediainfo",
+            html_content=f"<pre>{murl}</pre>",
         )
         extra = f"[{xx}]({url})"
         naam, _ = await tg_downloader(
@@ -95,7 +95,9 @@ async def mi(e):
         else:
             makehtml += f"<p>{line}</p>"
     try:
-        urll = await TelegraphClient.make_html_telegraph("Mediainfo", makehtml)
+        urll = await TelegraphClient.create_page(
+            title="Mediainfo", html_content=makehtml
+        )
     except Exception as er:
         LOGS.exception(er)
         return await msg.edit(f"**Error:** `{er}`")

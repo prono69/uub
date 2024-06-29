@@ -566,9 +566,9 @@ class _TelegraphClient:
             udB.set_key("_TELEGRAPH_TOKEN", client.get_access_token())
 
     @run_async
-    def make_html_telegraph(self, title, html=""):
+    def create_page(self, title, **kwargs):
         self.get_client()
-        page = self.client.create_page(title=title, html_content=html)
+        page = self.client.create_page(title=title, **kwargs)
         return page["url"]
 
     @run_async

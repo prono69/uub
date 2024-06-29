@@ -150,17 +150,6 @@ async def google_search(query):
 # ----------------------------------------------------
 
 
-async def allcmds(event, telegraph):
-    txt = ""
-    for z in LIST.keys():
-        txt += f"PLUGIN NAME: {z}\n"
-        for zz in LIST[z]:
-            txt += HNDLR + zz + "\n"
-        txt += "\n\n"
-    t = telegraph.create_page(title="Ultroid All Cmds", content=[txt])
-    await eor(event, f"All Ultroid Cmds : [Click Here]({t['url']})", link_preview=False)
-
-
 async def ReTrieveFile(input_file_name):
     if not aiohttp:
         raise DependencyMissingError("This function needs 'aiohttp' to be installed.")
@@ -437,7 +426,6 @@ def rotate_image(image, angle):
 __all__ = (
     "Quotly",
     "YtDataScraper",
-    "allcmds",
     "google_search",
     "randomchannel",
     "rotate_image",

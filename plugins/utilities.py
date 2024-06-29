@@ -479,7 +479,7 @@ async def telegraphcmd(event):
     if not Image:
         return await event.eor(f"`Install 'Pillow' module to use this..`")
     xx = await event.eor(get_string("com_1"))
-    match = event.pattern_match.group(1).strip() or "Ultroid"
+    match = event.pattern_match.group(2) or "Ultroid"
     reply = await event.get_reply_message()
     if not reply:
         return await xx.eor("`Reply to Message.`")
@@ -500,7 +500,7 @@ async def telegraphcmd(event):
             getit = file
         if "document" not in dar:
             try:
-                urll = await TelegraphClient.upload_file(getit, anon=True)
+                urll = await TelegraphClient.upload_file(getit)
                 nn = f"https://graph.org{urll[0]}"
                 amsg = f"Uploaded to [Telegraph]({nn}) !"
             except Exception as e:
@@ -509,10 +509,8 @@ async def telegraphcmd(event):
             return await xx.eor(amsg)
         content = pathlib.Path(getit).read_text()
         osremove(getit)
-    makeit = TelegraphClient.client.create_page(title=match, content=[content])
-    await xx.eor(
-        f"Pasted to Telegraph : [Telegraph]({makeit['url']})", link_preview=False
-    )
+    makeit = await TelegraphClient.create_page(title=match, content=[content])
+    await xx.eor(f"Pasted to Telegraph : [Telegraph]({makeit})", link_preview=False)
 
 
 @ultroid_cmd(pattern="json( (.*)|$)")
