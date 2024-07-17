@@ -145,7 +145,7 @@ if aiofiles:
     # asyncread
     async def asyncread(file, binary=False):
         read_type = "rb" if binary else "r+"
-        async with aiofiles.open(file, read_type, encoding="utf-8") as f:
+        async with aiofiles.open(file, read_type) as f:
             data = await f.read()
         return data
 
@@ -160,7 +160,7 @@ else:
     @run_async
     def asyncread(file, binary=False):
         read_type = "rb" if binary else "r+"
-        with open(file, read_type, encoding="utf-8") as f:
+        with open(file, read_type) as f:
             data = f.read()
         return data
 

@@ -141,10 +141,12 @@ def _host_specifics():
 
 
 def delayed_startup_tasks():
+    """
     undel = ("local", "railway", "wfs", "doprax")
     env = Path(".env")
     if Var.HOST.lower() not in undel and env.is_file():
         env.unlink()
+    """
     _host_specifics()
 
 
