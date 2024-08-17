@@ -1,20 +1,32 @@
 # Ultroid - UserBot
-# Copyright (C) 2021-2022 TeamUltroid
+# Copyright (C) 2021-2023 TeamUltroid
 # This file is a part of < https://github.com/TeamUltroid/Ultroid/ >
-# PLease read the GNU Affero General Public License in <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
+# Please read the GNU Affero General Public License in <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
 
-FROM theteamultroid/ultroid:main
+# Use a specific version of Python for consistency
+FROM python:3.12.5-bullseye
 
-# set timezone
+# Set timezone
 ENV TZ=Asia/Kolkata
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-COPY installer.sh .
-
-RUN bash installer.sh
-
-# changing workdir
+# Set working directory
 WORKDIR "/root/TeamUltroid"
 
-# start the bot.
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        neofetch \
+        mediainfo \
+        ffmpeg && \
+    apt-get autoremove --purge -y && \
+    rm -rf /var/lib/apt/lists/*
+
+# Add application code
+ADD . /root/TeamUltroid
+
+# Run the installer script
+RUN bash installer.sh
+
+# Start the bot
 CMD ["bash", "startup"]
