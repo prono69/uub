@@ -16,7 +16,7 @@ apscheduler
 aiohttp[speedups]
 bs4
 enhancer>=0.3.4
-git+https://github.com/buddhhu/img2html.git@c44170d#egg=img2html
+git+https://github.com/buddhhu/img2html.git
 heroku3
 google-api-python-client
 htmlwebshot
