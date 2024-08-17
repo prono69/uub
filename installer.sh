@@ -139,10 +139,10 @@ clone_repo() {
 }
 
 install_requirements() {
-    pip3 install -q --upgrade pip
+    pip3 install --upgrade pip
     echo -e "\n\nInstalling requirements... "
-    pip3 install -q --no-cache-dir -r $DIR/requirements.txt
-    pip3 install -q -r $DIR/resources/startup/optional-requirements.txt
+    pip3 install --no-cache-dir -r $DIR/requirements.txt
+    pip3 install -r $DIR/resources/startup/optional-requirements.txt
 }
 
 railways_dep() {
@@ -178,7 +178,7 @@ dep_install() {
     echo -e "\n\nInstalling DB Requirement..."
     if [ $MONGO_URI ]; then
         echo -e "   Installing MongoDB Requirements..."
-        pip3 install -q pymongo[srv]
+        pip3 install pymongo[srv]
     elif [ $DATABASE_URL ]; then
         echo -e "   Installing PostgreSQL Requirements..."
         pip3 install -q psycopg2-binary
