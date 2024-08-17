@@ -17,6 +17,9 @@ WORKDIR "/root/TeamUltroid"
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         neofetch \
+        git \
+        curl \
+        wget \
         mediainfo \
         ffmpeg && \
     apt-get autoremove --purge -y && \
