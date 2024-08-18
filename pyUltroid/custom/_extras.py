@@ -26,13 +26,14 @@ try:
 except ImportError:
     aiohttp = None
 
-# dns for async_searcher
 try:
     import aiodns
 except ImportError:
     aiodns = None
 
 
+# dns for async_searcher
+_kwargs = {"ttl_dns_cache": 120, "loop": loop}
 if aiohttp and aiodns:
     resolver = aiohttp.resolver.AsyncResolver(
         nameservers=[
@@ -40,13 +41,13 @@ if aiohttp and aiodns:
             "1.0.0.1",
             "2606:4700:4700::1111",
             "2606:4700:4700::1001",
-            "8.8.4.4",
+            "8.8.8.8",
         ]
     )
-    connector = aiohttp.TCPConnector(resolver=resolver, ttl_dns_cache=120)
-else:
-    connector = aiohttp.TCPConnector(ttl_dns_cache=120)
+    _kwargs["resolver"] = resolver
 
+
+connector = aiohttp.TCPConnector(**_kwargs)
 
 _workers = __import__("multiprocessing").cpu_count()
 
