@@ -29,18 +29,20 @@ except ImportError:
 # dns for async_searcher
 try:
     import aiodns
-excpet ImportError:
+except ImportError:
     aiodns = None
 
 
 if aiohttp and aiodns:
-    resolver = aiohttp.resolver.AsyncResolver(nameservers=[
-        "1.1.1.1",
-        "1.0.0.1",
-        "2606:4700:4700::1111",
-        "2606:4700:4700::1001",
-        "8.8.4.4",
-    ])
+    resolver = aiohttp.resolver.AsyncResolver(
+        nameservers=[
+            "1.1.1.1",
+            "1.0.0.1",
+            "2606:4700:4700::1111",
+            "2606:4700:4700::1001",
+            "8.8.4.4",
+        ]
+    )
     connector = aiohttp.TCPConnector(resolver=resolver, ttl_dns_cache=120)
 else:
     connector = aiohttp.TCPConnector(ttl_dns_cache=120)
@@ -114,7 +116,9 @@ async def async_searcher(
     if aiohttp:
         if timeout:
             timeout = aiohttp.ClientTimeout(total=int(timeout))
-        async with aiohttp.ClientSession(headers=headers, connector=connector) as client:
+        async with aiohttp.ClientSession(
+            headers=headers, connector=connector
+        ) as client:
             data = await client.request(method, url, *args, timeout=timeout, **kwargs)
             if evaluate:
                 return await _maybe_await(evaluate(data))
