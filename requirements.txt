@@ -8,50 +8,6 @@ python-dotenv
 redis[hiredis]
 pymongo[srv]
 pyyaml
-pytgcalls>=3.0.0.dev24
-
-# optional
-akinator
-apscheduler
-aiohttp[speedups]
-bs4
-enhancer>=0.3.4
-git+https://github.com/buddhhu/img2html.git
-heroku3
-google-api-python-client
-htmlwebshot
-lottie
-lxml
-numpy>=1.21.2
-oauth2client
-opencv-python-headless
-pillow
-profanitydetector
-psutil
-pypdf
-pytz
-qrcode
-requests
-tabulate
-telegraph
-tgcrypto
-youtube-search-python
-yt-dlp
-
-# addons
-covid
-emoji
-fonttools  # qbot
-gtts
-git+https://github.com/New-dev0/AsyncLyricsExtractor.git
-pygments  # ncode
-pyjokes
-quotefancy
-shazamio
-speechrecognition  # stt
-speedtest-cli
-textblob  # spellcheck
-wikipedia
 
 # custom
 https://github.com/PyrogramMod/PyrogramMod/archive/refs/heads/main.zip

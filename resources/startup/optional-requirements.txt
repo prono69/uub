@@ -18,8 +18,8 @@ oauth2client
 opencv-python-headless
 pillow
 profanitydetector
-python-decouple
-python-dotenv
+# python-decouple
+# python-dotenv
 psutil
 pypdf
 pytz
