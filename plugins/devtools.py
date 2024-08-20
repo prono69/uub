@@ -87,7 +87,7 @@ class u:
             out = [html("🔶", 5301241853864059003)]
         else:
             return ("☞", "•", "•")
-        out.append(html("🟢", 5981118108620820471))  # output
+        out.append(html("🟢", 5319161050128459957))  # output
         out.append(html("🔴", 5017122105011995219))  # error
         return tuple(out)
 
@@ -493,18 +493,18 @@ async def run_eval(event):
         return
 
     _cmd = u._html(cmd, "python")
-    final_output = f"{emojis[0]} <b>EVAL</b> (<i>{timeform}</i>)\n"
+    final_output = f"{emojis[0]} <b>Ⲉⳳⲁⳑ</b> (<i>{timeform}</i>)\n\n"
     final_output += u._html(cmd, "python") + "\n\n"
     if stderr:
         final_output += f"{emojis[2]} <b>ERROR:</b>\n"
         final_output += u._html(stderr, "python") + "\n\n"
     if stdout or _url:
-        final_output += f"{emojis[1]} <b>OUTPUT:</b>\n"
+        final_output += f"{emojis[1]} <b>Ⲟυⲧⲣυⲧ:</b>\n"
         final_output += (
             f"<a href='{_url}'>⁮⁮⁮\xad</a>" if _url else u._html(stdout, "python") + "\n\n"
         )
     elif not stderr:
-        final_output += f"{emojis[1]} <b>OUTPUT:</b>\n" + u._html(
+        final_output += f"{emojis[1]} <b>Ⲟυⲧⲣυⲧ:</b>\n" + u._html(
             get_string("instu_4"), "python"
         )
 
