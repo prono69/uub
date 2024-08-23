@@ -191,7 +191,9 @@ async def generate_rayso(
                     dled = await dl.value
                     await dled.save_as(filename)
             except TimeoutError as exc:
-                return LOGS.exception(f"Timeout error while genersting rayso (playwright!): {exc}")
+                return LOGS.exception(
+                    f"Timeout error while genersting rayso (playwright!): {exc}"
+                )
         except Exception as exc:
             return LOGS.exception(f"Error while generating Rayso (playwright): {exc}")
 

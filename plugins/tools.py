@@ -61,7 +61,7 @@ except ImportError:
     WebShot = None
 
 from telethon.errors.rpcerrorlist import MessageTooLongError, YouBlockedUserError
-from telethon.functions.messages import TranslateTextRequest
+from telethon.tl.functions.messages import TranslateTextRequest
 from telethon.tl.types import (
     ChannelParticipantAdmin,
     ChannelParticipantsBots,
@@ -101,7 +101,7 @@ async def raw_translator_func(message, text_entities, to_lang):
             text=[text_entities],
         )
     )
-    return resp.resp[0].text if resp and resp.result else ""
+    return resp.result[0].text if resp and resp.result else ""
 
 
 @ultroid_cmd(pattern="tr( (.*)|$)", manager=True)
@@ -119,12 +119,13 @@ async def _translator(event):
     try:
         # tt = translate(text, lang_tgt=lan)
         tt = ""
-        if reply_message.media and (poll := reply_message.poll):
+        if reply_message.media and reply_message.poll:
+            poll = reply_message.poll.poll
             text_entities = [poll.question]
             text_entities.extend(i.text for i in poll.answers)
             question, *answers = await asyncio.gather(
                 *[
-                    raw_translator_func(reply_message, ent, to_lang)
+                    raw_translator_func(reply_message, ent, lang)
                     for ent in text_entities
                 ]
             )
