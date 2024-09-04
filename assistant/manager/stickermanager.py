@@ -5,8 +5,6 @@
 # PLease read the GNU Affero General Public License in
 # <https://www.github.com/TeamUltroid/Ultroid/blob/main/LICENSE/>.
 
-import random
-
 from telethon import errors
 from telethon.errors.rpcerrorlist import StickersetInvalidError
 from telethon.tl.functions.messages import GetStickerSetRequest as GetSticker
@@ -21,7 +19,7 @@ from telethon.utils import get_display_name, get_input_document
 from pyUltroid.fns.misc import Quotly
 from pyUltroid.fns.tools import TgConverter
 
-from . import LOGS, asst, asst_cmd, udB
+from . import LOGS, asst, asst_cmd, udB, random_string
 
 
 @asst_cmd(
@@ -37,7 +35,7 @@ async def kang_cmd(ult):
     if sender.username:
         pre = sender.username[:4]
     else:
-        pre = random.random_string(length=3)
+        pre = random_string(6)
     animated, dl, video = None, None, None
     try:
         emoji = ult.text.split(maxsplit=1)[1]

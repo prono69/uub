@@ -91,8 +91,8 @@ def _init_multi_dbs(var):
                         else:
                             DB.set_key(keyy, "tmp")
                 except Exception as exc:
-                    LOGS.warning(f"MultiDB: Error in udB{count} - {name}")
-                    LOGS.debug(exc, exc_info=True)
+                    LOGS.warning(f"MultiDB: Error in udB{count}")
+                    LOGS.debug(f"error in udB{count} -  {name}: {exc}", exc_info=True)
                     continue
 
             multi_db[count] = f"{name} -> {db_type}"

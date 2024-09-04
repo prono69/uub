@@ -61,6 +61,7 @@ except ImportError:
     WebShot = None
 
 from telethon.errors.rpcerrorlist import MessageTooLongError, YouBlockedUserError
+from telethon.tl.functions.messages import TranslateTextRequest
 from telethon.tl.types import (
     ChannelParticipantAdmin,
     ChannelParticipantsBots,
@@ -91,6 +92,18 @@ from . import (
 )
 
 
+async def raw_translator_func(message, text_entities, to_lang):
+    resp = await ultroid_bot(
+        TranslateTextRequest(
+            to_lang=to_lang,
+            peer=message.peer_id,
+            id=[message.id],
+            text=[text_entities],
+        )
+    )
+    return resp.result[0].text if resp and resp.result else ""
+
+
 @ultroid_cmd(pattern="tr( (.*)|$)", manager=True)
 async def _translator(event):
     if not event.reply_to:
@@ -106,15 +119,32 @@ async def _translator(event):
     try:
         # tt = translate(text, lang_tgt=lan)
         tt = ""
-        if hasattr(event.message, "translate"):
+        if reply_message.media and reply_message.poll:
+            poll = reply_message.poll.poll
+            text_entities = [poll.question]
+            text_entities.extend(i.text for i in poll.answers)
+            question, *answers = await asyncio.gather(
+                *[
+                    raw_translator_func(reply_message, ent, lang)
+                    for ent in text_entities
+                ]
+            )
+            tt = question + "\n\n"
+            for count, answer in enumerate(answers, start=1):
+                tt += f"{count}. {answer}\n"
+        else:
+            if not hasattr(reply_message, "translate"):
+                return await kkk.eor("`No translator in telethon ?!`", time=6)
+
             resp = await reply_message.translate(to_lang=lang)
             if resp and type(resp) == tuple:
                 tt = resp[0]
-        output_str = f"**TRANSLATED** to {lang}\n{tt}"
+
+        output_str = f"**TRANSLATED** to {lang}\n\n{tt}"
         await kkk.edit(output_str)
     except Exception as exc:
         LOGS.exception(exc)
-        await kkk.eor(str(exc), time=15)
+        await kkk.eor(str(exc), time=10)
 
 
 @ultroid_cmd(

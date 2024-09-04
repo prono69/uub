@@ -132,6 +132,11 @@ RaySoThemes = (
     "midnight",
     "mono",
     "raindrop",
+    "noir",
+    "bitmap",
+    "ice",
+    "sand",
+    "forest",
 )
 
 
@@ -143,6 +148,7 @@ async def generate_rayso(
     filename=None,
 ):
     from playwright.async_api import async_playwright
+    from playwright._impl._errors import TimeoutError
 
     if not filename:
         filename = random_string(12) + ".png"
@@ -161,17 +167,35 @@ async def generate_rayso(
         try:
             await page.goto(url)
             await page.wait_for_load_state("networkidle")
-            elem = await page.query_selector("textarea[class='Editor_textarea__OxM_Z']")
-            await elem.fill(text)
-            button = await page.query_selector(
-                "button[class='ExportButton_button__MA4PI']"
-            )
-            await button.click()
-            async with page.expect_download() as dl:
-                dled = await dl.value
-                await dled.save_as(filename)
+
+            try:
+                await page.wait_for_selector(
+                    "div[class*='Editor_editor__']", timeout=60000
+                )
+                editor = await page.query_selector("div[class*='Editor_editor__']")
+                await editor.focus()
+                await editor.click()
+
+                for line in text.splitlines():
+                    await page.keyboard.type(line.strip())
+                    await page.keyboard.press("Enter")
+
+                await page.evaluate(
+                    """() => {
+                    const button = document.querySelector('button[aria-label="Export as PNG"]');
+                    button.click();
+                }"""
+                )
+
+                async with page.expect_download() as dl:
+                    dled = await dl.value
+                    await dled.save_as(filename)
+            except TimeoutError as exc:
+                return LOGS.exception(
+                    f"Timeout error while genersting rayso (playwright!): {exc}"
+                )
         except Exception as exc:
-            return LOGS.exception(f"Error while generating Rayso: {exc}")
+            return LOGS.exception(f"Error while generating Rayso (playwright): {exc}")
 
     return filename
 

@@ -133,10 +133,9 @@ async def rayso_on(ult):
     try:
         from playwright.async_api import async_playwright
     except ImportError:
-        await ult.eor(
+        return await ult.eor(
             "`playwright` is not installed!\nPlease install it to use this command.."
         )
-        return
 
     msg = await ult.eor(get_string("com_1"))
     args = unix_parser(ult.pattern_match.group(2) or "")
