@@ -2,6 +2,7 @@
 # ------------------------------------------------------ #
 
 akinator
+aiodns
 apscheduler
 aiohttp
 bs4
