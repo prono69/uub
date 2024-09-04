@@ -116,7 +116,7 @@ async def lol(ult):
     if isinstance(pic, list):
         pic = choice(pic)
     uptime = time_formatter((time.time() - start_time) * 1000)
-    header = udB.get_key("ALIVE_TEXT") or get_string("bot_1")
+    header = udB.get_key("ALIVE_TEXT") or "[🤫](emoji/5897785405092138893) Hey,  I am alive."
     repo, branch = await get_repo()
     kk = f" `[{branch}]({repo})` "
     if inline:
@@ -136,7 +136,7 @@ async def lol(ult):
             als = als.replace("🌀", _e)
     else:
         parse = "md"
-        als = (get_string("alive_1")).format(
+        als = "[🤫](emoji/5407064810040864883) **The Ultroid Userbot...**\n\n**{}**\n\nâœµ **Owner** - `{}`\nâœµ **Ultroid** - `{}`\nâœµ **Py-Ultroid** - `{}`\nâœµ **UpTime** - `{}`\nâœµ **Python** - `{}`\nâœµ **Telethon** - `{}`\nâœµ **Branch** - `{}`".format(
             header,
             OWNER_NAME,
             f"{ultroid_version} [{HOSTED_ON}]",
@@ -190,7 +190,7 @@ async def _(event):
     await event.client(PingRequest(ping_id=0))
     end = round((time.time() - start) * 1000, 3)
     uptime = time_formatter((time.time() - start_time) * 1000)
-    await x.edit(get_string("ping").format(end, uptime))
+    await x.edit("[🤫](emoji/5269563867305879894) **Pong !!** `{}ms`\n[🤫](emoji/5834822129425584578) **Uptime** - `{}`".format(end, uptime))
 
 
 @ultroid_cmd(
