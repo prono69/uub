@@ -212,6 +212,7 @@ async def _updater(
     to_edit,
     to_update=True,
     task=None,
+    who=None
 ):
     await asyncio.sleep(3)
     if call_back:
@@ -235,7 +236,7 @@ async def restartbt(ult):
     ok = await ult.eor(get_string("bot_5"))
     who = "bot" if ult.client._bot else "user"
     await _updater(
-        ok, to_edit=True, task=asyncio.sleep(6), to_update=ult.pattern_match.group(1)
+        ok, to_edit=True, task=asyncio.sleep(6), to_update=ult.pattern_match.group(1), who=who
     )
 
     """
