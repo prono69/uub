@@ -17,6 +17,30 @@ music_tag
 uvloop
 g4f
 
+# addons
+git+https://github.com/ufoptg/covid.git
+emoji
+fonttools
+gtts
+# gingerit
+jikanpy
+git+https://github.com/New-dev0/AsyncLyricsExtractor.git
+git+https://github.com/ufoptg/drawHub.git
+git+https://github.com/payel-otaku/RyuzakiLib.git
+pokedex.py
+pyfiglet
+pygments
+pyjokes
+quotefancy
+shazamio
+speechrecognition
+speedtest-cli
+textblob
+wikipedia
+https://github.com/ufoptg/google_trans_new/archive/refs/tags/1.2.0.zip
+markdownify
+
+
 # Extras:
 # - spotdl, pygithub, imgur_python
 # - https://github.com/1Danish-00/glitch_me.git#egg=glitch_me
