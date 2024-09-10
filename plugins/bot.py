@@ -236,7 +236,7 @@ async def _updater(
 async def restartbt(ult):
     ok = await ult.eor(get_string("bot_5"))
     await _updater(
-        ok, to_edit=True, task=asyncio.sleep(6), to_update=ult.pattern_match.group(1), who=who
+        ok, to_edit=True, task=asyncio.sleep(6), to_update=ult.pattern_match.group(1)
     )
 
     """
